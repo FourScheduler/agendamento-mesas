@@ -1,0 +1,3 @@
+logging:
+  level:
+    br.com.foursys.agendamento_mesas: DEBUG

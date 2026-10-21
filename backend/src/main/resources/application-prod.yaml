@@ -1,0 +1,8 @@
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+logging:
+  level:
+    br.com.foursys.agendamento_mesas: INFO

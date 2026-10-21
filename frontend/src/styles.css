@@ -1,0 +1,23 @@
+:root {
+  --navy: #222239;
+  --orange: #ff5315;
+  --orange-400: #ff892e;
+  --page-bg: #f7f8fa;
+  --card-bg: #ffffff;
+  --gray-150: #d6d6d6;
+  --gray-500: #6f6f6f;
+  --gray-800: #1e1e1e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'Nunito', sans-serif;
+  color: var(--gray-800);
+  background: var(--page-bg);
+}

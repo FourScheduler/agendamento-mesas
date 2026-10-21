@@ -1,0 +1,20 @@
+# Dependências e arquivos gerados
+node_modules/
+dist/
+target/
+.angular/
+coverage/
+out-tsc/
+*.log
+
+# Configurações locais
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+settings-local.xml
+.agents/

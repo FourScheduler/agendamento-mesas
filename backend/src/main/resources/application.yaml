@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: agendamento-mesas
+  profiles:
+    default: dev
+  config:
+    import: optional:file:.env[.properties]
+
+server:
+  port: ${SERVER_PORT:8081}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4201}
