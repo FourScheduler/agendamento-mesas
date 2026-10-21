@@ -69,6 +69,8 @@ npm.cmd start
 
 Abra `http://localhost:4201`. A página vazia é intencional: nenhuma tela foi implementada. Use `npm.cmd` no PowerShell para evitar o bloqueio de scripts de `npm.ps1`. No Git Bash, pode usar `npm`.
 
+O arquivo frontend/.npmrc usa o registro público e habilita a resolução padrão de peer dependencies somente neste projeto, sem alterar a configuração npm corporativa da máquina.
+
 O Angular encaminha `/api` para `http://localhost:8081` durante o desenvolvimento. Os ambientes usam `apiUrl: '/api'`; nenhuma chamada de negócio foi implementada.
 
 ## Validação e CI
