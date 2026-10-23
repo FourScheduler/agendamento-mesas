@@ -23,7 +23,7 @@ Todas as rotas, inclusive a consulta, exigem token de autenticação. Sem token 
 | Atributo | Descrição |
 | --- | --- |
 | Código | Identificador único da mesa, ex.: `001` a `115`. |
-| Localização | Região onde a mesa está física. No MVP de demonstração, todas na região `OPEN`. |
+| Localização | Região onde a mesa está física. No MVP de demonstração, todas na região `TAMBORÉ`. |
 | Tipo | `LIVRE` (disponível para reserva por qualquer usuário) ou `FIXA` (designada a pessoa fixa; não aparece em disponibilidade e não pode ser reservada por usuário comum). |
 | Estado ativo | Mesa inativa não aparece na planta nem pode ser reservada. |
 | Referência visual | Posição aproximada na planta, usada apenas para desenho no frontend. Não define regra de negócio. |

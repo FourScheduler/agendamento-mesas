@@ -12,7 +12,7 @@ Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto 
 | `nome` | VARCHAR(120) | NOT NULL. |
 | `email` | VARCHAR(160) | NOT NULL, UNIQUE. |
 | `senha_hash` | VARCHAR(100) | NOT NULL. Hash BCrypt; a senha em texto puro nunca é persistida nem versionada. |
-| `papel` | VARCHAR(20) | NOT NULL. `USUARIO` ou `ADMIN`. |
+| `perfil` | VARCHAR(20) | NOT NULL. `USUARIO` ou `ADMIN`. |
 | `ativo` | BOOLEAN | NOT NULL, padrão `TRUE`. Usuário inativo não autentica. |
 
 ### `mesas`
@@ -21,10 +21,10 @@ Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto 
 | --- | --- | --- |
 | `id` | BIGINT | PK, auto incremento. |
 | `codigo` | VARCHAR(10) | NOT NULL, UNIQUE. Ex.: `001`. |
-| `regiao` | VARCHAR(40) | NOT NULL. Localização física (demonstração: `OPEN`). |
+| `regiao` | VARCHAR(40) | NOT NULL. Localização física (demonstração: `TAMBORÉ`). |
 | `tipo` | VARCHAR(10) | NOT NULL. `LIVRE` ou `FIXA`. |
 | `ativa` | BOOLEAN | NOT NULL, padrão `TRUE`. |
-| `planta` | VARCHAR(20) | Referência visual da planta (demonstração: `open`). |
+| `planta` | VARCHAR(20) | Referência visual da planta (demonstração: `TAMBORÉ`). |
 | `posicao_x` | INTEGER | Referência visual (coordenada x na planta). |
 | `posicao_y` | INTEGER | Referência visual (coordenada y na planta). |
 
@@ -73,23 +73,23 @@ A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cance
 
 > Os dados abaixo são de **demonstração**, para desenvolvimento e testes. Não representam a planta oficial nem o quadro real de mesas.
 
-### Região OPEN
+### Região TAMBORÉ
 
-- **115 mesas**, códigos `001` a `115`, todas na região `OPEN`.
-- **17 mesas `LIVRE`** (códigos `001` a `017`): elegíveis para reserva.
-- **98 mesas `FIXA`** (códigos `018` a `115`): designadas a pessoas que vêm 3 ou mais dias por semana; aparecem na planta mas nunca em `/api/mesas/disponiveis`.
+- **115 mesas**, códigos `001` a `115`, todas na região `TAMBORÉ`.
+- **17 mesas `LIVRE`** (códigos `044`, `053`, `054`, `055`, `077`, `078`, `080`, `082`, `083`, `084`, `085`, `086`, `096`, `097`, `105`, `106`, `107`): elegíveis para reserva — refletem o quadro atual de mesas livres.
+- **98 mesas `FIXA`** (todas as demais): designadas a pessoas que vêm 3 ou mais dias por semana; aparecem na planta mas nunca em `/api/mesas/disponiveis`.
 - Todas `ativa = TRUE` no seed.
-- Posições visuais distribuídas em coordenadas simples da planta `open` (ex.: x de 100 a 900, y de 80 a 400).
+- Posições visuais distribuídas em coordenadas simples da planta `TAMBORÉ` (x de 100 a 820, y de 80 a 740).
 
 ### Usuários
 
-| Nome | E-mail | Papel | Observação |
+| Nome | E-mail | Perfil | Observação |
 | --- | --- | --- | --- |
 | Administrador | `admin@exemplo.com` | `ADMIN` | Acesso às rotas `/api/admin/**`. |
 | Maria Souza | `maria.souza@exemplo.com` | `USUARIO` | Exemplo de usuário comum. |
 | João Pereira | `joao.pereira@exemplo.com` | `USUARIO` | Exemplo de usuário comum. |
 
-- Senhas do seed: placeholder documentado apenas no seed de desenvolvimento (ex.: `senha-exemplo`); em qualquer ambiente real as senhas vêm de variável/segredo fora do versionamento, com hash BCrypt no banco.
+- Senha de demonstração de todos os usuários do seed: `senha1234` (guardada apenas como hash BCrypt no banco; o texto puro existe só como comentário no SQL de desenvolvimento). Em qualquer ambiente real as senhas vêm de variável/segredo fora do versionamento.
 - Nenhuma reserva no seed; reservas são criadas pelos testes e pelo uso.
 
 ### Planta de demonstração
