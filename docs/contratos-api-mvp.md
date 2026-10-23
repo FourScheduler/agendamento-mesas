@@ -7,6 +7,7 @@ Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Este documento
 - JSON em `UTF-8` em todas as rotas.
 - Datas no formato ISO `yyyy-MM-dd`; data/hora local sem offset no formato `yyyy-MM-dd'T'HH:mm:ss`; fuso único `America/Sao_Paulo` (ver [fluxo-mvp](fluxo-mvp.md)).
 - Todas as rotas exigem autenticação: header `Authorization: Bearer <token>`. Exceção: `POST /api/auth/login`. Sem token ou com token inválido: `401`.
+- O token JWT expira em 8 horas (`JWT_EXPIRACAO_HORAS` em dev). Token expirado responde `401`; o cliente deve autenticar de novo. Não há refresh token no MVP.
 - O solicitante é sempre o usuário do token. Nenhum request aceita `usuarioId`/`solicitante` editável.
 - Campos `id` são numéricos inteiros gerados pelo banco.
 
@@ -28,7 +29,7 @@ Todas as respostas de erro usam o corpo abaixo (alinhado a RFC 9457, simplificad
 | --- | --- |
 | `400` | Request malformado, campo ausente/inválido, data fora das regras (fim de semana, fora da janela de 15 dias, passada). |
 | `401` | Sem token, token expirado/inválido, ou login com credenciais erradas. |
-| `403` | Usuário autenticado sem papel adequado (rota admin acessada por usuário comum). |
+| `403` | Usuário autenticado sem perfil adequado (rota admin acessada por usuário comum). |
 | `404` | Recurso inexistente (mesa ou reserva com `id` desconhecido). |
 | `409` | Conflito de regra de negócio (mesa ocupada/fixa/inativa, reserva do usuário na data, estado inválido da reserva). |
 
@@ -57,7 +58,7 @@ Autentica e-mail + senha e retorna o token JWT. Rota única sem token.
     "id": 3,
     "nome": "Maria Souza",
     "email": "maria.souza@exemplo.com",
-    "papel": "USUARIO"
+    "perfil": "USUARIO"
   }
 }
 ```
@@ -68,6 +69,30 @@ Autentica e-mail + senha e retorna o token JWT. Rota única sem token.
 | --- | --- | --- |
 | `400` | `email` ou `senha` ausentes. | `Campo 'email' é obrigatório.` |
 | `401` | Credenciais inválidas (e-mail não existe ou senha errada — mesma resposta para não vazar existência). | `Credenciais inválidas.` |
+| `401` | Usuário existe mas está inativo. | `Usuário inativo.` |
+
+---
+
+## GET /api/auth/perfil
+
+Retorna o perfil do usuário autenticado (id e nome inclusos), identificado pelo token. Não recebe parâmetros.
+
+### Response `200`
+
+```json
+{
+  "id": 3,
+  "nome": "Maria Souza",
+  "email": "maria.souza@exemplo.com",
+  "perfil": "USUARIO"
+}
+```
+
+### Erros
+
+| Status | Situação |
+| --- | --- |
+| `401` | Sem token, token expirado/inválido ou usuário inativo/desativado após o login. |
 
 ---
 
@@ -326,7 +351,50 @@ Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momen
 
 ## Rotas de administrador
 
-Exigem token com papel `ADMIN`. Usuário comum recebe `403`.
+Exigem perfil `ADMIN`. Usuário comum recebe `403`.
+
+### POST /api/admin/usuarios
+
+Provisiona um usuário fictício para demonstração. Cadastro público não existe; esta é a única forma de criar usuário pela API.
+
+#### Request
+
+```json
+{
+  "nome": "Carlos Lima",
+  "email": "carlos.lima@exemplo.com",
+  "senha": "senha1234",
+  "perfil": "USUARIO"
+}
+```
+
+| Campo | Obrigatório | Regras |
+| --- | --- | --- |
+| `nome` | Sim | Não vazio, até 120 caracteres. |
+| `email` | Sim | Formato válido, único. |
+| `senha` | Sim | Mínimo de 6 caracteres; gravada apenas como hash BCrypt. |
+| `perfil` | Não | `USUARIO` (padrão) ou `ADMIN`. |
+
+#### Response `201`
+
+```json
+{
+  "id": 7,
+  "nome": "Carlos Lima",
+  "email": "carlos.lima@exemplo.com",
+  "perfil": "USUARIO",
+  "ativo": true
+}
+```
+
+#### Erros
+
+| Status | Situação | Exemplo de `detail` |
+| --- | --- | --- |
+| `400` | Campo ausente/inválido ou senha com menos de 6 caracteres. | `A senha deve ter pelo menos 6 caracteres.` |
+| `401` | Sem ou com token inválido. | |
+| `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
+| `409` | E-mail já cadastrado. | `E-mail já cadastrado.` |
 
 ### GET /api/admin/reservas
 
@@ -379,7 +447,7 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | --- | --- | --- |
 | `400` | `tipo` ausente ou diferente de `FIXA`/`LIVRE`. | `Campo 'tipo' deve ser FIXA ou LIVRE.` |
 | `401` | Sem ou com token inválido. | |
-| `403` | Usuário sem papel `ADMIN`. | `Acesso restrito a administradores.` |
+| `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
 | `404` | Mesa inexistente. | `Mesa 999 não encontrada.` |
 
 > Efeito sobre reservas existentes ao tornar `FIXA` uma mesa com reservas futuras é pendência de negócio (ver [fluxo-mvp](fluxo-mvp.md)). A implementação deve validar antes de aplicar a mudança.
@@ -388,15 +456,17 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 
 ## Resumo de rotas
 
-| Método | Rota | Auth | Papel |
+| Método | Rota | Auth | Perfil |
 | --- | --- | --- | --- |
 | POST | `/api/auth/login` | Não | — |
+| GET | `/api/auth/perfil` | Sim | Qualquer |
 | GET | `/api/mesas` | Sim | Qualquer |
 | GET | `/api/mesas/disponiveis` | Sim | Qualquer |
 | POST | `/api/reservas` | Sim | Qualquer |
 | POST | `/api/reservas/{id}/confirmacao` | Sim | Dono |
 | GET | `/api/reservas/minhas` | Sim | Qualquer |
 | PATCH | `/api/reservas/{id}/cancelamento` | Sim | Dono |
+| POST | `/api/admin/usuarios` | Sim | ADMIN |
 | GET | `/api/admin/reservas` | Sim | ADMIN |
 | PATCH | `/api/admin/reservas/{id}/cancelamento` | Sim | ADMIN |
 | PATCH | `/api/admin/mesas/{id}/tipo` | Sim | ADMIN |
