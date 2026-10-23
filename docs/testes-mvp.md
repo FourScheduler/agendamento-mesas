@@ -70,6 +70,20 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | 35 | Usuário comum em rota admin | `403` |
 | 36 | Usuário inativo tenta login | `401` |
 
+## Autenticação e identidade
+
+| # | Cenário | Esperado |
+| --- | --- | --- |
+| 46 | Login com credenciais válidas | `200` com `token`, `tipo: Bearer` e `usuario` (id, nome, email, perfil) |
+| 47 | `GET /api/auth/perfil` com token válido | `200` com id e nome do usuário do token |
+| 48 | Usuário desativado após o login usa o token | `401` (checagem por request) |
+| 49 | Campos `usuarioId`/`solicitante` manipulados no body | ignorados; identidade vem do token |
+| 50 | Credenciais e token não aparecem nos logs | ausentes do output de log |
+| 51 | Admin cria usuário via `POST /api/admin/usuarios` | `201` com id gerado; senha gravada como hash |
+| 52 | Criação com e-mail já cadastrado | `409` |
+| 53 | Criação com senha com menos de 6 caracteres | `400` |
+| 54 | Login retorna mesmo erro para e-mail inexistente e senha errada | `401` idêntico |
+
 ## Administrador
 
 | # | Cenário | Esperado |
