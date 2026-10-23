@@ -19,7 +19,7 @@ Todas as respostas de erro usam o corpo abaixo (alinhado a RFC 9457, simplificad
   "type": "about:blank",
   "title": "Conflito de reserva",
   "status": 409,
-  "detail": "A mesa 012 já possui uma reserva não cancelada em 2026-10-28.",
+  "detail": "A mesa 053 já possui uma reserva não cancelada em 2026-10-28.",
   "instance": "/api/reservas"
 }
 ```
@@ -84,27 +84,27 @@ Nenhum.
 ```json
 [
   {
-    "id": 1,
-    "codigo": "001",
-    "regiao": "OPEN",
+    "id": 44,
+    "codigo": "044",
+    "regiao": "PAULISTA",
     "tipo": "LIVRE",
     "ativa": true,
     "referenciaVisual": {
-      "planta": "open",
-      "x": 120,
-      "y": 80
+      "planta": "PAULISTA",
+      "x": 340,
+      "y": 320
     }
   },
   {
     "id": 18,
     "codigo": "018",
-    "regiao": "OPEN",
+    "regiao": "PAULISTA",
     "tipo": "FIXA",
     "ativa": true,
     "referenciaVisual": {
-      "planta": "open",
-      "x": 260,
-      "y": 80
+      "planta": "PAULISTA",
+      "x": 660,
+      "y": 140
     }
   }
 ]
@@ -135,15 +135,15 @@ Mesmo formato de `/api/mesas`, apenas as mesas disponíveis:
 ```json
 [
   {
-    "id": 1,
-    "codigo": "001",
-    "regiao": "OPEN",
+    "id": 44,
+    "codigo": "044",
+    "regiao": "PAULISTA",
     "tipo": "LIVRE",
     "ativa": true,
     "referenciaVisual": {
-      "planta": "open",
-      "x": 120,
-      "y": 80
+      "planta": "PAULISTA",
+      "x": 340,
+      "y": 320
     }
   }
 ]
@@ -169,7 +169,7 @@ Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um
 
 ```json
 {
-  "mesaId": 1,
+  "mesaId": 44,
   "data": "2026-10-28"
 }
 ```
@@ -183,9 +183,9 @@ Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um
   "data": "2026-10-28",
   "criadaEm": "2026-10-23T14:30:00",
   "mesa": {
-    "id": 1,
-    "codigo": "001",
-    "regiao": "OPEN"
+    "id": 44,
+    "codigo": "044",
+    "regiao": "PAULISTA"
   },
   "solicitante": {
     "id": 3,
@@ -204,7 +204,7 @@ Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um
 | `404` | `mesaId` inexistente. | `Mesa 999 não encontrada.` |
 | `409` | Mesa `FIXA`. | `Mesa 018 é fixa e não pode ser reservada.` |
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
-| `409` | Mesa já tem reserva não cancelada na data. | `A mesa 012 já possui uma reserva não cancelada em 2026-10-28.` |
+| `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
 | `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva não cancelada em 2026-10-28.` |
 
 ---
@@ -223,9 +223,9 @@ Confirma a reserva própria em estado `PENDENTE`, tornando-a `CONFIRMADA`. Só o
   "criadaEm": "2026-10-23T14:30:00",
   "confirmadaEm": "2026-10-23T14:32:10",
   "mesa": {
-    "id": 1,
-    "codigo": "001",
-    "regiao": "OPEN"
+    "id": 44,
+    "codigo": "044",
+    "regiao": "PAULISTA"
   },
   "solicitante": {
     "id": 3,
@@ -268,9 +268,9 @@ Lista as reservas do usuário autenticado, com filtro opcional por status e data
     "criadaEm": "2026-10-23T14:30:00",
     "confirmadaEm": "2026-10-23T14:32:10",
     "mesa": {
-      "id": 1,
-      "codigo": "001",
-      "regiao": "OPEN"
+      "id": 44,
+      "codigo": "044",
+      "regiao": "PAULISTA"
     }
   }
 ]
@@ -301,9 +301,9 @@ Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momen
   "criadaEm": "2026-10-23T14:30:00",
   "canceladaEm": "2026-10-24T09:00:00",
   "mesa": {
-    "id": 1,
-    "codigo": "001",
-    "regiao": "OPEN"
+    "id": 44,
+    "codigo": "044",
+    "regiao": "PAULISTA"
   },
   "solicitante": {
     "id": 3,
@@ -360,15 +360,15 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 
 ```json
 {
-  "id": 1,
-  "codigo": "001",
-  "regiao": "OPEN",
+  "id": 44,
+  "codigo": "044",
+  "regiao": "PAULISTA",
   "tipo": "FIXA",
   "ativa": true,
   "referenciaVisual": {
-    "planta": "open",
-    "x": 120,
-    "y": 80
+    "planta": "PAULISTA",
+    "x": 340,
+    "y": 320
   }
 }
 ```
