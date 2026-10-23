@@ -21,10 +21,10 @@ Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto 
 | --- | --- | --- |
 | `id` | BIGINT | PK, auto incremento. |
 | `codigo` | VARCHAR(10) | NOT NULL, UNIQUE. Ex.: `001`. |
-| `regiao` | VARCHAR(40) | NOT NULL. Localização física (demonstração: `PAULISTA`). |
+| `regiao` | VARCHAR(40) | NOT NULL. Localização física (demonstração: `TAMBORÉ`). |
 | `tipo` | VARCHAR(10) | NOT NULL. `LIVRE` ou `FIXA`. |
 | `ativa` | BOOLEAN | NOT NULL, padrão `TRUE`. |
-| `planta` | VARCHAR(20) | Referência visual da planta (demonstração: `PAULISTA`). |
+| `planta` | VARCHAR(20) | Referência visual da planta (demonstração: `TAMBORÉ`). |
 | `posicao_x` | INTEGER | Referência visual (coordenada x na planta). |
 | `posicao_y` | INTEGER | Referência visual (coordenada y na planta). |
 
@@ -73,13 +73,13 @@ A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cance
 
 > Os dados abaixo são de **demonstração**, para desenvolvimento e testes. Não representam a planta oficial nem o quadro real de mesas.
 
-### Região PAULISTA
+### Região TAMBORÉ
 
-- **115 mesas**, códigos `001` a `115`, todas na região `PAULISTA`.
+- **115 mesas**, códigos `001` a `115`, todas na região `TAMBORÉ`.
 - **17 mesas `LIVRE`** (códigos `044`, `053`, `054`, `055`, `077`, `078`, `080`, `082`, `083`, `084`, `085`, `086`, `096`, `097`, `105`, `106`, `107`): elegíveis para reserva — refletem o quadro atual de mesas livres.
 - **98 mesas `FIXA`** (todas as demais): designadas a pessoas que vêm 3 ou mais dias por semana; aparecem na planta mas nunca em `/api/mesas/disponiveis`.
 - Todas `ativa = TRUE` no seed.
-- Posições visuais distribuídas em coordenadas simples da planta `PAULISTA` (x de 100 a 820, y de 80 a 740).
+- Posições visuais distribuídas em coordenadas simples da planta `TAMBORÉ` (x de 100 a 820, y de 80 a 740).
 
 ### Usuários
 

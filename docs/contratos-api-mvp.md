@@ -86,11 +86,11 @@ Nenhum.
   {
     "id": 44,
     "codigo": "044",
-    "regiao": "PAULISTA",
+    "regiao": "TAMBORÉ",
     "tipo": "LIVRE",
     "ativa": true,
     "referenciaVisual": {
-      "planta": "PAULISTA",
+      "planta": "TAMBORÉ",
       "x": 340,
       "y": 320
     }
@@ -98,11 +98,11 @@ Nenhum.
   {
     "id": 18,
     "codigo": "018",
-    "regiao": "PAULISTA",
+    "regiao": "TAMBORÉ",
     "tipo": "FIXA",
     "ativa": true,
     "referenciaVisual": {
-      "planta": "PAULISTA",
+      "planta": "TAMBORÉ",
       "x": 660,
       "y": 140
     }
@@ -137,11 +137,11 @@ Mesmo formato de `/api/mesas`, apenas as mesas disponíveis:
   {
     "id": 44,
     "codigo": "044",
-    "regiao": "PAULISTA",
+    "regiao": "TAMBORÉ",
     "tipo": "LIVRE",
     "ativa": true,
     "referenciaVisual": {
-      "planta": "PAULISTA",
+      "planta": "TAMBORÉ",
       "x": 340,
       "y": 320
     }
@@ -185,7 +185,7 @@ Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um
   "mesa": {
     "id": 44,
     "codigo": "044",
-    "regiao": "PAULISTA"
+    "regiao": "TAMBORÉ"
   },
   "solicitante": {
     "id": 3,
@@ -225,7 +225,7 @@ Confirma a reserva própria em estado `PENDENTE`, tornando-a `CONFIRMADA`. Só o
   "mesa": {
     "id": 44,
     "codigo": "044",
-    "regiao": "PAULISTA"
+    "regiao": "TAMBORÉ"
   },
   "solicitante": {
     "id": 3,
@@ -270,7 +270,7 @@ Lista as reservas do usuário autenticado, com filtro opcional por status e data
     "mesa": {
       "id": 44,
       "codigo": "044",
-      "regiao": "PAULISTA"
+      "regiao": "TAMBORÉ"
     }
   }
 ]
@@ -303,7 +303,7 @@ Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momen
   "mesa": {
     "id": 44,
     "codigo": "044",
-    "regiao": "PAULISTA"
+    "regiao": "TAMBORÉ"
   },
   "solicitante": {
     "id": 3,
@@ -362,11 +362,11 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 {
   "id": 44,
   "codigo": "044",
-  "regiao": "PAULISTA",
+  "regiao": "TAMBORÉ",
   "tipo": "FIXA",
   "ativa": true,
   "referenciaVisual": {
-    "planta": "PAULISTA",
+    "planta": "TAMBORÉ",
     "x": 340,
     "y": 320
   }
