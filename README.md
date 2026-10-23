@@ -91,4 +91,8 @@ As portas 8081 e 4201 permitem executar este projeto junto do agendamento-salas,
 
 - [Arquitetura](docs/arquitetura.md)
 - [Padrões visuais](docs/padroes-visuais.md)
+- [MVP de mesas — fluxo e regras](docs/fluxo-mvp.md)
+- [MVP de mesas — contratos da API](docs/contratos-api-mvp.md)
+- [MVP de mesas — modelo de dados e demonstração](docs/modelo-dados-mvp.md)
+- [MVP de mesas — cenários de teste](docs/testes-mvp.md)
 - [Instruções do projeto](AGENTS.md)
