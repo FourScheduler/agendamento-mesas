@@ -2,6 +2,10 @@
 
 Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto de demonstração.
 
+> O catálogo já está implementado. A modelagem de reservas abaixo ainda usa dia
+> inteiro; sua evolução para horários será necessária para atender à decisão atual
+> de reservas por horário. Esta entrega não cria disponibilidade global no catálogo.
+
 ## Tabelas
 
 ### `usuarios`
@@ -65,7 +69,7 @@ A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cance
 
 ## Regras de consulta derivadas
 
-- `/api/mesas` retorna mesas com `ativa = TRUE` (fixas e livres).
+- `/api/mesas` retorna todas as mesas (fixas, livres e inativas), ordenadas por código, sem disponibilidade temporal.
 - `/api/mesas/disponiveis?data=D` retorna mesas com `ativa = TRUE` E `tipo = 'LIVRE'` E sem reserva em `D` com status em (`PENDENTE`, `CONFIRMADA`).
 - `/api/reservas/minhas` filtra por `usuario_id` do token.
 
@@ -76,10 +80,10 @@ A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cance
 ### Região TAMBORÉ
 
 - **115 mesas**, códigos `001` a `115`, todas na região `TAMBORÉ`.
-- **17 mesas `LIVRE`** (códigos `044`, `053`, `054`, `055`, `077`, `078`, `080`, `082`, `083`, `084`, `085`, `086`, `096`, `097`, `105`, `106`, `107`): elegíveis para reserva — refletem o quadro atual de mesas livres.
-- **98 mesas `FIXA`** (todas as demais): designadas a pessoas que vêm 3 ou mais dias por semana; aparecem na planta mas nunca em `/api/mesas/disponiveis`.
-- Todas `ativa = TRUE` no seed.
-- Posições visuais distribuídas em coordenadas simples da planta `TAMBORÉ` (x de 100 a 820, y de 80 a 740).
+- **17 mesas `LIVRE`** (códigos `044`, `053`, `054`, `055`, `077`, `078`, `080`, `082`, `083`, `084`, `085`, `086`, `096`, `097`, `105`, `106`, `107`): elegíveis para consulta de disponibilidade; conjunto inteiramente fictício.
+- **98 mesas `FIXA`** (todas as demais): demonstração sem vínculo com pessoas reais; aparecem na planta e não são elegíveis para reserva.
+- Após `V3`, `005` é inativa; as demais 114 são ativas. Ver [carga e contrato visual](catalogo-demonstracao.md).
+- Após `V4`, posições da planta `TAMBORÉ` seguem a geometria de referência: x de 24 a 1402 e y de 24 a 1857, em dois blocos com corredor e entrada. Ver [contrato visual](catalogo-demonstracao.md).
 
 ### Usuários
 

@@ -9,7 +9,7 @@ Projeto independente baseado nos padrões técnicos do agendamento-salas.
 
 O backend possui a aplicação Spring Boot com persistência MySQL (Flyway), autenticação local (Spring Security + JWT) e CORS para `/api/**` restrito à porta 4201 do frontend. Não há integrações externas. O servidor inicia sem `.env`; configurações opcionais são documentadas em `backend/.env.example`. Em desenvolvimento o JWT usa segredo padrão no `application.yaml`, sobrescrevível por `JWT_SECRET`.
 
-O frontend possui bootstrap standalone, router sem rotas, HttpClient, arquivos de ambiente e tokens visuais. A página em branco é esperada nesta etapa: nenhuma tela foi solicitada. O proxy local encaminha `/api/**` para a porta 8081. Em produção, a infraestrutura deverá encaminhar `/api` ao backend no mesmo domínio; o proxy do Angular só vale para desenvolvimento.
+O frontend possui bootstrap standalone, HttpClient, arquivos de ambiente e tokens visuais. A rota inicial carrega `CatalogoPage`, que autentica pela API local e hospeda `PlantaMesas` com o token mantido em memória. A planta consome IDs e coordenadas do catálogo; a seleção apenas exibe detalhes, sem criar reservas. O proxy local encaminha `/api/**` para a porta 8081. Em produção, a infraestrutura deverá encaminhar `/api` ao backend no mesmo domínio; o proxy do Angular só vale para desenvolvimento.
 
 Profiles Spring: `dev` por padrão, `prod` para logs e erros de produção e `test` para os testes. Nenhum exige credenciais nesta etapa. A configuração `prod` não representa infraestrutura de implantação pronta.
 
