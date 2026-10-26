@@ -1,8 +1,8 @@
 package br.com.foursys.agendamento_mesas.service;
 
-import br.com.foursys.agendamento_mesas.dto.LoginRequest;
-import br.com.foursys.agendamento_mesas.dto.LoginResponse;
+import br.com.foursys.agendamento_mesas.dto.request.LoginRequest;
 import br.com.foursys.agendamento_mesas.dto.UsuarioResumo;
+import br.com.foursys.agendamento_mesas.dto.response.LoginResponse;
 import br.com.foursys.agendamento_mesas.exceptions.CredenciaisInvalidasException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioInativoException;
 import br.com.foursys.agendamento_mesas.model.Usuario;
@@ -54,6 +54,10 @@ public class AuthService {
     }
 
     static UsuarioResumo resumo(Usuario usuario) {
-        return new UsuarioResumo(usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPapel());
+        return new UsuarioResumo(
+            usuario.getId(),
+            usuario.getNome(),
+            usuario.getEmail(),
+            usuario.getPapel());
     }
 }

@@ -1,8 +1,8 @@
 package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.service.AuthService;
-import br.com.foursys.agendamento_mesas.dto.LoginRequest;
-import br.com.foursys.agendamento_mesas.dto.LoginResponse;
+import br.com.foursys.agendamento_mesas.dto.request.LoginRequest;
+import br.com.foursys.agendamento_mesas.dto.response.LoginResponse;
 import br.com.foursys.agendamento_mesas.dto.UsuarioResumo;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import org.springframework.http.ResponseEntity;
