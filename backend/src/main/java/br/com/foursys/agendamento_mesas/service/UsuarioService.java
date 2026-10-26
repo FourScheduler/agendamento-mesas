@@ -1,6 +1,6 @@
 package br.com.foursys.agendamento_mesas.service;
 
-import br.com.foursys.agendamento_mesas.dto.CriarUsuarioRequest;
+import br.com.foursys.agendamento_mesas.dto.request.CriarUsuarioRequest;
 import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
 import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;

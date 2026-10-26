@@ -5,9 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.jayway.jsonpath.JsonPath;
+import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
+import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.repository.MesaRepository;
+import br.com.foursys.agendamento_mesas.repository.ReservaRepository;
 import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import br.com.foursys.agendamento_mesas.service.MesaService;
@@ -23,6 +27,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @ActiveProfiles("test")
 @SpringBootTest(properties = {
@@ -35,6 +43,7 @@ class CatalogoMesasTests {
     @Autowired MesaRepository repository;
     @Autowired MesaService service;
     @Autowired UsuarioRepository usuarios;
+    @Autowired ReservaRepository reservas;
     @Autowired JwtService jwt;
 
     @Test
@@ -61,6 +70,71 @@ class CatalogoMesasTests {
     @Test
     void catalogoExigeAutenticacao() throws Exception {
         mvc.perform(get("/api/mesas")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void disponibilidadeExigeAutenticacao() throws Exception {
+        mvc.perform(get("/api/mesas/disponiveis").param("data", LocalDate.now().plusDays(1).toString()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void disponibilidadeExigeDataEmFormatoIso() throws Exception {
+        String token = jwt.gerarToken(usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow());
+
+        mvc.perform(get("/api/mesas/disponiveis").header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+
+        mvc.perform(get("/api/mesas/disponiveis")
+                        .param("data", "28-10-2026")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void disponibilidadeBloqueiaPendentesEConfirmadasIgnoraCanceladasEMapeiaCatalogo() throws Exception {
+        LocalDate data = LocalDate.now().plusDays(1);
+        var usuario = usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow();
+        Mesa pendente = repository.save(new Mesa("901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20));
+        Mesa confirmada = repository.save(new Mesa("902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40));
+        Mesa cancelada = repository.save(new Mesa("903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 50, 60));
+        Mesa outraData = repository.save(new Mesa("904", "DEMO", TipoMesa.LIVRE, true, "DEMO", 70, 80));
+        repository.save(new Mesa("905", "DEMO", TipoMesa.FIXA, true, "DEMO", 90, 100));
+        repository.save(new Mesa("906", "DEMO", TipoMesa.LIVRE, false, "DEMO", 110, 120));
+
+        reservas.save(new Reserva(pendente, usuario, data, StatusReserva.PENDENTE));
+        reservas.save(new Reserva(confirmada, usuario, data, StatusReserva.CONFIRMADA));
+        Reserva reservaCancelada = new Reserva(cancelada, usuario, data, StatusReserva.CANCELADA);
+        reservaCancelada.setCanceladaEm(LocalDateTime.now());
+        reservas.save(reservaCancelada);
+        reservas.save(new Reserva(outraData, usuario, data.plusDays(1), StatusReserva.CONFIRMADA));
+        reservas.flush();
+
+        String token = jwt.gerarToken(usuario);
+        String resposta = mvc.perform(get("/api/mesas/disponiveis")
+                        .param("data", data.toString())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        List<Map<String, Object>> mesasDisponiveis = JsonPath.read(resposta, "$");
+        List<Object> codigos = mesasDisponiveis.stream().map(mesa -> mesa.get("codigo")).toList();
+
+        assertThat(codigos)
+                .doesNotContain("901", "902", "905", "906")
+                .contains("903", "904");
+        assertThat(mesasDisponiveis).allSatisfy(mesa ->
+                assertThat(mesa).doesNotContainKey("solicitante"));
+        assertThat(mesasDisponiveis).anySatisfy(mesa -> {
+            assertThat(mesa.get("codigo")).isEqualTo("903");
+            assertThat(mesa.get("id")).isEqualTo(cancelada.getId().intValue());
+            assertThat(mesa.get("regiao")).isEqualTo("DEMO");
+            assertThat(mesa.get("tipo")).isEqualTo("LIVRE");
+            assertThat(mesa.get("ativa")).isEqualTo(true);
+            Map<?, ?> referenciaVisual = (Map<?, ?>) mesa.get("referenciaVisual");
+            assertThat(referenciaVisual.get("planta")).isEqualTo("DEMO");
+            assertThat(referenciaVisual.get("x")).isEqualTo(50);
+            assertThat(referenciaVisual.get("y")).isEqualTo(60);
+        });
     }
 
     @Test

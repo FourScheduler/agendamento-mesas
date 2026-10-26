@@ -1,9 +1,12 @@
 package br.com.foursys.agendamento_mesas.service;
 
-import br.com.foursys.agendamento_mesas.dto.MesaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.repository.MesaRepository;
+import br.com.foursys.agendamento_mesas.repository.ReservaRepository;
+
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,19 +16,19 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional(readOnly = true)
 public class MesaService {
-    private final MesaRepository mesas;
+    private final MesaRepository mesasRepository;
 
     public MesaService(MesaRepository mesas) {
-        this.mesas = mesas;
+        this.mesasRepository = mesas;
     }
 
     public List<MesaResponse> listar() {
-        return mesas.findAllByOrderByCodigoAsc().stream().map(MesaResponse::de).toList();
+        return mesasRepository.findAllByOrderByCodigoAsc().stream().map(MesaResponse::de).toList();
     }
 
     /** Elegibilidade do catálogo. O fluxo de reserva deve ainda validar o período e conflitos. */
     public Mesa obterParaReserva(Long id) {
-        Mesa mesa = mesas.findById(id).orElseThrow(() ->
+        Mesa mesa = mesasRepository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + id + " não encontrada."));
         if (!mesa.isAtiva()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " está inativa.");
@@ -35,5 +38,30 @@ public class MesaService {
                     "Mesa " + mesa.getCodigo() + " é fixa e não pode ser reservada.");
         }
         return mesa;
+    }
+
+    public List<MesaResponse> listarDisponiveis(LocalDate data) {
+
+        validarData(data);
+
+        return mesasRepository
+            .buscarMesasDisponiveis(data, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA)
+            .stream()
+            .map(MesaResponse::de)
+            .toList();
+    }
+
+    //Métodos utilitários
+
+    private void validarData(LocalDate data) {
+
+        if (data == null) {
+            throw new IllegalArgumentException("A data é obrigatória.");
+        }
+
+        if (data.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException(
+                "Não é permitido consultar agendamentos em datas passadas.");
+        }
     }
 }

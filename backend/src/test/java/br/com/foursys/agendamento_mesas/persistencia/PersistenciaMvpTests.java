@@ -155,6 +155,9 @@ class PersistenciaMvpTests {
         Reserva reserva = reservaRepository.saveAndFlush(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
 
+        assertThat(mesaRepository.buscarMesasDisponiveis(
+                DATA, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA))
+                .doesNotContain(mesa);
         assertThat(reservaRepository.mesaOcupadaNaData(mesa.getId(), DATA, ReservaRepository.BLOQUEIA_MESA)).isTrue();
         assertThat(reservaRepository.usuarioTemReservaNaData(usuario.getId(), DATA, ReservaRepository.BLOQUEIA_MESA))
                 .isTrue();
@@ -164,13 +167,23 @@ class PersistenciaMvpTests {
         reserva.setCanceladaEm(LocalDateTime.now());
         reservaRepository.flush();
 
+        assertThat(mesaRepository.buscarMesasDisponiveis(
+                DATA, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA))
+                .contains(mesa);
         assertThat(reservaRepository.mesaOcupadaNaData(mesa.getId(), DATA, ReservaRepository.BLOQUEIA_MESA)).isFalse();
         assertThat(reservaRepository.usuarioTemReservaNaData(usuario.getId(), DATA, ReservaRepository.BLOQUEIA_MESA))
                 .isFalse();
+
+        reserva.setStatus(StatusReserva.CONFIRMADA);
+        reserva.setCanceladaEm(null);
+        reservaRepository.flush();
+
+        assertThat(mesaRepository.buscarMesasDisponiveis(
+                DATA, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA))
+                .doesNotContain(mesa);
 
         // O vÃ­nculo histÃ³rico com o solicitante permanece apÃ³s o cancelamento.
         assertThat(reservaRepository.findById(reserva.getId()).orElseThrow().getUsuario().getId())
                 .isEqualTo(usuario.getId());
     }
 }
-
