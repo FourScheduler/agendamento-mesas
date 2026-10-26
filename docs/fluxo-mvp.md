@@ -1,5 +1,10 @@
 # Fluxo e regras de negócio do MVP de mesas
 
+> Atualização do catálogo: a decisão vigente é reservar **por horário**. O contrato
+> diário descrito abaixo é histórico e precisa de revisão antes da implementação
+> de reservas. `GET /api/mesas` já está implementado e inclui mesas inativas,
+> sem informar ocupação. Ver [catálogo de demonstração](catalogo-demonstracao.md).
+
 Este documento descreve o fluxo aprovado e as regras de negócio do MVP de agendamento de mesas. Ele é a referência para implementação do backend; nenhum endpoint está implementado nesta etapa.
 
 Parte do MVP: issue #1.
@@ -25,7 +30,7 @@ Todas as rotas, inclusive a consulta, exigem token de autenticação. Sem token 
 | Código | Identificador único da mesa, ex.: `001` a `115`. |
 | Localização | Região onde a mesa está física. No MVP de demonstração, todas na região `TAMBORÉ`. |
 | Tipo | `LIVRE` (disponível para reserva por qualquer usuário) ou `FIXA` (designada a pessoa fixa; não aparece em disponibilidade e não pode ser reservada por usuário comum). |
-| Estado ativo | Mesa inativa não aparece na planta nem pode ser reservada. |
+| Estado ativo | Mesa inativa aparece identificada na planta e não pode ser reservada. |
 | Referência visual | Posição aproximada na planta, usada apenas para desenho no frontend. Não define regra de negócio. |
 
 Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /api/admin/mesas/{id}/tipo`).

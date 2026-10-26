@@ -1,6 +1,6 @@
 # Contratos da API do MVP de mesas
 
-Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Este documento define requests, responses e exemplos de erro para implementação. Nada está implementado nesta etapa; os exemplos são o alvo do backend e do frontend.
+Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Autenticação local e `GET /api/mesas` estão implementados. As seções de reservas por dia são históricas: a decisão vigente é reservar por horário e esse contrato ainda precisa evoluir antes de implementar reservas. Ver [catálogo de demonstração](catalogo-demonstracao.md).
 
 ## Convenções
 
@@ -98,7 +98,7 @@ Retorna o perfil do usuário autenticado (id e nome inclusos), identificado pelo
 
 ## GET /api/mesas
 
-Lista todas as mesas **ativas** para a planta (códigos, localização, tipo e posição visual). O cliente diferencia `LIVRE` de `FIXA` pelo campo `tipo`; mesas inativas não são retornadas.
+Lista **todas as mesas**, inclusive inativas, ordenadas por `codigo`, com códigos, localização, tipo e posição visual. O cliente diferencia `LIVRE` de `FIXA` por `tipo` e identifica inativas por `ativa=false`. Esta rota está implementada; não calcula disponibilidade temporal. Ver [catálogo de demonstração](catalogo-demonstracao.md).
 
 ### Query params
 
@@ -116,8 +116,8 @@ Nenhum.
     "ativa": true,
     "referenciaVisual": {
       "planta": "TAMBORÉ",
-      "x": 340,
-      "y": 320
+      "x": 590,
+      "y": 1108
     }
   },
   {
@@ -128,8 +128,8 @@ Nenhum.
     "ativa": true,
     "referenciaVisual": {
       "planta": "TAMBORÉ",
-      "x": 660,
-      "y": 140
+      "x": 213,
+      "y": 457
     }
   }
 ]
@@ -167,8 +167,8 @@ Mesmo formato de `/api/mesas`, apenas as mesas disponíveis:
     "ativa": true,
     "referenciaVisual": {
       "planta": "TAMBORÉ",
-      "x": 340,
-      "y": 320
+      "x": 590,
+      "y": 1108
     }
   }
 ]
@@ -435,8 +435,8 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
   "ativa": true,
   "referenciaVisual": {
     "planta": "TAMBORÉ",
-    "x": 340,
-    "y": 320
+    "x": 590,
+    "y": 1108
   }
 }
 ```

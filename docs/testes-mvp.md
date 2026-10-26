@@ -26,7 +26,7 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | 11 | Mesa inativa | Mesa com `ativa = FALSE` em `/disponiveis` e na criação | ausente da lista; `409` na criação |
 | 12 | Disponibilidade filtra fixas | `/api/mesas/disponiveis?data=D` | retorna só `LIVRE` sem reserva |
 | 13 | Disponibilidade filtra ocupadas | Mesa com reserva `CONFIRMADA` em `D` | ausente da lista de `D` |
-| 14 | Mesa inativa fora da planta | `/api/mesas` | inativas não aparecem |
+| 14 | Mesa inativa identificável na planta | `/api/mesas` | inativas aparecem com `ativa=false`, código, ID e posição; seleção bloqueada |
 
 ## Conflitos de reserva (`409`)
 
