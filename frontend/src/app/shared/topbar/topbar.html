@@ -1,5 +1,5 @@
 <header class="topbar">
-  <a class="topbar__marca" routerLink="/" aria-label="Portal — início">
+  <a class="topbar__marca" routerLink="/agendamento" aria-label="Portal — início">
     <img
       class="topbar__simbolo"
       src="/logo-portal.png"
@@ -11,9 +11,10 @@
   </a>
   <nav aria-label="Navegação principal">
     <a
-      class="topbar__item topbar__item--ativo"
-      routerLink="/"
-      aria-current="page"
+      class="topbar__item"
+      routerLink="/agendamento"
+      routerLinkActive="topbar__item--ativo"
+      [routerLinkActiveOptions]="{ exact: false }"
     >
       <svg
         class="topbar__menu-icone"
@@ -28,8 +29,29 @@
         <rect x="1" y="2.5" width="14" height="12.5" rx="2" />
         <path d="M1 6.5h14M4.5 0.5v3M11.5 0.5v3" stroke-linecap="round" />
       </svg>
-      <span>Agendamento de Mesas</span>
-      <span class="topbar__selo">Novo</span>
+      <span>Agendamento</span>
+    </a>
+    <a
+      class="topbar__item"
+      routerLink="/minhas-reservas"
+      routerLinkActive="topbar__item--ativo"
+      [routerLinkActiveOptions]="{ exact: false }"
+    >
+      <svg
+        class="topbar__menu-icone"
+        viewBox="0 0 16 16"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        aria-hidden="true"
+      >
+        <rect x="3" y="4" width="10" height="10" rx="1" />
+        <path d="M6 8h8M8 6v8" stroke-linecap="round" stroke-width="1.2" />
+        <path d="M3 16h10" stroke-linecap="round" />
+      </svg>
+      <span>Minhas reservas</span>
     </a>
   </nav>
   @if (usuario()) {
@@ -65,5 +87,5 @@
       }
     </div>
   </div>
-  } @else { <a class="topbar__entrar" href="#email">Entrar</a> }
+  } @else { <a class="topbar__entrar" routerLink="/login">Entrar</a> }
 </header>
