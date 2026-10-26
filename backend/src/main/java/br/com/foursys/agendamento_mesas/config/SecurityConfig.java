@@ -38,19 +38,19 @@ public class SecurityConfig {
     public SecurityFilterChain filtroSeguranca(HttpSecurity http) throws Exception {
         JwtAuthenticationFilter filtroJwt = new JwtAuthenticationFilter(jwtService, usuarioPorTokenService);
         http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
-                .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(requisicoes -> requisicoes
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .exceptionHandling(erros -> erros
-                        .authenticationEntryPoint(new EntradaNaoAutenticado())
-                        .accessDeniedHandler(new AcessoNegadoTratador()))
-                .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> {
+            })
+            .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(requisicoes -> requisicoes
+                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .requestMatchers("/error").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated())
+            .exceptionHandling(erros -> erros
+                .authenticationEntryPoint(new EntradaNaoAutenticado())
+                .accessDeniedHandler(new AcessoNegadoTratador()))
+            .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

@@ -22,6 +22,8 @@
   --selection-bg: #fffaf6;
   --mesa-livre: #10b981;
   --mesa-livre-texto: #047857;
+  --mesa-livre-bg: #ecfdf5;
+  --mesa-fixa-bg: #fef2f2;
   --mapa-fixa: #f3f4f6;
   --mapa-borda: #d1d5db;
   --mapa-linha: #93c5fd;
@@ -147,34 +149,46 @@ input {
 .legenda__itens {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
+  align-items: center;
+  gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
   color: var(--muted);
   font-size: 0.75rem;
+  font-weight: 500;
 }
 .legenda__itens li {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: var(--surface);
+  transition: background 0.15s ease;
+}
+.legenda__itens li:hover {
+  background: var(--border-soft);
 }
 .amostra {
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--border);
+  width: 12px;
+  height: 12px;
   border-radius: 3px;
-  background: white;
+  flex-shrink: 0;
 }
 .amostra--fixa {
-  background: var(--mapa-fixa);
+  background: var(--mesa-fixa-bg);
+  border: 1.5px solid var(--error);
+  box-shadow: 0 0 0 2px white inset;
 }
 .amostra--livre {
-  border-color: var(--mesa-livre);
+  background: var(--mesa-livre-bg);
+  border: 1.5px solid var(--mesa-livre);
+  box-shadow: 0 0 0 2px white inset;
 }
 .amostra--inativa {
   background: var(--disabled);
-  border-style: dashed;
+  border: 1.5px dashed var(--gray-200);
 }
 .amostra--selecionada {
   background: var(--selection-bg);

@@ -12,8 +12,8 @@ import {
   viewChild,
 } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
-import { Mesa } from "./mesa";
-import { MesaService } from "./mesa.service";
+import { Mesa } from "../mesas/mesa";
+import { MesaService } from "../mesas/mesa.service";
 import {
   PLANTA_TAMBORE,
   TAMANHO_MESA,
@@ -35,6 +35,7 @@ export class PlantaMesas {
   readonly carregando = signal(false);
   readonly erro = signal("");
   readonly selecionada = signal<number | null>(null);
+  readonly mostrarRotulos = signal(false);
   readonly layoutTambore = PLANTA_TAMBORE;
   private readonly larguraViewport = signal(0);
   private readonly viewport =
@@ -140,6 +141,10 @@ export class PlantaMesas {
     if (!mesa.ativa || mesa.tipo !== "LIVRE") return;
     this.selecionada.set(mesa.id);
     this.mesaSelecionada.emit(mesa);
+  }
+
+  alternarRotulos() {
+    this.mostrarRotulos.update((v) => !v);
   }
 
   codigoExibido(codigo: string) {

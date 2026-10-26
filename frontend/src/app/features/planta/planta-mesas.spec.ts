@@ -5,7 +5,7 @@ import {
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
 import { PlantaMesas } from "./planta-mesas";
-import { Mesa } from "./mesa";
+import { Mesa } from "../mesas/mesa";
 
 describe("PlantaMesas", () => {
   let http: HttpTestingController;
@@ -99,7 +99,7 @@ describe("PlantaMesas", () => {
     request.flush(mesas);
     fixture.detectChanges();
     const buttons = fixture.nativeElement.querySelectorAll(
-      "button",
+      "button.mesa",
     ) as NodeListOf<HTMLButtonElement>;
     expect(buttons.length).toBe(3);
     const planta = fixture.componentInstance.plantas()[0];
