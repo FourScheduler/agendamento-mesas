@@ -22,6 +22,31 @@
         <span class="amostra amostra--selecionada" aria-hidden="true"></span
         >Selecionada
       </li>
+      
+        <button
+          type="button"
+          class="botao-icone"
+          (click)="alternarRotulos()"
+          [attr.aria-pressed]="mostrarRotulos()"
+          aria-label="{{ mostrarRotulos() ? 'Ocultar nomes das mesas' : 'Mostrar nomes das mesas' }}"
+        >
+          <svg
+            class="icone-olho"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      
     </ul>
   </header>
   <div class="mapa__corpo">
@@ -103,10 +128,13 @@
             (click)="selecionar(mesa)"
           >
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
-            <span class="mesa__estado"
-              >{{ !mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Mesa fixa' :
-              'Livre' }}</span
-            >
+            @if (!mesa.ativa) {
+              <span class="mesa__estado">Inativa</span>
+            } @else if (mesa.tipo === 'LIVRE') {
+              <span class="mesa__estado">Livre</span>
+            } @else if (mostrarRotulos()) {
+              <span class="mesa__estado">Mesa fixa</span>
+            }
             @if (mesa.ativa && mesa.tipo === 'LIVRE') {
             <span
               class="mesa__marcador"

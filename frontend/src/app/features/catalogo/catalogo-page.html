@@ -11,7 +11,7 @@
   } @if (sessao(); as atual) {
   <div class="catalogo__corpo">
     <app-planta-mesas
-      [token]="atual.token"
+      [token]="tokenAtual"
       (mesaSelecionada)="selecionada.set($event)"
       (sessaoExpirada)="sair(true)"
     />
