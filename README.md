@@ -67,7 +67,7 @@ npm.cmd ci
 npm.cmd start
 ```
 
-Abra `http://localhost:4201`. A página inicial oferece login local e, após autenticar, exibe a planta de demonstração carregada da API. No perfil `dev`, uma conta fictícia disponível é `maria.souza@exemplo.com`, senha `senha1234`. Use `npm.cmd` no PowerShell para evitar o bloqueio de scripts de `npm.ps1`. No Git Bash, pode usar `npm`.
+Abra `http://localhost:4201`. A página inicial direciona ao login local e, após autenticar, abre `/agendamento` com a lista de mesas disponíveis para o dia. O botão “Ver mapa” abre `/mapa`, preservando a data escolhida e permitindo confirmar pela planta. A navegação e a página preparatória `/minhas-reservas` também estão disponíveis. No perfil `dev`, uma conta fictícia disponível é `maria.souza@exemplo.com`, senha `senha1234`. Use `npm.cmd` no PowerShell para evitar o bloqueio de scripts de `npm.ps1`. No Git Bash, pode usar `npm`.
 
 O arquivo frontend/.npmrc usa o registro público e habilita a resolução padrão de peer dependencies somente neste projeto, sem alterar a configuração npm corporativa da máquina.
 

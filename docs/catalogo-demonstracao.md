@@ -51,14 +51,14 @@ Reservas são de **dia inteiro**. A planta combina `GET /api/mesas` com `GET /ap
 
 ## Consumidor Angular
 
-`CatalogoPage`, na rota `/`, autentica, escolhe o dia e hospeda o componente:
+`MapaPage`, na rota protegida `/mapa`, permite escolher o dia e hospeda o componente abaixo. `AgendamentoPage`, em `/agendamento`, apresenta a lista de mesas disponíveis e o resumo da reserva. As duas telas compartilham `ReservaDiaria`, usam o mesmo POST e preservam a data ao navegar entre lista e planta:
 
 ```html
 <app-planta-mesas [token]="tokenDaSessao" [data]="dataEscolhida"
   [atualizacao]="versaoDaConsulta" (mesaSelecionada)="selecionarMesa($event)" />
 ```
 
-O token é mantido em `localStorage`. Ao recarregar, `GET /api/auth/perfil` recupera a identidade real antes de permitir reservar. Sair ou receber `401` encerra a sessão.
+O login fica em `/login`, com sessão compartilhada por `AuthService`. O token é mantido em `localStorage`; os guards recuperam a identidade real em `GET /api/auth/perfil` antes de abrir as rotas protegidas após recarregar. Sair ou receber `401` limpa o token e volta ao login. A barra de navegação e a página preparatória `/minhas-reservas` da develop foram preservadas.
 
 Após selecionar uma mesa disponível, o usuário revisa mesa, dia inteiro e solicitante e envia `POST /api/reservas` com `mesaId` e `data`. O botão e a data ficam bloqueados durante o envio. A API deriva a autoria do token. Sucesso só é exibido após a resposta de confirmação, com identificação da reserva.
 

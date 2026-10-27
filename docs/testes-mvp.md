@@ -57,7 +57,7 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 
 `ReservaApiTests` usa transações independentes e relógio fixo. `ReservaMySqlTests` repete a suíte em schema exclusivo terminado em `_test`, configurado por `TEST_MYSQL_URL`. O CI provisiona MySQL 8.4 e executa os dois bancos. `DataReservaValidatorTests` cobre a virada de dia UTC/São Paulo.
 
-O frontend cobre confirmação sem autoria editável, duplo clique, sucesso após resposta, atualização de disponibilidade, erros `400`, `401`, `409`, rede/servidor, troca de data e restauração do perfil.
+O frontend cobre confirmação sem autoria editável tanto na lista quanto no mapa, duplo clique, sucesso após resposta, atualização de disponibilidade, erros `400`, `401`, `409`, rede/servidor e cancelamento de consulta ao trocar de data. Os testes de sessão/guards verificam restauração do perfil real, token expirado sem loop de navegação, logout e resposta de perfil recebida após logout. As rotas de login, agendamento, mapa e minhas reservas são preservadas, incluindo a data no trânsito entre lista e planta.
 
 ## Cancelamento
 

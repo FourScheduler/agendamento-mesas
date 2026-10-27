@@ -1,0 +1,24 @@
+<header class="page-header">
+  <p class="eyebrow">Agendamento de Mesas</p>
+  <h1 class="titulo">Minhas Reservas</h1>
+  <p class="subtitulo">Acompanhe o status das suas reservas</p>
+</header>
+
+<main class="page-conteudo">
+  <section class="estado-vazio cartao" aria-labelledby="estado-vazio-titulo">
+    <svg class="estado-vazio__icone" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M9 12h6M12 9v6" />
+    </svg>
+    <h2 id="estado-vazio-titulo">Funcionalidade em desenvolvimento</h2>
+    <p>Esta página será implementada na próxima etapa do MVP. Enquanto isso, você pode gerenciar suas reservas na página de Agendamento.</p>
+    <div class="estado-vazio__acoes">
+      <button class="botao" type="button" (click)="irParaAgendamento()">
+        Ir para Agendamento
+      </button>
+      <button class="botao botao--outline" type="button" (click)="irParaMapa()">
+        Ver mapa de mesas
+      </button>
+    </div>
+  </section>
+</main>

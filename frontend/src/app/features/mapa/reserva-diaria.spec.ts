@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { CatalogoPage } from './catalogo-page';
+import { MapaPage } from './mapa-page';
+import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 
 const mesa: Mesa = {
   id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
@@ -17,6 +18,7 @@ describe('Reserva diária pela planta', () => {
     localStorage.clear();
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   });
   afterEach(() => { localStorage.clear(); http.verify(); });
 
@@ -29,9 +31,9 @@ describe('Reserva diária pela planta', () => {
   }
 
   function abrir() {
-    const fixture = TestBed.createComponent(CatalogoPage);
-    fixture.componentInstance.sessao.set({ token: 'token', tipo: 'Bearer', usuario });
-    fixture.componentInstance.alterarData('2026-10-28');
+    const fixture = TestBed.createComponent(MapaPage);
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+    fixture.componentInstance.reserva.alterarData('2026-10-28');
     fixture.detectChanges();
     carregar();
     fixture.detectChanges();
@@ -45,13 +47,13 @@ describe('Reserva diária pela planta', () => {
     expect(fixture.nativeElement.querySelector('.detalhes').textContent).toContain('28/10/2026');
     expect(fixture.nativeElement.querySelector('.detalhes').textContent).toContain('Maria');
     fixture.nativeElement.querySelector('.confirmar').click();
-    fixture.componentInstance.confirmarReserva();
+    fixture.componentInstance.reserva.confirmar();
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.confirmar').disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('#data-reserva').disabled).toBe(true);
-    expect(fixture.componentInstance.sucesso()).toBe('');
+    expect(fixture.componentInstance.reserva.sucesso()).toBe('');
     const request = http.expectOne('/api/reservas');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ mesaId: 44, data: '2026-10-28' });
@@ -63,43 +65,44 @@ describe('Reserva diária pela planta', () => {
     expect(fixture.nativeElement.querySelector('.resultado--sucesso').textContent).toContain('Reserva #9 confirmada');
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('.mesa').textContent).toContain('Ocupada');
-    expect(fixture.componentInstance.selecionada()).toBeNull();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
   });
 
   for (const status of [400, 409, 500, 0]) {
     it(`trata erro ${status} sem sucesso e atualiza a disponibilidade`, () => {
       const fixture = abrir();
-      fixture.componentInstance.confirmarReserva();
+      fixture.componentInstance.reserva.confirmar();
       const request = http.expectOne('/api/reservas');
       if (status === 0) request.error(new ProgressEvent('error'));
       else request.flush({ detail: 'Reserva recusada.' }, { status, statusText: 'Erro' });
       fixture.detectChanges();
       carregar([]);
       fixture.detectChanges();
-      expect(fixture.componentInstance.sucesso()).toBe('');
-      expect(fixture.componentInstance.erroReserva()).not.toBe('');
-      expect(fixture.componentInstance.confirmando()).toBe(false);
-      expect(fixture.componentInstance.selecionada()).toBeNull();
+      expect(fixture.componentInstance.reserva.sucesso()).toBe('');
+      expect(fixture.componentInstance.reserva.erro()).not.toBe('');
+      expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
+      expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
       expect(fixture.nativeElement.querySelector('.resultado--sucesso')).toBeNull();
     });
   }
 
   it('encerra a sessão em 401 da confirmação sem exibir sucesso', () => {
     const fixture = abrir();
-    fixture.componentInstance.confirmarReserva();
+    fixture.componentInstance.reserva.confirmar();
     http.expectOne('/api/reservas').flush({}, { status: 401, statusText: 'Unauthorized' });
     fixture.detectChanges();
-    expect(fixture.componentInstance.sessao()).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Sua sessão expirou');
-    expect(fixture.componentInstance.sucesso()).toBe('');
+    expect(TestBed.inject(AuthService).sessao()).toBeNull();
+    expect(TestBed.inject(AuthService).token()).toBe('');
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/login'], { queryParams: { sessao: 'expirada' } });
+    expect(fixture.componentInstance.reserva.sucesso()).toBe('');
     http.expectNone('/api/mesas');
   });
 
   it('limpa a seleção ao mudar de dia e consulta a nova data', () => {
     const fixture = abrir();
-    fixture.componentInstance.alterarData('2026-10-29');
+    fixture.componentInstance.reserva.alterarData('2026-10-29');
     fixture.detectChanges();
-    expect(fixture.componentInstance.selecionada()).toBeNull();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     http.expectOne('/api/mesas').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([mesa]);
     fixture.detectChanges();
@@ -107,24 +110,10 @@ describe('Reserva diária pela planta', () => {
     http.expectNone('/api/reservas');
   });
 
-  it('restaura o perfil real antes de permitir reservar', () => {
-    localStorage.setItem('agendamento_mesas_token', 'token');
-    const fixture = TestBed.createComponent(CatalogoPage);
-    fixture.componentInstance.alterarData('2026-10-28');
-    fixture.detectChanges();
-    http.expectNone('/api/mesas');
-    const perfil = http.expectOne('/api/auth/perfil');
-    expect(perfil.request.headers.get('Authorization')).toBe('Bearer token');
-    perfil.flush(usuario);
-    fixture.detectChanges();
-    carregar();
-    expect(fixture.componentInstance.sessao()?.usuario).toEqual(usuario);
-  });
-
   it('bloqueia seleção enquanto a disponibilidade não foi carregada ou falhou', () => {
-    const fixture = TestBed.createComponent(CatalogoPage);
-    fixture.componentInstance.sessao.set({ token: 'token', tipo: 'Bearer', usuario });
-    fixture.componentInstance.alterarData('2026-10-28');
+    const fixture = TestBed.createComponent(MapaPage);
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+    fixture.componentInstance.reserva.alterarData('2026-10-28');
     fixture.detectChanges();
     http.expectOne('/api/mesas').flush([mesa]);
     fixture.detectChanges();
@@ -133,5 +122,11 @@ describe('Reserva diária pela planta', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Data inválida');
     expect(fixture.nativeElement.querySelector('.mesa')).toBeNull();
+  });
+
+  it('leva a data escolhida ao voltar para a lista de agendamento', () => {
+    const fixture = abrir();
+    fixture.componentInstance.voltarParaAgendamento();
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28' } });
   });
 });
