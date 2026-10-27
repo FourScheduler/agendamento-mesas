@@ -1,0 +1,4 @@
+<app-topbar [usuario]="usuario()?.nome ?? ''" (sair)="auth.logout()" #topbar />
+<main class="layout__conteudo">
+  <router-outlet />
+</main>

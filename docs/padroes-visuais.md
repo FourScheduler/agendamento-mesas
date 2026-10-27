@@ -39,8 +39,26 @@ visual e a marca, com componentes próprios para seus contratos de API.
   e largura mínima de 1000px, com rolagem horizontal restrita ao desenho. Cabeçalho
   e legenda ficam fora da escala, preservando a tipografia do Portal.
 - Seleção em `#fffaf6` com borda `#ff892e`, fixa em cinza e inativa tracejada.
-  Mesas `LIVRE` usam borda verde e a legenda "Livre (consultar período)": a cor indica
-  elegibilidade de catálogo, não disponibilidade temporal. Nenhum estado Reservada é inventado.
+  Mesas disponíveis na data usam borda verde; ocupadas usam fundo laranja suave e
+  rótulo "Ocupada". A legenda diferencia "Livre na data", "Ocupada na data", fixa,
+  inativa e selecionada. A ocupação vem da consulta diária da API.
+- O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
+  a disponibilidade. O cartão de revisão mostra mesa, data e solicitante; a confirmação
+  tem estado de envio e resultados acessíveis (`role=status`/`role=alert`).
+- Confirmações e críticas de reserva aparecem em uma notificação no canto superior
+  direito, abaixo da barra de navegação, com texto branco: verde para sucesso e
+  vermelho para erro. Ambas fecham após dez segundos, com somente uma barra de
+  tempo visível, sem contador numérico. Passar o mouse ou focar o botão pausa a contagem; ao sair,
+  ela retoma o tempo restante. Há botão para fechar imediatamente. O mesmo
+  componente é usado na lista e no mapa, sem repetir a mensagem no formulário.
+  Os cartões de sucesso e erro usam largura de 320px e altura mínima de 87px, padding
+  de 8px e cantos de 4px, adaptando-se a janelas menores. O fundo de sucesso é
+  `#07bc0c`; o texto é centralizado e a altura cresce conforme a mensagem. A rolagem
+  interna só aparece se o texto ultrapassar a altura disponível na janela.
+- No mapa em telas acima de 700px, o cartão de detalhes pode ser arrastado pelo
+  cabeçalho ou movido com as setas ao focar o cabeçalho (Shift acelera). O movimento
+  fica dentro da janela; fechar e confirmar continuam independentes do arraste.
+  Em telas menores, o cartão permanece no fluxo da página.
 - Os dados e posições continuam vindo exclusivamente da API de mesas. Nenhum
   catálogo, fluxo de salas ou autenticação mockada foi copiado.
 

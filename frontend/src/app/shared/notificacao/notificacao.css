@@ -1,0 +1,80 @@
+.notificacao {
+  position: fixed;
+  top: calc(max(50px, 6vh) + 16px);
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, calc(100vw - 32px));
+  min-height: 87px;
+  box-sizing: border-box;
+  max-height: calc(100dvh - 100px);
+  overflow: hidden;
+  padding: 8px;
+  border-radius: 4px;
+  color: #fff;
+  box-shadow: 0 1px 10px 0 rgba(0, 0, 0, .1), 0 2px 15px 0 rgba(0, 0, 0, .05);
+  animation: entrada 180ms ease-out;
+}
+.notificacao--sucesso { background: #07bc0c; }
+.notificacao--erro { background: var(--error); }
+.notificacao__icone { flex: none; }
+.notificacao__conteudo {
+  flex: 1;
+  min-width: 0;
+  max-height: calc(100dvh - 116px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.notificacao__conteudo:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.notificacao__mensagem {
+  margin: 0;
+  color: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.notificacao__trilha {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 0 0 4px 4px;
+  background: rgb(255 255 255 / 25%);
+}
+.notificacao__progresso { height: 100%; background: #fff; }
+.notificacao__fechar {
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: -4px -4px -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.notificacao__fechar:hover { background: rgb(255 255 255 / 15%); }
+.notificacao__fechar:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@keyframes entrada {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 700px) {
+  .notificacao { right: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notificacao { animation: none; }
+}
