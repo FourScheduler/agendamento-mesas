@@ -26,7 +26,8 @@ describe('Agendamento integrado à reserva diária', () => {
   function abrir(perfil = 'USUARIO') {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { ...usuario, perfil } });
     const fixture = TestBed.createComponent(AgendamentoPage);
-    fixture.componentInstance.onDataChange('2026-10-28');
+    fixture.componentInstance.dataSelecionada.set('2026-10-28');
+    fixture.componentInstance.onDataChange();
     fixture.detectChanges();
     const request = consulta();
     expect(request.request.headers.get('Authorization')).toBe('Bearer token');
@@ -39,7 +40,7 @@ describe('Agendamento integrado à reserva diária', () => {
 
   it('confirma uma vez e mostra sucesso somente após a resposta persistida', async () => {
     const fixture = abrir();
-    fixture.nativeElement.querySelector('.botao--primario').click();
+    fixture.nativeElement.querySelector('.botao--confirmar').click();
     fixture.componentInstance.confirmarReserva();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -85,10 +86,12 @@ describe('Agendamento integrado à reserva diária', () => {
   it('cancela a consulta anterior ao trocar de data e impede selecionar resultados antigos', () => {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
     const fixture = TestBed.createComponent(AgendamentoPage);
-    fixture.componentInstance.onDataChange('2026-10-28');
+    fixture.componentInstance.dataSelecionada.set('2026-10-28');
+    fixture.componentInstance.onDataChange();
     fixture.detectChanges();
     const antiga = consulta();
-    fixture.componentInstance.onDataChange('2026-10-29');
+    fixture.componentInstance.dataSelecionada.set('2026-10-29');
+    fixture.componentInstance.onDataChange();
     fixture.detectChanges();
     expect(antiga.cancelled).toBe(true);
     fixture.componentInstance.selecionarMesa(mesa);
@@ -104,7 +107,9 @@ describe('Agendamento integrado à reserva diária', () => {
 
   it('identifica o próprio administrador sem oferecer reserva em nome de terceiros', () => {
     const fixture = abrir('ADMIN');
-    expect(fixture.nativeElement.querySelector('.resumo__detalhes').textContent).toContain('Maria');
+    const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
+    // O 4º item é o Solicitante
+    expect(valores[3].textContent).toContain('Maria');
     expect(fixture.nativeElement.textContent).not.toContain('reservar para outros');
   });
 });
