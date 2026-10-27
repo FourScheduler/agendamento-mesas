@@ -1,60 +1,72 @@
 <header class="page-header">
   <p class="eyebrow">Agendamento de Mesas</p>
   <h1 class="titulo">Mapa de Mesas</h1>
-  <p class="subtitulo">Visualize e selecione mesas na planta</p>
+  <p class="subtitulo">Visualize e selecione mesas na planta para reservar o dia inteiro</p>
 </header>
 
 <main class="page-conteudo">
-  @if (erro()) {
-  <div class="alerta alerta--erro" role="alert">
-    {{ erro() }}
-  </div>
+  <section class="consulta cartao" aria-labelledby="titulo-data">
+    <div class="campo">
+      <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
+      <input id="data-reserva" class="campo__entrada" type="date"
+        [ngModel]="reserva.data()" (ngModelChange)="reserva.alterarData($event)"
+        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando()" required />
+    </div>
+    <p>Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência. Horário de São Paulo.</p>
+    <button type="button" class="botao" (click)="reserva.atualizarDisponibilidade()"
+      [disabled]="reserva.confirmando() || !reserva.data()">Atualizar disponibilidade</button>
+  </section>
+
+  @if (reserva.data()) {
+    <app-planta-mesas
+      [token]="token()" [data]="reserva.data()" [atualizacao]="reserva.atualizacao()"
+      (mesaSelecionada)="onMesaSelecionada($event)"
+      (sessaoExpirada)="onSessaoExpirada()"
+    />
+  } @else {
+    <p role="status">Escolha uma data para consultar a disponibilidade.</p>
   }
 
-  <app-planta-mesas
-    [token]="token()"
-    (mesaSelecionada)="onMesaSelecionada($event)"
-    (sessaoExpirada)="onSessaoExpirada()"
-  />
-
-  @if (mesaSelecionada()) {
-  <aside class="detalhes cartao" aria-labelledby="titulo-detalhes">
-    <div class="cartao__cabecalho detalhes__cabecalho">
-      <h2 id="titulo-detalhes">Detalhes da mesa</h2>
-      <button
-        class="detalhes__fechar"
-        type="button"
-        aria-label="Fechar detalhes da mesa"
-        title="Fechar"
-        (click)="fecharDetalhes()"
-      ><span aria-hidden="true">&times;</span></button>
-    </div>
-    <div class="detalhes__corpo" role="status">
-      @if (mesaSelecionada(); as mesa) {
-      <p class="eyebrow">Mesa selecionada</p>
-      <h3>Mesa {{ mesa.codigo }}</h3>
-      <dl>
-        <dt>Localização</dt>
-        <dd>{{ mesa.regiao }}</dd>
-        <dt>Planta</dt>
-        <dd>{{ mesa.referenciaVisual.planta }}</dd>
-        <dt>Tipo</dt>
-        <dd>Livre para consulta</dd>
-      </dl>
-      <p class="detalhes__nota">
-        A reserva por horário estará disponível em uma próxima etapa.
-      </p>
-      }
-    </div>
-  </aside>
+  @if (mesaSelecionada(); as mesa) {
+    <aside class="detalhes cartao" appPainelArrastavel aria-labelledby="titulo-detalhes">
+      <div class="cartao__cabecalho detalhes__cabecalho" data-arrastar-painel tabindex="0" role="group"
+        aria-label="Mover detalhes da mesa: arraste ou use as setas do teclado" title="Arraste para mover">
+        <h2 id="titulo-detalhes">Detalhes da mesa</h2>
+        <button class="detalhes__fechar" type="button" aria-label="Fechar detalhes da mesa"
+          title="Fechar" (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="detalhes__corpo">
+        <p class="eyebrow">Mesa selecionada</p>
+        <h3>Mesa {{ mesa.codigo }}</h3>
+        <dl>
+          <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
+          <dt>Planta</dt><dd>{{ mesa.referenciaVisual.planta }}</dd>
+          <dt>Disponibilidade</dt><dd>Disponível para a data consultada</dd>
+          <dt>Data — dia inteiro</dt><dd>{{ formatarData(reserva.data()) }}</dd>
+          <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
+        </dl>
+        <p class="detalhes__nota">
+          A reserva ocupa somente este dia. No dia seguinte, a disponibilidade depende de outras reservas.
+        </p>
+        <button class="botao confirmar" type="button" (click)="reserva.confirmar()"
+          [disabled]="reserva.confirmando() || !usuario()">
+          {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva do dia' }}
+        </button>
+      </div>
+    </aside>
   }
 </main>
 
 <div class="mapa__rodape">
-  <button class="botao botao--outline" type="button" (click)="voltarParaAgendamento()">
+  <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando()">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
       <path d="M19 12H5M12 19l-7-7 7-7" />
     </svg>
     Voltar ao agendamento
   </button>
 </div>
+
+<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
+  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

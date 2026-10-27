@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Reserva } from './reserva';
+import { Reserva, ReservaConfirmada } from './reserva';
 import { Mesa } from '../mesas/mesa';
 
 @Injectable({ providedIn: 'root' })
@@ -26,13 +26,7 @@ export class ReservaService {
   }
 
   criar(token: string, mesaId: number, data: string) {
-    return this.http.post<Reserva>(`${environment.apiUrl}/reservas`, { mesaId, data }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
-
-  confirmar(token: string, id: number) {
-    return this.http.post<Reserva>(`${environment.apiUrl}/reservas/${id}/confirmacao`, {}, {
+    return this.http.post<ReservaConfirmada>(`${environment.apiUrl}/reservas`, { mesaId, data }, {
       headers: { Authorization: `Bearer ${token}` },
     });
   }

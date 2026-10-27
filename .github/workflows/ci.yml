@@ -13,6 +13,19 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: testes-ci
+          MYSQL_DATABASE: agendamento_mesas_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptestes-ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
     defaults:
       run:
         working-directory: backend
@@ -28,6 +41,10 @@ jobs:
           cache: maven
 
       - name: Testar e empacotar backend
+        env:
+          TEST_MYSQL_URL: jdbc:mysql://127.0.0.1:3306/agendamento_mesas_test?serverTimezone=America/Sao_Paulo&allowPublicKeyRetrieval=true&useSSL=false
+          TEST_MYSQL_USERNAME: root
+          TEST_MYSQL_PASSWORD: testes-ci
         run: |
           chmod +x mvnw
           ./mvnw --batch-mode verify
@@ -54,3 +71,6 @@ jobs:
 
       - name: Gerar build do frontend
         run: npm run build
+
+      - name: Testar frontend
+        run: npm test -- --watch=false

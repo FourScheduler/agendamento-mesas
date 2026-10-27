@@ -13,22 +13,27 @@
           class="filtro-data__entrada"
           id="data-reserva"
           type="date"
-          [(ngModel)]="dataSelecionada"
-          (ngModelChange)="onDataChange()"
+          [ngModel]="dataSelecionada()"
+          (ngModelChange)="onDataChange($event)"
           [min]="todayISO()"
           [max]="maxDateISO()"
+          [disabled]="confirmando()"
+          required
         />
       </div>
-      <button class="botao botao--mapa-header" type="button" (click)="irParaMapa()">
+      <button class="botao" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M9 12h6M12 9v6" />
         </svg>
         Ver mapa
       </button>
+      <button class="botao" type="button" (click)="reserva.atualizarDisponibilidade()"
+        [disabled]="confirmando() || !dataSelecionada()">Atualizar disponibilidade</button>
     </div>
-    @if (erro()) {
-    <p class="filtro-data__erro" role="alert">{{ erro() }}</p>
+    <p class="subtitulo">Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência. Horário de São Paulo.</p>
+    @if (erroConsulta()) {
+    <p class="filtro-data__erro" role="alert">{{ erroConsulta() }}</p>
     }
   </section>
 </header>
@@ -54,12 +59,15 @@
     } @else if (mesasLivres().length === 0) {
     <p class="mesas-livres__vazio">Nenhuma mesa livre para esta data.</p>
     } @else {
-    <ul class="mesas-livres__lista" role="listbox" aria-label="Mesas disponíveis">
+    <ul class="mesas-livres__lista" aria-label="Mesas disponíveis">
       @for (mesa of mesasLivres(); track mesa.id) {
-      <li class="mesa-item" [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id" role="option" aria-selected="mesaSelecionada()?.id === mesa.id" (click)="selecionarMesa(mesa)">
+      <li>
+      <button type="button" class="mesa-item" [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id"
+        [attr.aria-pressed]="mesaSelecionada()?.id === mesa.id" [disabled]="confirmando()" (click)="selecionarMesa(mesa)">
         <div class="mesa-item__codigo">Mesa {{ mesa.codigo }}</div>
         <div class="mesa-item__regiao">{{ mesa.regiao }}</div>
         <div class="mesa-item__tipo">Livre</div>
+      </button>
       </li>
       }
     </ul>
@@ -80,7 +88,7 @@
     </div>
     } @else {
     <dl class="resumo__detalhes">
-      <dt>Data</dt>
+      <dt>Data — dia inteiro</dt>
       <dd>{{ formatarDataBR(dataSelecionada()) }}</dd>
 
       <dt>Mesa</dt>
@@ -91,10 +99,10 @@
     </dl>
 
     <div class="resumo__acoes">
-      <button class="botao botao--primario botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando()">
+      <button class="botao botao--primario botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando() || !usuario()">
         {{ confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
       </button>
-      <button class="botao botao--outline botao--largura-total" type="button" (click)="irParaMapa()">
+      <button class="botao botao--largura-total" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M9 12h6M12 9v6" />
@@ -103,9 +111,9 @@
       </button>
     </div>
 
-    @if (erro()) {
-    <p class="resumo__erro" role="alert">{{ erro() }}</p>
-    }
     }
   </aside>
 </div>
+
+<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
+  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

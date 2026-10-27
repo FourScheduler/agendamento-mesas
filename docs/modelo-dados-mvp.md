@@ -2,9 +2,7 @@
 
 Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto de demonstração.
 
-> O catálogo já está implementado. A modelagem de reservas abaixo ainda usa dia
-> inteiro; sua evolução para horários será necessária para atender à decisão atual
-> de reservas por horário. Esta entrega não cria disponibilidade global no catálogo.
+Reservas são de dia inteiro, armazenadas em `reservas.data`. A criação confirma diretamente e preserva a estrutura existente; nenhuma migration nova é necessária para a issue #7.
 
 ## Tabelas
 
@@ -50,19 +48,17 @@ Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto 
 #### Estados da reserva
 
 ```
-PENDENTE ──confirmacao──▶ CONFIRMADA
-    │                        │
-    └─────cancelamento───────┴──▶ CANCELADA
+POST /api/reservas → CONFIRMADA → CANCELADA (cancelamento em entrega futura)
 ```
 
-- `PENDENTE`: criada, aguardando confirmação. Bloqueia a mesa e a data do usuário.
-- `CONFIRMADA`: confirmada pelo dono ou por administrador.
-- `CANCELADA`: estado final; não bloqueia mesa nem data do usuário.
-- Transições fora do diagrama retornam `409`.
+- `CONFIRMADA`: persistida com usuário e mesa; bloqueia somente a data reservada.
+- `PENDENTE`: estado legado, não criado pelo POST atual; continua bloqueando mesa e usuário na data.
+- `CANCELADA`: preserva o histórico e não bloqueia mesa nem usuário, mesmo sem `cancelada_em` em dados legados.
+- Uma reserva confirmada para D não bloqueia D+1. Seu status não precisa mudar à meia-noite.
 
 #### Restrições de aplicação (não há índice único parcial em MySQL)
 
-A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cancelada por usuário/data" não é expressa com `UNIQUE` no MySQL (exigiria excluir `CANCELADA`). A aplicação valida antes de gravar (`409` em conflito). Índices de apoio:
+A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cancelada por usuário/data" não é expressa com `UNIQUE` no MySQL (exigiria excluir `CANCELADA`). A aplicação serializa a confirmação bloqueando usuário e mesa, nessa ordem, em transação `READ_COMMITTED`. Reconsulta os conflitos depois dos locks e grava atomicamente (`409` em conflito). O lock na linha da mesa protege também a primeira reserva, sem depender de linhas existentes em `reservas`. Consulta seguida de insert sem esse bloqueio não é suficiente. Índices de apoio:
 
 - `idx_reservas_mesadata` em (`mesa_id`, `data`)
 - `idx_reservas_usuariodata` em (`usuario_id`, `data`)

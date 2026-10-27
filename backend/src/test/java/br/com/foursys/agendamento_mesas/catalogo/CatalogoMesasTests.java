@@ -93,7 +93,8 @@ class CatalogoMesasTests {
 
     @Test
     void disponibilidadeBloqueiaPendentesEConfirmadasIgnoraCanceladasEMapeiaCatalogo() throws Exception {
-        LocalDate data = LocalDate.now().plusDays(1);
+        LocalDate data = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"))
+                .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
         var usuario = usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow();
         Mesa pendente = repository.save(new Mesa("901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20));
         Mesa confirmada = repository.save(new Mesa("902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40));

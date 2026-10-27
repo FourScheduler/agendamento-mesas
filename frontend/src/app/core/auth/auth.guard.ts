@@ -1,14 +1,9 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from './auth.service';
 
-export const AuthGuard: CanActivateFn = () => {
+export const AuthGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
   const router = inject(Router);
-  const token = localStorage.getItem('agendamento_mesas_token');
-
-  if (!token) {
-    router.navigate(['/login']);
-    return false;
-  }
-
-  return true;
+  return await auth.restaurarSessaoSeValida() ? true : router.createUrlTree(['/login']);
 };

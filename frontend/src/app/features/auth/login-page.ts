@@ -1,6 +1,7 @@
 import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
@@ -13,11 +14,13 @@ import { AuthService } from '../../core/auth/auth.service';
 export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   email = '';
   senha = '';
   readonly entrando = signal(false);
-  readonly erro = signal('');
+  readonly erro = signal(this.route.snapshot.queryParamMap.get('sessao') === 'expirada'
+    ? 'Sua sessão expirou. Entre novamente.' : '');
 
   async entrar() {
     if (this.entrando() || !this.email.trim() || !this.senha) return;
@@ -25,11 +28,8 @@ export class LoginPage {
     this.erro.set('');
 
     try {
-      const sessao = await this.auth.login(this.email.trim(), this.senha).toPromise();
-      if (sessao) {
-        this.auth.sessao.set(sessao);
-        this.router.navigate(['/agendamento']);
-      }
+      await firstValueFrom(this.auth.login(this.email.trim(), this.senha));
+      void this.router.navigate(['/agendamento']);
     } catch (e: any) {
       this.erro.set(e?.status === 401
         ? 'E-mail ou senha inválidos, ou usuário inativo.'

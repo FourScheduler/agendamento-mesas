@@ -17,9 +17,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class MesaService {
     private final MesaRepository mesasRepository;
+    private final DataReservaValidator datas;
 
-    public MesaService(MesaRepository mesas) {
+    public MesaService(MesaRepository mesas, DataReservaValidator datas) {
         this.mesasRepository = mesas;
+        this.datas = datas;
     }
 
     public List<MesaResponse> listar() {
@@ -42,7 +44,7 @@ public class MesaService {
 
     public List<MesaResponse> listarDisponiveis(LocalDate data) {
 
-        validarData(data);
+        datas.validar(data);
 
         return mesasRepository
             .buscarMesasDisponiveis(data, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA)
@@ -51,17 +53,4 @@ public class MesaService {
             .toList();
     }
 
-    //Métodos utilitários
-
-    private void validarData(LocalDate data) {
-
-        if (data == null) {
-            throw new IllegalArgumentException("A data é obrigatória.");
-        }
-
-        if (data.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException(
-                "Não é permitido consultar agendamentos em datas passadas.");
-        }
-    }
 }
