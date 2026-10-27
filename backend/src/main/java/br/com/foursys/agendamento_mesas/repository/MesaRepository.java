@@ -8,11 +8,17 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.List;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface MesaRepository extends JpaRepository<Mesa, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select m from Mesa m where m.id = :id")
+    Optional<Mesa> buscarParaReserva(@Param("id") Long id);
 
     List<Mesa> findAllByOrderByCodigoAsc();
 
@@ -31,8 +37,8 @@ public interface MesaRepository extends JpaRepository<Mesa, Long> {
           WHERE r.mesa.id = m.id
             AND r.data = :data
             AND r.status IN :bloqueios
-            AND r.canceladaEm IS NULL
       )
+    ORDER BY m.codigo
     """)
     List<Mesa> buscarMesasDisponiveis(
         @Param("data") LocalDate data,

@@ -39,8 +39,12 @@ visual e a marca, com componentes próprios para seus contratos de API.
   e largura mínima de 1000px, com rolagem horizontal restrita ao desenho. Cabeçalho
   e legenda ficam fora da escala, preservando a tipografia do Portal.
 - Seleção em `#fffaf6` com borda `#ff892e`, fixa em cinza e inativa tracejada.
-  Mesas `LIVRE` usam borda verde e a legenda "Livre (consultar período)": a cor indica
-  elegibilidade de catálogo, não disponibilidade temporal. Nenhum estado Reservada é inventado.
+  Mesas disponíveis na data usam borda verde; ocupadas usam fundo laranja suave e
+  rótulo "Ocupada". A legenda diferencia "Livre na data", "Ocupada na data", fixa,
+  inativa e selecionada. A ocupação vem da consulta diária da API.
+- O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
+  a disponibilidade. O cartão de revisão mostra mesa, data e solicitante; a confirmação
+  tem estado de envio e resultados acessíveis (`role=status`/`role=alert`).
 - Os dados e posições continuam vindo exclusivamente da API de mesas. Nenhum
   catálogo, fluxo de salas ou autenticação mockada foi copiado.
 

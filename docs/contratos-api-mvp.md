@@ -1,6 +1,6 @@
 # Contratos da API do MVP de mesas
 
-Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Autenticação local e `GET /api/mesas` estão implementados. As seções de reservas por dia são históricas: a decisão vigente é reservar por horário e esse contrato ainda precisa evoluir antes de implementar reservas. Ver [catálogo de demonstração](catalogo-demonstracao.md).
+Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária e `POST /api/reservas` estão implementados. Listagem/cancelamento de reservas e demais rotas administrativas abaixo são contratos planejados para outras entregas.
 
 ## Convenções
 
@@ -188,7 +188,7 @@ Mesmo formato de `/api/mesas`, apenas as mesas disponíveis:
 
 ## POST /api/reservas
 
-Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um passo separado (`POST /api/reservas/{id}/confirmacao`). O solicitante vem do token.
+Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escolhida. O solicitante vem do token. Campos extras como `usuarioId` e `solicitante` são ignorados e nunca definem a autoria. A resposta só é emitida após commit da transação; não há uma segunda chamada de confirmação.
 
 ### Request
 
@@ -204,9 +204,10 @@ Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um
 ```json
 {
   "id": 10,
-  "status": "PENDENTE",
+  "status": "CONFIRMADA",
   "data": "2026-10-28",
   "criadaEm": "2026-10-23T14:30:00",
+  "confirmadaEm": "2026-10-23T14:30:00",
   "mesa": {
     "id": 44,
     "codigo": "044",
@@ -234,44 +235,7 @@ Cria uma reserva em estado `PENDENTE` para a data inteiro. A confirmação é um
 
 ---
 
-## POST /api/reservas/{id}/confirmacao
-
-Confirma a reserva própria em estado `PENDENTE`, tornando-a `CONFIRMADA`. Só o dono pode confirmar.
-
-### Response `200`
-
-```json
-{
-  "id": 10,
-  "status": "CONFIRMADA",
-  "data": "2026-10-28",
-  "criadaEm": "2026-10-23T14:30:00",
-  "confirmadaEm": "2026-10-23T14:32:10",
-  "mesa": {
-    "id": 44,
-    "codigo": "044",
-    "regiao": "TAMBORÉ"
-  },
-  "solicitante": {
-    "id": 3,
-    "nome": "Maria Souza",
-    "email": "maria.souza@exemplo.com"
-  }
-}
-```
-
-### Erros
-
-| Status | Situação | Exemplo de `detail` |
-| --- | --- | --- |
-| `401` | Sem ou com token inválido. | |
-| `404` | Reserva inexistente. | `Reserva 999 não encontrada.` |
-| `403` | Reserva existe mas pertence a outro usuário. | `Reserva não pertence ao usuário autenticado.` |
-| `409` | Reserva já `CONFIRMADA` ou `CANCELADA`. | `Reserva 10 já foi confirmada.` |
-
----
-
-## GET /api/reservas/minhas
+## GET /api/reservas/minhas (planejado)
 
 Lista as reservas do usuário autenticado, com filtro opcional por status e data.
 
@@ -312,7 +276,7 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 
 ---
 
-## PATCH /api/reservas/{id}/cancelamento
+## PATCH /api/reservas/{id}/cancelamento (planejado)
 
 Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento. A mesa volta a ficar disponível.
 
@@ -463,7 +427,6 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | GET | `/api/mesas` | Sim | Qualquer |
 | GET | `/api/mesas/disponiveis` | Sim | Qualquer |
 | POST | `/api/reservas` | Sim | Qualquer |
-| POST | `/api/reservas/{id}/confirmacao` | Sim | Dono |
 | GET | `/api/reservas/minhas` | Sim | Qualquer |
 | PATCH | `/api/reservas/{id}/cancelamento` | Sim | Dono |
 | POST | `/api/admin/usuarios` | Sim | ADMIN |

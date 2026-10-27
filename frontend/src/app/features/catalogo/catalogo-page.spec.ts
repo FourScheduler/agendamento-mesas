@@ -12,6 +12,7 @@ import { CatalogoPage } from "./catalogo-page";
 describe("Página do catálogo", () => {
   let http: HttpTestingController;
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideRouter(routes),
@@ -21,7 +22,7 @@ describe("Página do catálogo", () => {
     });
     http = TestBed.inject(HttpTestingController);
   });
-  afterEach(() => http.verify());
+  afterEach(() => { localStorage.clear(); http.verify(); });
 
   it("abre o login na rota inicial", async () => {
     const router = await RouterTestingHarness.create("/");
@@ -66,6 +67,7 @@ describe("Página do catálogo", () => {
         referenciaVisual: { planta: "DEMO", x: 20, y: 30 },
       },
     ]);
+    http.expectOne(r => r.url === '/api/mesas/disponiveis').flush([{ id: 703 }]);
     fixture.detectChanges();
     fixture.nativeElement.querySelector(".topbar__avatar").click();
     fixture.detectChanges();
@@ -115,6 +117,10 @@ describe("Página do catálogo", () => {
     http
       .expectOne("/api/mesas")
       .flush({}, { status: 401, statusText: "Unauthorized" });
+    const disponibilidade = http.match(r => r.url === '/api/mesas/disponiveis');
+    for (const request of disponibilidade) {
+      if (!request.cancelled) request.flush({}, { status: 401, statusText: 'Unauthorized' });
+    }
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector("form")).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain("Sua sessão expirou");

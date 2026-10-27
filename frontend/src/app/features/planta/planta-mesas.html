@@ -4,14 +4,15 @@
       <p class="eyebrow">{{ mesas()[0]?.regiao ?? 'Catálogo' }}</p>
       <h1 class="titulo">Mapa de mesas</h1>
       <p class="subtitulo">
-        Selecione uma mesa livre para consultar os detalhes.
+        Selecione uma mesa disponível para reservar o dia inteiro.
       </p>
     </div>
     <ul class="legenda__itens" aria-label="Legenda da planta">
       <li>
         <span class="amostra amostra--livre" aria-hidden="true"></span>Livre
-        (consultar período)
+        na data
       </li>
+      <li><span class="amostra amostra--ocupada" aria-hidden="true"></span>Ocupada na data</li>
       <li>
         <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa
       </li>
@@ -114,7 +115,8 @@
           <button
             type="button"
             class="mesa"
-            [class.livre]="mesa.ativa && mesa.tipo === 'LIVRE'"
+            [class.livre]="estaDisponivel(mesa)"
+            [class.ocupada]="estaOcupada(mesa)"
             [class.inativa]="!mesa.ativa"
             [class.fixa]="mesa.ativa && mesa.tipo === 'FIXA'"
             [class.selecionada]="selecionada() === mesa.id"
@@ -122,20 +124,22 @@
             [style.top.px]="mesa.referenciaVisual.y"
             [style.width.px]="planta.tamanhoMesa.largura"
             [style.height.px]="planta.tamanhoMesa.altura"
-            [disabled]="!mesa.ativa || mesa.tipo === 'FIXA'"
+            [disabled]="!estaDisponivel(mesa)"
             [attr.aria-pressed]="selecionada() === mesa.id"
-            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : 'Livre para consulta de período')"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data')"
             (click)="selecionar(mesa)"
           >
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
             @if (!mesa.ativa) {
               <span class="mesa__estado">Inativa</span>
+            } @else if (estaOcupada(mesa)) {
+              <span class="mesa__estado">Ocupada</span>
             } @else if (mesa.tipo === 'LIVRE') {
               <span class="mesa__estado">Livre</span>
             } @else if (mostrarRotulos()) {
               <span class="mesa__estado">Mesa fixa</span>
             }
-            @if (mesa.ativa && mesa.tipo === 'LIVRE') {
+            @if (estaDisponivel(mesa)) {
             <span
               class="mesa__marcador"
               [class.mesa__marcador--selecionado]="selecionada() === mesa.id"
@@ -152,8 +156,8 @@
   </div>
   <footer class="mapa__rodape">
     <p>
-      Planta de demonstração. Livre indica uma mesa reservável; a
-      disponibilidade depende do período da reserva.
+      Planta de demonstração. A disponibilidade considera somente a data escolhida.
+      No dia seguinte, a mesa estará livre se não houver outra reserva.
     </p>
   </footer>
 </section>

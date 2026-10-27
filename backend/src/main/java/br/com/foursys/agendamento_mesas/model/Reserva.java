@@ -15,6 +15,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 
 @Entity
@@ -62,7 +63,7 @@ public class Reserva {
     @PrePersist
     void aoPersistir() {
         if (criadaEm == null) {
-            criadaEm = LocalDateTime.now();
+            criadaEm = confirmadaEm != null ? confirmadaEm : LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         }
     }
 

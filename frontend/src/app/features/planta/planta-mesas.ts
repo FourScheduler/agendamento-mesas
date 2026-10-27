@@ -14,6 +14,7 @@ import {
 import { HttpErrorResponse } from "@angular/common/http";
 import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
+import { forkJoin, of } from 'rxjs';
 import {
   PLANTA_TAMBORE,
   TAMANHO_MESA,
@@ -29,9 +30,12 @@ import {
 export class PlantaMesas {
   // Recebido da sessão local pelo componente hospedeiro; nunca persistido pelo catálogo.
   readonly token = input.required<string>();
+  readonly data = input('');
+  readonly atualizacao = input(0);
   readonly mesaSelecionada = output<Mesa>();
   readonly sessaoExpirada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
+  readonly disponiveis = signal<ReadonlySet<number> | null>(null);
   readonly carregando = signal(false);
   readonly erro = signal("");
   readonly selecionada = signal<number | null>(null);
@@ -109,7 +113,10 @@ export class PlantaMesas {
     });
     effect((onCleanup) => {
       const token = this.token();
+      const data = this.data();
+      this.atualizacao();
       this.mesas.set([]);
+      this.disponiveis.set(null);
       this.selecionada.set(null);
       this.erro.set("");
       this.carregando.set(false);
@@ -118,9 +125,13 @@ export class PlantaMesas {
         return;
       }
       this.carregando.set(true);
-      const consulta = this.catalogo.listar(token).subscribe({
-        next: (mesas) => {
+      const consulta = forkJoin({
+        mesas: this.catalogo.listar(token),
+        disponiveis: data ? this.catalogo.listarDisponiveis(data, token) : of(null),
+      }).subscribe({
+        next: ({ mesas, disponiveis }) => {
           this.mesas.set(mesas);
+          this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
           this.carregando.set(false);
         },
         error: (erro: HttpErrorResponse) => {
@@ -128,7 +139,8 @@ export class PlantaMesas {
           this.erro.set(
             erro.status === 401
               ? "Sessão inválida ou expirada. Entre novamente."
-              : "Não foi possível carregar o catálogo.",
+              : erro.status === 400 ? (erro.error?.detail ?? 'Escolha uma data válida.')
+              : "Não foi possível carregar a disponibilidade. Tente atualizar a consulta.",
           );
           if (erro.status === 401) this.sessaoExpirada.emit();
         },
@@ -138,9 +150,19 @@ export class PlantaMesas {
   }
 
   selecionar(mesa: Mesa) {
-    if (!mesa.ativa || mesa.tipo !== "LIVRE") return;
+    if (this.carregando() || !this.estaDisponivel(mesa)) return;
     this.selecionada.set(mesa.id);
     this.mesaSelecionada.emit(mesa);
+  }
+
+  estaDisponivel(mesa: Mesa): boolean {
+    return mesa.ativa && mesa.tipo === 'LIVRE'
+      && (!this.data() || this.disponiveis()?.has(mesa.id) === true);
+  }
+
+  estaOcupada(mesa: Mesa): boolean {
+    return mesa.ativa && mesa.tipo === 'LIVRE' && !!this.data()
+      && this.disponiveis() !== null && !this.disponiveis()!.has(mesa.id);
   }
 
   alternarRotulos() {
