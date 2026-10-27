@@ -1,0 +1,91 @@
+<header class="topbar">
+  <a class="topbar__marca" routerLink="/agendamento" aria-label="Portal — início">
+    <img
+      class="topbar__simbolo"
+      src="/logo-portal.png"
+      alt=""
+      width="32"
+      height="18"
+    />
+    <span class="topbar__texto">Portal</span>
+  </a>
+  <nav aria-label="Navegação principal">
+    <a
+      class="topbar__item"
+      routerLink="/agendamento"
+      routerLinkActive="topbar__item--ativo"
+      [routerLinkActiveOptions]="{ exact: false }"
+    >
+      <svg
+        class="topbar__menu-icone"
+        viewBox="0 0 16 16"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        aria-hidden="true"
+      >
+        <rect x="1" y="2.5" width="14" height="12.5" rx="2" />
+        <path d="M1 6.5h14M4.5 0.5v3M11.5 0.5v3" stroke-linecap="round" />
+      </svg>
+      <span>Agendamento</span>
+    </a>
+    <a
+      class="topbar__item"
+      routerLink="/minhas-reservas"
+      routerLinkActive="topbar__item--ativo"
+      [routerLinkActiveOptions]="{ exact: false }"
+    >
+      <svg
+        class="topbar__menu-icone"
+        viewBox="0 0 16 16"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        aria-hidden="true"
+      >
+        <rect x="3" y="4" width="10" height="10" rx="1" />
+        <path d="M6 8h8M8 6v8" stroke-linecap="round" stroke-width="1.2" />
+        <path d="M3 16h10" stroke-linecap="round" />
+      </svg>
+      <span>Minhas reservas</span>
+    </a>
+  </nav>
+  @if (usuario()) {
+  <div class="topbar__usuario">
+    <span class="topbar__nome">{{ usuario() }}</span>
+    <div class="topbar__perfil">
+      <button
+        class="topbar__avatar"
+        type="button"
+        aria-label="Abrir menu do perfil"
+        aria-controls="menu-perfil"
+        [attr.aria-expanded]="menuAberto()"
+        (click)="alternarMenu()"
+      >
+        {{ iniciais() }}
+      </button>
+      @if (menuAberto()) {
+      <div class="topbar__menu-perfil" id="menu-perfil">
+        <div class="topbar__menu-perfil-cabecalho">
+          <span class="topbar__menu-perfil-avatar" aria-hidden="true"
+            >{{ iniciais() }}</span
+          >
+          <p class="topbar__menu-perfil-nome">{{ usuario() }}</p>
+        </div>
+        <button
+          class="topbar__menu-perfil-sair sair"
+          type="button"
+          (click)="encerrarSessao()"
+        >
+          Sair
+        </button>
+      </div>
+      }
+    </div>
+  </div>
+  } @else { <a class="topbar__entrar" routerLink="/login">Entrar</a> }
+</header>

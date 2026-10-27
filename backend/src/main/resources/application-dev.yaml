@@ -1,3 +1,7 @@
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
+
 logging:
   level:
     br.com.foursys.agendamento_mesas: DEBUG

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/FourScheduler/agendamento-mesas/actions/workflows/ci.yml/badge.svg)](https://github.com/FourScheduler/agendamento-mesas/actions/workflows/ci.yml)
 
-Base inicial do projeto FourScheduler, seguindo os padrões do agendamento-salas. Esta etapa contém apenas estrutura, configurações e CI; não contém telas, mapas, login nem regras de reserva.
+Projeto FourScheduler com persistência MySQL, autenticação local e catálogo de mesas fictícias. O catálogo autenticado e o componente Angular de planta estão descritos em [Catálogo de demonstração](docs/catalogo-demonstracao.md). O fluxo de reserva diária está implementado: escolha a data, selecione uma mesa disponível e confirme. O backend registra o usuário autenticado e protege conflitos concorrentes por mesa e por usuário.
 
 ## Pré-requisitos
 
@@ -10,7 +10,7 @@ Base inicial do projeto FourScheduler, seguindo os padrões do agendamento-salas
 - Node.js 22 e npm (confira `node --version` e `npm.cmd --version`).
 - Git. O Maven é disponibilizado pelo Wrapper em `backend/`.
 
-Não é necessário MySQL, JWT, Ollama nem qualquer serviço externo para executar esta base.
+O backend em desenvolvimento requer MySQL configurado em `backend/.env` (consulte `.env.example`). Testes automatizados usam H2 e não exigem serviço externo. O seed fictício é exclusivo do perfil `dev`.
 
 ## Backend — porta 8081
 
@@ -22,7 +22,7 @@ cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-O log deve mostrar `Started AgendamentoMesasApplication`. Mantenha o terminal aberto. Como ainda não há endpoints, uma resposta 404 em `http://localhost:8081/` é esperada.
+O log deve mostrar `Started AgendamentoMesasApplication`. Mantenha o terminal aberto. Use `POST /api/auth/login` para obter o token e `GET /api/mesas` com `Authorization: Bearer <token>` para consultar o catálogo.
 
 O arquivo `.env` é opcional. Se precisar alterar configurações, copie `backend/.env.example` para `backend/.env` e edite os valores. Não versione `.env` nem credenciais.
 
@@ -67,11 +67,11 @@ npm.cmd ci
 npm.cmd start
 ```
 
-Abra `http://localhost:4201`. A página vazia é intencional: nenhuma tela foi implementada. Use `npm.cmd` no PowerShell para evitar o bloqueio de scripts de `npm.ps1`. No Git Bash, pode usar `npm`.
+Abra `http://localhost:4201`. A página inicial direciona ao login local e, após autenticar, abre `/agendamento` com a lista de mesas disponíveis para o dia. O botão “Ver mapa” abre `/mapa`, preservando a data escolhida e permitindo confirmar pela planta. A navegação e a página preparatória `/minhas-reservas` também estão disponíveis. No perfil `dev`, uma conta fictícia disponível é `maria.souza@exemplo.com`, senha `senha1234`. Use `npm.cmd` no PowerShell para evitar o bloqueio de scripts de `npm.ps1`. No Git Bash, pode usar `npm`.
 
 O arquivo frontend/.npmrc usa o registro público e habilita a resolução padrão de peer dependencies somente neste projeto, sem alterar a configuração npm corporativa da máquina.
 
-O Angular encaminha `/api` para `http://localhost:8081` durante o desenvolvimento. Os ambientes usam `apiUrl: '/api'`; nenhuma chamada de negócio foi implementada.
+O Angular encaminha `/api` para `http://localhost:8081` durante o desenvolvimento. Os ambientes usam `apiUrl: '/api'`. O backend deve estar em execução para autenticar e carregar o catálogo. O token é mantido em `localStorage`; ao recarregar, o frontend recupera o perfil real em `/api/auth/perfil`. Sair ou receber `401` encerra a sessão.
 
 ## Validação e CI
 
@@ -83,12 +83,31 @@ npm.cmd ci
 npm.cmd run build
 ```
 
-O workflow `.github/workflows/ci.yml` executa testes e empacotamento do backend e build do frontend em pushes e pull requests para `main` e `develop`, sem exigir secrets ou banco. Consulte a aba Actions no GitHub para o resultado de cada execução. Ainda não existem testes de interface porque nenhuma tela foi implementada.
+O workflow `.github/workflows/ci.yml` executa testes e empacotamento do backend e build do frontend em pushes e pull requests para `main` e `develop`, com um MySQL 8.4 isolado para repetir os testes de criação e concorrência. Consulte a aba Actions no GitHub para o resultado de cada execução. O frontend também executa seus testes automatizados.
 
 As portas 8081 e 4201 permitem executar este projeto junto do agendamento-salas, que utiliza 8080 e 4200.
+
+## Reservas diárias e testes MySQL
+
+`POST /api/reservas` recebe `{ "mesaId": 44, "data": "2026-10-28" }` com Bearer token e retorna `201` com a reserva `CONFIRMADA`, mesa, data e solicitante. Não envie usuário no request. Mesas fixas/inativas ou ocupadas e usuário com outra reserva no dia retornam `409`. A reserva vale somente na data escolhida; o dia seguinte é independente. São permitidos dias úteis, de hoje até hoje + 15 dias corridos, no fuso de São Paulo.
+
+Os testes comuns usam H2. Para repetir o contrato e os testes concorrentes no MySQL, configure um **schema exclusivo cujo nome termine em `_test`**; a suíte apaga seus registros entre os testes. Exemplo no PowerShell, dentro de `backend/`:
+
+```powershell
+$env:TEST_MYSQL_URL = "jdbc:mysql://127.0.0.1:3306/agendamento_mesas_test?serverTimezone=America/Sao_Paulo"
+$env:TEST_MYSQL_USERNAME = "usuario-de-testes"
+$env:TEST_MYSQL_PASSWORD = "senha-local-de-testes"
+.\mvnw.cmd -s .mvn/settings-public.xml -gs .mvn/settings-public.xml verify
+```
+
+Crie esse schema e conceda acesso antes de executar. Sem `TEST_MYSQL_URL`, somente `ReservaMySqlTests` é ignorada. O CI sempre fornece MySQL e executa essa suíte. As migrations aplicadas continuam intactas; não houve mudança de estrutura na entrega diária.
 
 ## Documentação
 
 - [Arquitetura](docs/arquitetura.md)
 - [Padrões visuais](docs/padroes-visuais.md)
+- [MVP de mesas — fluxo e regras](docs/fluxo-mvp.md)
+- [MVP de mesas — contratos da API](docs/contratos-api-mvp.md)
+- [MVP de mesas — modelo de dados e demonstração](docs/modelo-dados-mvp.md)
+- [MVP de mesas — cenários de teste](docs/testes-mvp.md)
 - [Instruções do projeto](AGENTS.md)

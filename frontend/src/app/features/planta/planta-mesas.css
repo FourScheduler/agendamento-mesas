@@ -1,0 +1,334 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.mapa {
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+}
+.mapa__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(180deg, #fafafa 0%, white 100%);
+}
+.mapa__corpo {
+  padding: 1.5rem;
+}
+.mapa__viewport {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0 0 12px 12px;
+}
+.mapa__desenho {
+  margin: 0 auto;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(255, 137, 46, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.02) 0%, transparent 50%),
+    white;
+}
+.mapa__mensagem {
+  padding: 3rem 1rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+.mapa__nome-planta {
+  padding: 1rem 0;
+  color: var(--navy);
+  font-size: 1.25rem;
+}
+.planta {
+  position: relative;
+}
+.planta__limite {
+  position: absolute;
+  top: 9px;
+  left: 0;
+  width: 1602px;
+  border-top: 1px dashed var(--mapa-linha);
+  opacity: 0.4;
+}
+.entrada,
+.parede,
+.estrutura {
+  position: absolute;
+}
+.entrada {
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--orange-soft) 0%, #fff0eb 100%);
+  border: 1px solid var(--orange-400);
+  color: var(--orange);
+  font-size: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  box-shadow: 0 2px 8px rgba(255, 83, 21, 0.12);
+}
+.parede {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--mapa-borda) 0%, var(--gray-200) 100%);
+  color: var(--muted-soft);
+  font-size: 14px;
+  font-weight: 600;
+  writing-mode: vertical-rl;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+.estrutura {
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--mapa-estrutura) 0%, var(--gray-200) 100%);
+  opacity: 0.35;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+.mesa {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--mapa-borda);
+  border-radius: 12px;
+  background: var(--mapa-fixa);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 
+    0 1px 3px rgba(0,0,0,0.06),
+    0 1px 2px rgba(0,0,0,0.04);
+}
+.mesa.livre {
+  border-color: var(--mesa-livre);
+  background: var(--mesa-livre-bg);
+  box-shadow: 
+    0 1px 3px rgba(16, 185, 129, 0.12),
+    0 1px 2px rgba(16, 185, 129, 0.08);
+}
+.mesa.fixa {
+  background: var(--mesa-fixa-bg);
+  box-shadow: 
+    0 1px 3px rgba(220, 38, 38, 0.1),
+    0 1px 2px rgba(220, 38, 38, 0.06);
+}
+.mesa.livre .mesa__codigo,
+.mesa.livre .mesa__estado {
+  color: var(--mesa-livre-texto);
+}
+.mesa.fixa .mesa__codigo,
+.mesa.fixa .mesa__estado {
+  color: var(--error);
+}
+.mesa__codigo {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.mesa__estado {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 16px);
+  padding: 0 4px;
+  pointer-events: none; /* texto não interfere no clique */
+}
+.mesa__marcador {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--mesa-livre);
+  box-shadow: 0 0 0 2px white, 0 1px 3px rgba(16, 185, 129, 0.3);
+  animation: pulse-verde 2s ease-in-out infinite;
+}
+@keyframes pulse-verde {
+  0%, 100% { box-shadow: 0 0 0 2px white, 0 1px 3px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2), 0 1px 3px rgba(16, 185, 129, 0.3); }
+}
+.mesa__marcador--selecionado {
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--orange-400);
+  animation: none;
+  box-shadow: 0 0 0 2px white, 0 2px 6px rgba(255, 137, 46, 0.4);
+}
+.mesa__marcador--selecionado::after {
+  position: absolute;
+  top: 5px;
+  left: 9px;
+  width: 6px;
+  height: 12px;
+  border-right: 2.5px solid white;
+  border-bottom: 2.5px solid white;
+  content: "";
+  transform: rotate(45deg);
+}
+.mesa:hover:not(:disabled) {
+  border-color: var(--orange-400);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 12px rgba(255, 137, 46, 0.18),
+    0 2px 6px rgba(255, 137, 46, 0.12);
+  z-index: 10;
+}
+.mesa.livre:hover:not(:disabled) {
+  box-shadow: 
+    0 4px 12px rgba(16, 185, 129, 0.18),
+    0 2px 6px rgba(16, 185, 129, 0.12);
+}
+.mesa.selecionada {
+  border-color: var(--orange-400);
+  background: var(--selection-bg);
+  box-shadow: 
+    0 0 0 2px var(--orange-400),
+    0 4px 16px rgba(255, 137, 46, 0.2);
+  transform: translateY(-1px);
+}
+.mesa.inativa {
+  border-style: dashed;
+  border-color: var(--gray-200);
+  background: var(--disabled);
+  color: var(--muted);
+  opacity: 0.55;
+}
+.mesa:disabled {
+  cursor: not-allowed;
+}
+.mesa.ocupada {
+  background: var(--orange-soft);
+  border-color: var(--orange-dark);
+}
+.mesa.ocupada .mesa__estado {
+  color: var(--orange-dark);
+}
+.amostra--ocupada {
+  background: var(--orange-soft);
+  border: 1.5px solid var(--orange-dark);
+}
+.mesa:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
+.legenda__toggle {
+  margin-left: auto;
+  padding-left: 0.5rem;
+}
+.botao-icone {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.botao-icone:hover:not(:disabled) {
+  background: var(--orange-soft);
+  border-color: var(--orange-400);
+  color: var(--orange);
+  transform: scale(1.05);
+}
+.botao-icone:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
+.botao-icone[aria-pressed="true"] {
+  background: var(--orange-soft);
+  border-color: var(--orange-400);
+  color: var(--orange);
+  box-shadow: 0 0 0 3px var(--orange-soft);
+}
+.icone-olho {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.2;
+}
+.planta--legado .mesa {
+  border-radius: 4px;
+}
+.planta--legado .mesa__codigo {
+  top: 2px;
+  left: 4px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.planta--legado .mesa__estado {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  line-height: 14px;
+  max-width: calc(100% - 8px);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+}
+.planta--legado .mesa__marcador {
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+}
+.planta--legado .mesa__marcador--selecionado {
+  width: 14px;
+  height: 14px;
+}
+.planta--legado .mesa__marcador--selecionado::after {
+  top: 1px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+}
+.mapa__rodape {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-soft);
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .mapa__cabecalho,
+  .mapa__corpo,
+  .mapa__rodape {
+    padding: 1rem;
+  }
+  .legenda__toggle {
+    margin-left: 0;
+    padding-left: 0;
+    width: 100%;
+  }
+}

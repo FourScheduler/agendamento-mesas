@@ -1,0 +1,163 @@
+<section class="mapa cartao" aria-label="Catálogo de mesas de demonstração">
+  <header class="mapa__cabecalho">
+    <div>
+      <p class="eyebrow">{{ mesas()[0]?.regiao ?? 'Catálogo' }}</p>
+      <h1 class="titulo">Mapa de mesas</h1>
+      <p class="subtitulo">
+        Selecione uma mesa disponível para reservar o dia inteiro.
+      </p>
+    </div>
+    <ul class="legenda__itens" aria-label="Legenda da planta">
+      <li>
+        <span class="amostra amostra--livre" aria-hidden="true"></span>Livre
+        na data
+      </li>
+      <li><span class="amostra amostra--ocupada" aria-hidden="true"></span>Ocupada na data</li>
+      <li>
+        <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa
+      </li>
+      <li>
+        <span class="amostra amostra--inativa" aria-hidden="true"></span>Inativa
+      </li>
+      <li>
+        <span class="amostra amostra--selecionada" aria-hidden="true"></span
+        >Selecionada
+      </li>
+      
+        <button
+          type="button"
+          class="botao-icone"
+          (click)="alternarRotulos()"
+          [attr.aria-pressed]="mostrarRotulos()"
+          aria-label="{{ mostrarRotulos() ? 'Ocultar nomes das mesas' : 'Mostrar nomes das mesas' }}"
+        >
+          <svg
+            class="icone-olho"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      
+    </ul>
+  </header>
+  <div class="mapa__corpo">
+    <div
+      #viewport
+      class="mapa__viewport"
+      tabindex="0"
+      aria-label="Mapa de mesas; use a rolagem horizontal em telas menores"
+    >
+      @if (carregando()) {
+      <p role="status" class="mapa__mensagem">Carregando mesas…</p>
+      } @else if (erro()) {
+      <p role="alert" class="mapa__mensagem">{{ erro() }}</p>
+      } @else if (mesas().length === 0) {
+      <p class="mapa__mensagem">Nenhuma mesa cadastrada.</p>
+      } @else {
+      <div
+        class="mapa__desenho"
+        [style.width.px]="larguraDesenho()"
+        [style.zoom]="escala()"
+      >
+        @for (planta of plantas(); track planta.nome) { @if (plantas().length >
+        1) {
+        <h2 class="mapa__nome-planta">{{ planta.nome }}</h2>
+        }
+        <div
+          class="planta"
+          [class.planta--legado]="planta.legado"
+          [style.width.px]="planta.largura"
+          [style.height.px]="planta.altura"
+          [attr.aria-label]="'Planta ' + planta.nome"
+        >
+          @if (planta.tambore) {
+          <div class="planta__limite" aria-hidden="true"></div>
+          <div
+            class="entrada"
+            aria-hidden="true"
+            [style.left.px]="layoutTambore.entrada.x"
+            [style.top.px]="layoutTambore.entrada.y"
+            [style.width.px]="layoutTambore.entrada.largura"
+            [style.height.px]="layoutTambore.entrada.altura"
+          >
+            Entrada
+          </div>
+          <div
+            class="parede"
+            aria-hidden="true"
+            [style.left.px]="layoutTambore.parede.x"
+            [style.top.px]="layoutTambore.parede.y"
+            [style.width.px]="layoutTambore.parede.largura"
+            [style.height.px]="layoutTambore.parede.altura"
+          >
+            Paredes
+          </div>
+          @for (estrutura of layoutTambore.estruturas; track $index) {
+          <div
+            class="estrutura"
+            aria-hidden="true"
+            [style.left.px]="estrutura.x"
+            [style.top.px]="estrutura.y"
+            [style.width.px]="estrutura.largura"
+            [style.height.px]="estrutura.altura"
+          ></div>
+          } } @for (mesa of planta.mesas; track mesa.id) {
+          <button
+            type="button"
+            class="mesa"
+            [class.livre]="estaDisponivel(mesa)"
+            [class.ocupada]="estaOcupada(mesa)"
+            [class.inativa]="!mesa.ativa"
+            [class.fixa]="mesa.ativa && mesa.tipo === 'FIXA'"
+            [class.selecionada]="selecionada() === mesa.id"
+            [style.left.px]="mesa.referenciaVisual.x"
+            [style.top.px]="mesa.referenciaVisual.y"
+            [style.width.px]="planta.tamanhoMesa.largura"
+            [style.height.px]="planta.tamanhoMesa.altura"
+            [disabled]="!estaDisponivel(mesa)"
+            [attr.aria-pressed]="selecionada() === mesa.id"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data')"
+            (click)="selecionar(mesa)"
+          >
+            <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
+            @if (!mesa.ativa) {
+              <span class="mesa__estado">Inativa</span>
+            } @else if (estaOcupada(mesa)) {
+              <span class="mesa__estado">Ocupada</span>
+            } @else if (mesa.tipo === 'LIVRE') {
+              <span class="mesa__estado">Livre</span>
+            } @else if (mostrarRotulos()) {
+              <span class="mesa__estado">Mesa fixa</span>
+            }
+            @if (estaDisponivel(mesa)) {
+            <span
+              class="mesa__marcador"
+              [class.mesa__marcador--selecionado]="selecionada() === mesa.id"
+              aria-hidden="true"
+            ></span>
+            }
+          </button>
+          }
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+  <footer class="mapa__rodape">
+    <p>
+      Planta de demonstração. A disponibilidade considera somente a data escolhida.
+      No dia seguinte, a mesa estará livre se não houver outra reserva.
+    </p>
+  </footer>
+</section>

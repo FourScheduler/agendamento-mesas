@@ -1,0 +1,119 @@
+<header class="agendamento__header">
+  <div class="agendamento__header-topo">
+    <p class="eyebrow">Agendamento de Mesas</p>
+    <h1 class="titulo">Escolha uma mesa</h1>
+    <p class="subtitulo">Selecione a data, escolha uma mesa livre e confirme</p>
+  </div>
+
+  <section class="filtro-data cartao" aria-label="Filtro de data">
+    <div class="filtro-data__linha">
+      <div>
+        <label class="filtro-data__rotulo" for="data-reserva">Data da reserva</label>
+        <input
+          class="filtro-data__entrada"
+          id="data-reserva"
+          type="date"
+          [ngModel]="dataSelecionada()"
+          (ngModelChange)="onDataChange($event)"
+          [min]="todayISO()"
+          [max]="maxDateISO()"
+          [disabled]="confirmando()"
+          required
+        />
+      </div>
+      <button class="botao" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M9 12h6M12 9v6" />
+        </svg>
+        Ver mapa
+      </button>
+      <button class="botao" type="button" (click)="reserva.atualizarDisponibilidade()"
+        [disabled]="confirmando() || !dataSelecionada()">Atualizar disponibilidade</button>
+    </div>
+    <p class="subtitulo">Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência. Horário de São Paulo.</p>
+    @if (erroConsulta()) {
+    <p class="filtro-data__erro" role="alert">{{ erroConsulta() }}</p>
+    }
+  </section>
+</header>
+
+<div class="agendamento__grid">
+  <!-- Lado esquerdo: lista de mesas livres -->
+  <section class="mesas-livres cartao" aria-labelledby="mesas-livres-titulo">
+    <h2 id="mesas-livres-titulo" class="mesas-livres__titulo">
+      Mesas livres
+      <span class="mesas-livres__contagem">({{ mesasLivres().length }})</span>
+    </h2>
+
+    @if (carregandoMesas()) {
+    <div class="mesas-livres__loading" role="status">
+      <svg class="spinner" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+        </path>
+      </svg>
+      <span>Carregando mesas…</span>
+    </div>
+    } @else if (mesasLivres().length === 0) {
+    <p class="mesas-livres__vazio">Nenhuma mesa livre para esta data.</p>
+    } @else {
+    <ul class="mesas-livres__lista" aria-label="Mesas disponíveis">
+      @for (mesa of mesasLivres(); track mesa.id) {
+      <li>
+      <button type="button" class="mesa-item" [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id"
+        [attr.aria-pressed]="mesaSelecionada()?.id === mesa.id" [disabled]="confirmando()" (click)="selecionarMesa(mesa)">
+        <div class="mesa-item__codigo">Mesa {{ mesa.codigo }}</div>
+        <div class="mesa-item__regiao">{{ mesa.regiao }}</div>
+        <div class="mesa-item__tipo">Livre</div>
+      </button>
+      </li>
+      }
+    </ul>
+    }
+  </section>
+
+  <!-- Lado direito: resumo da reserva -->
+  <aside class="resumo-reserva cartao" aria-labelledby="resumo-titulo">
+    <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
+
+    @if (!mesaSelecionada()) {
+    <div class="resumo__vazio">
+      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M9 12h6M12 9v6" />
+      </svg>
+      <p>Selecione uma mesa na lista ao lado para ver o resumo.</p>
+    </div>
+    } @else {
+    <dl class="resumo__detalhes">
+      <dt>Data — dia inteiro</dt>
+      <dd>{{ formatarDataBR(dataSelecionada()) }}</dd>
+
+      <dt>Mesa</dt>
+      <dd>Mesa {{ mesaSelecionada()!.codigo }} ({{ mesaSelecionada()!.regiao }})</dd>
+
+      <dt>Solicitante</dt>
+      <dd>{{ getSolicitanteLabel() }}</dd>
+    </dl>
+
+    <div class="resumo__acoes">
+      <button class="botao botao--primario botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando() || !usuario()">
+        {{ confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
+      </button>
+      <button class="botao botao--largura-total" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M9 12h6M12 9v6" />
+        </svg>
+        Ver mapa
+      </button>
+    </div>
+
+    }
+  </aside>
+</div>
+
+<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
+  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />
