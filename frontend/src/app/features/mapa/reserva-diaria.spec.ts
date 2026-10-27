@@ -16,11 +16,13 @@ describe('Reserva diária pela planta', () => {
   let http: HttpTestingController;
   beforeEach(() => {
     localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-27T12:00:00Z'));
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   });
-  afterEach(() => { localStorage.clear(); http.verify(); });
+  afterEach(() => { localStorage.clear(); try { http.verify(); } finally { vi.useRealTimers(); } });
 
   function carregar(disponiveis: readonly Mesa[] = [mesa]) {
     http.expectOne('/api/mesas').flush([mesa]);
@@ -40,6 +42,13 @@ describe('Reserva diária pela planta', () => {
     fixture.nativeElement.querySelector('.mesa').click();
     fixture.detectChanges();
     return fixture;
+  }
+
+  function alterarCampo(fixture: ReturnType<typeof TestBed.createComponent<MapaPage>>, data: string) {
+    const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
+    campo.value = data;
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
   }
 
   it('envia só mesa e data, bloqueia duplo clique e só exibe sucesso após resposta', async () => {
@@ -101,8 +110,7 @@ describe('Reserva diária pela planta', () => {
 
   it('limpa a seleção ao mudar de dia e consulta a nova data', () => {
     const fixture = abrir();
-    fixture.componentInstance.reserva.alterarData('2026-10-29');
-    fixture.detectChanges();
+    alterarCampo(fixture, '2026-10-29');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     http.expectOne('/api/mesas').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([mesa]);
@@ -144,5 +152,60 @@ describe('Reserva diária pela planta', () => {
     fixture.nativeElement.querySelector('[aria-label="Fechar notificação"]').click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.notificacao')).toBeNull();
+  });
+
+  it('cancela respostas anteriores ao alterar rapidamente a data pelo campo', () => {
+    const fixture = abrir();
+    alterarCampo(fixture, '2026-10-29');
+    const catalogoAntigo = http.expectOne('/api/mesas');
+    const antiga = http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29');
+    alterarCampo(fixture, '2026-10-30');
+    expect(antiga.cancelled).toBe(true);
+    expect(catalogoAntigo.cancelled).toBe(true);
+    // Ignora uma conclusão antiga e um evento de seleção antigo enquanto a nova data carrega.
+    fixture.componentInstance.reserva.registrarDisponibilidade('2026-10-29');
+    fixture.componentInstance.onMesaSelecionada(mesa);
+    fixture.componentInstance.reserva.confirmar();
+    http.expectNone('/api/reservas');
+    expect(fixture.componentInstance.reserva.disponibilidadeAtual()).toBe(false);
+    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-30').flush([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    expect(fixture.componentInstance.reserva.data()).toBe('2026-10-30');
+    expect(fixture.nativeElement.textContent).toContain('Nenhuma mesa disponível para a data selecionada');
+  });
+
+  it('limpa a planta e a seleção ao apagar a data, sem consultar ou confirmar', () => {
+    const fixture = abrir();
+    alterarCampo(fixture, '');
+    expect(fixture.nativeElement.querySelector('#erro-data').textContent).toContain('Informe a data');
+    expect(fixture.nativeElement.querySelector('app-planta-mesas')).toBeNull();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    fixture.componentInstance.reserva.confirmar();
+    http.expectNone('/api/mesas');
+    http.expectNone(r => r.url === '/api/mesas/disponiveis');
+    http.expectNone('/api/reservas');
+  });
+
+  it('permite repetir uma consulta que falhou e só então selecionar pela planta', () => {
+    const fixture = abrir();
+    fixture.nativeElement.querySelector('#atualizar-disponibilidade').click();
+    fixture.componentInstance.onMesaSelecionada(mesa);
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/disponiveis').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar a disponibilidade');
+    expect(fixture.componentInstance.reserva.disponibilidadeAtual()).toBe(false);
+    fixture.nativeElement.querySelector('#atualizar-disponibilidade').click();
+    fixture.detectChanges();
+    carregar();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.mesa').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.confirmar').disabled).toBe(false);
   });
 });

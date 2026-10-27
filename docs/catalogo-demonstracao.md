@@ -55,7 +55,8 @@ Reservas são de **dia inteiro**. A planta combina `GET /api/mesas` com `GET /ap
 
 ```html
 <app-planta-mesas [token]="tokenDaSessao" [data]="dataEscolhida"
-  [atualizacao]="versaoDaConsulta" (mesaSelecionada)="selecionarMesa($event)" />
+  [atualizacao]="versaoDaConsulta" (mesaSelecionada)="selecionarMesa($event)"
+  (disponibilidadeConsultada)="registrarDisponibilidade($event)" />
 ```
 
 O login fica em `/login`, com sessão compartilhada por `AuthService`. O token é mantido em `localStorage`; os guards recuperam a identidade real em `GET /api/auth/perfil` antes de abrir as rotas protegidas após recarregar. Sair ou receber `401` limpa o token e volta ao login. A barra de navegação e a página preparatória `/minhas-reservas` da develop foram preservadas.
@@ -65,6 +66,11 @@ Após selecionar uma mesa disponível, o usuário revisa mesa, dia inteiro e sol
 Em `409`, a seleção é limpa e a disponibilidade é atualizada; `400` mostra a validação e `401` exige novo login. Falhas de rede/servidor não exibem sucesso e provocam nova consulta. O catálogo e os estados de ocupação vêm exclusivamente da API, sem fallback fictício.
 
 Testes: `npm.cmd test -- --watch=false`; compilação: `npm.cmd run build`.
+
+`disponibilidadeConsultada` emite a data somente após concluir a consulta. O
+hospedeiro registra essa referência em `ReservaDiaria`; mudar a data ou atualizar
+limpa a referência e impede confirmar uma seleção baseada na consulta anterior.
+Datas inválidas exibem erro junto ao campo, sem consultar ou reaproveitar mesas.
 
 ## Padrão da planta
 
