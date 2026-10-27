@@ -24,6 +24,11 @@ export class ReservaDiaria {
   readonly sucesso = signal('');
   readonly atualizacao = signal(0);
 
+  fecharMensagem() {
+    this.erro.set('');
+    this.sucesso.set('');
+  }
+
   alterarData(data: string) {
     if (this.confirmando()) return;
     this.data.set(data);
@@ -62,7 +67,7 @@ export class ReservaDiaria {
           }
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
           this.erro.set(erro.status === 409
-            ? `${detalhe || 'A mesa ou o seu dia já possui uma reserva.'} Revise a disponibilidade e selecione novamente.`
+            ? (detalhe || 'A mesa ou o seu dia já possui uma reserva. Revise a disponibilidade e selecione novamente.')
             : erro.status === 400 ? (detalhe || 'Verifique a data e a mesa selecionadas.')
             : 'Não foi possível confirmar a reserva. Atualize a disponibilidade antes de tentar novamente.');
           this.atualizarDisponibilidade();

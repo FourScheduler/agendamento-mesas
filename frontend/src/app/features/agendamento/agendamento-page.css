@@ -136,7 +136,6 @@
   box-shadow: 0 2px 8px rgba(255,83,21,0.1);
 }
 .mesa-item:disabled { cursor: not-allowed; opacity: 0.65; }
-.resultado--sucesso { margin-top: 1rem; padding: 1rem; color: var(--mesa-livre-texto); background: var(--mesa-livre-bg); border-radius: var(--radius); }
 .mesa-item--selecionada {
   border-color: var(--orange);
   background: var(--selection-bg);
@@ -217,15 +216,6 @@
 }
 .botao--largura-total {
   width: 100%;
-}
-.resumo__erro {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius);
-  color: #dc2626;
-  font-size: 0.875rem;
 }
 
 @media (max-width: 1024px) {

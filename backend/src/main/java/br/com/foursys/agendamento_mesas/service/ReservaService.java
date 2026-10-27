@@ -12,6 +12,7 @@ import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -20,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ReservaService {
+    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final UsuarioRepository usuarios;
     private final MesaRepository mesas;
     private final ReservaRepository reservas;
@@ -69,7 +71,8 @@ public class ReservaService {
         }
         if (reservas.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepository.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Você já possui uma reserva não cancelada em " + request.data() + ".");
+                    "Você já possui uma reserva em " + request.data().format(DATA_BR)
+                            + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
         var reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
         reserva.setConfirmadaEm(LocalDateTime.now(relogio));

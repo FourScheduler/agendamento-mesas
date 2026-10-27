@@ -231,7 +231,7 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `409` | Mesa `FIXA`. | `Mesa 018 é fixa e não pode ser reservada.` |
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
-| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva não cancelada em 2026-10-28.` |
+| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
 
 ---
 

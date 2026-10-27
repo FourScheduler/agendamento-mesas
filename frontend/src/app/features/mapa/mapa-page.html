@@ -16,12 +16,6 @@
     <button type="button" class="botao" (click)="reserva.atualizarDisponibilidade()"
       [disabled]="reserva.confirmando() || !reserva.data()">Atualizar disponibilidade</button>
   </section>
-  @if (reserva.sucesso()) {
-    <p class="resultado resultado--sucesso" role="status">{{ reserva.sucesso() }}</p>
-  }
-  @if (reserva.erro()) {
-    <div class="alerta alerta--erro" role="alert">{{ reserva.erro() }}</div>
-  }
 
   @if (reserva.data()) {
     <app-planta-mesas
@@ -73,3 +67,6 @@
     Voltar ao agendamento
   </button>
 </div>
+
+<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
+  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

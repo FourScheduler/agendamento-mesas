@@ -16,18 +16,6 @@
   padding: 0 clamp(1.5rem, 4vw, 4rem) 2rem;
 }
 
-.alerta {
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius);
-  margin-bottom: 1.5rem;
-  font-size: 0.9375rem;
-}
-.alerta--erro {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-}
-
 .detalhes {
   position: fixed;
   z-index: 15;
@@ -47,8 +35,6 @@
   margin-bottom: 1.5rem;
 }
 .consulta p { flex: 1 1 220px; color: var(--muted); font-size: 0.875rem; }
-.resultado { padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius); background: white; }
-.resultado--sucesso { color: var(--mesa-livre-texto); background: var(--mesa-livre-bg); }
 .confirmar { width: 100%; margin-top: 1rem; }
 .detalhes__cabecalho {
   display: flex;

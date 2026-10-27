@@ -62,7 +62,7 @@ describe('Reserva diária pela planta', () => {
     fixture.detectChanges();
     carregar([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.resultado--sucesso').textContent).toContain('Reserva #9 confirmada');
+    expect(fixture.nativeElement.querySelector('.notificacao--sucesso').textContent).toContain('Reserva #9 confirmada');
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('.mesa').textContent).toContain('Ocupada');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
@@ -82,7 +82,8 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.componentInstance.reserva.erro()).not.toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-      expect(fixture.nativeElement.querySelector('.resultado--sucesso')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
     });
   }
 
@@ -128,5 +129,20 @@ describe('Reserva diária pela planta', () => {
     const fixture = abrir();
     fixture.componentInstance.voltarParaAgendamento();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28' } });
+  });
+
+  it('mostra a crítica de reserva existente uma única vez e permite fechar o popup', () => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.confirmar();
+    const mensagem = 'Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.';
+    http.expectOne('/api/reservas').flush({ detail: mensagem }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.notificacao__mensagem').textContent).toBe(mensagem);
+    expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(1);
+    fixture.nativeElement.querySelector('[aria-label="Fechar notificação"]').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.notificacao')).toBeNull();
   });
 });

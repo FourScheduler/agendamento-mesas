@@ -51,7 +51,7 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     consulta().flush([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.resultado--sucesso').textContent).toContain('Reserva #9 confirmada');
+    expect(fixture.nativeElement.querySelector('.notificacao--sucesso').textContent).toContain('Reserva #9 confirmada');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     http.expectNone(r => r.url.includes('/confirmacao'));
   });
@@ -67,6 +67,8 @@ describe('Agendamento integrado à reserva diária', () => {
       expect(fixture.componentInstance.erro()).toContain('Reserva recusada');
       expect(fixture.componentInstance.reserva.sucesso()).toBe('');
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]').textContent).toContain('Reserva recusada');
+      expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(1);
     });
   }
 

@@ -32,11 +32,8 @@
         [disabled]="confirmando() || !dataSelecionada()">Atualizar disponibilidade</button>
     </div>
     <p class="subtitulo">Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência. Horário de São Paulo.</p>
-    @if (reserva.sucesso()) {
-      <p class="resultado--sucesso" role="status">{{ reserva.sucesso() }}</p>
-    }
-    @if (erro()) {
-    <p class="filtro-data__erro" role="alert">{{ erro() }}</p>
+    @if (erroConsulta()) {
+    <p class="filtro-data__erro" role="alert">{{ erroConsulta() }}</p>
     }
   </section>
 </header>
@@ -114,9 +111,9 @@
       </button>
     </div>
 
-    @if (erro()) {
-    <p class="resumo__erro" role="alert">{{ erro() }}</p>
-    }
     }
   </aside>
 </div>
+
+<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
+  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />
