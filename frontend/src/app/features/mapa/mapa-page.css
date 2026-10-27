@@ -16,18 +16,6 @@
   padding: 0 clamp(1.5rem, 4vw, 4rem) 2rem;
 }
 
-.alerta {
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius);
-  margin-bottom: 1.5rem;
-  font-size: 0.9375rem;
-}
-.alerta--erro {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-}
-
 .detalhes {
   position: fixed;
   z-index: 15;
@@ -35,12 +23,28 @@
   bottom: 24px;
   width: min(360px, calc(100vw - 32px));
   box-shadow: 0 4px 24px rgb(34 34 57 / 15%);
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
 }
+.consulta {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.consulta p { flex: 1 1 220px; color: var(--muted); font-size: 0.875rem; }
+.confirmar { width: 100%; margin-top: 1rem; }
 .detalhes__cabecalho {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+@media (min-width: 701px) {
+  .detalhes__cabecalho { cursor: grab; user-select: none; touch-action: none; }
+  .painel--arrastando .detalhes__cabecalho { cursor: grabbing; }
 }
 .detalhes__fechar {
   display: grid;

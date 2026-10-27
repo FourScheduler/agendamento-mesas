@@ -1,7 +1,8 @@
 package br.com.foursys.agendamento_mesas.enums;
 
 /**
- * Estados da reserva: PENDENTE ao criar, CONFIRMADA após confirmação e CANCELADA como estado final.
+ * Novas reservas são CONFIRMADA. PENDENTE permanece compatível com dados legados;
+ * CANCELADA é o estado final que libera mesa e usuário na data.
  */
 public enum StatusReserva {
     PENDENTE,

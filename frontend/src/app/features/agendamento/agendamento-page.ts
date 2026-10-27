@@ -4,34 +4,36 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/auth/auth.service';
-import { ReservaService } from './reserva.service';
-import { Reserva } from './reserva';
+import { MesaService } from '../mesas/mesa.service';
+import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { Mesa } from '../mesas/mesa';
+import { Notificacao } from '../../shared/notificacao/notificacao';
 
 @Component({
   selector: 'app-agendamento-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Notificacao],
+  providers: [ReservaDiaria],
   templateUrl: './agendamento-page.html',
   styleUrl: './agendamento-page.css',
 })
 export class AgendamentoPage {
   private readonly auth = inject(AuthService);
-  private readonly reservaService = inject(ReservaService);
+  private readonly mesas = inject(MesaService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
+  // Estado da reserva (compartilhado via ReservaDiaria)
+  readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
   readonly token = this.auth.token;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
 
-  // Filtros
-  readonly dataSelecionada = signal('');
+  // Filtros locais (lista de mesas)
   readonly busca = signal('');
   readonly mesasLivres = signal<readonly Mesa[]>([]);
-  readonly mesaSelecionada = signal<Mesa | null>(null);
   readonly carregandoMesas = signal(false);
-  readonly erro = signal('');
+  readonly erroConsulta = signal('');
 
   readonly mesasFiltradas = computed(() => {
     const termo = this.busca().trim().toLowerCase();
@@ -42,98 +44,84 @@ export class AgendamentoPage {
     );
   });
 
-  // Resumo da reserva (lado direito)
-  readonly confirmando = signal(false);
-  readonly horarioSelecionado = signal('09:00 - 10:00'); // Horário padrão
-  readonly stepAtual = signal(1);
+  // Helpers para o template
+  readonly dataSelecionada = this.reserva.data;
+  readonly mesaSelecionada = this.reserva.selecionada;
+  readonly confirmando = this.reserva.confirmando;
+  readonly erro = this.reserva.erro;
+  readonly todayISO = this.reserva.dataMinima;
+  readonly maxDateISO = this.reserva.dataMaxima;
 
-  // Datas para input date (apenas dias úteis, até +15 dias)
-  readonly todayISO = computed(() => {
-    const d = new Date();
-    return d.toISOString().split('T')[0];
-  });
-  readonly maxDateISO = computed(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 15);
-    return d.toISOString().split('T')[0];
-  });
+  // UI extras
+  readonly horarioSelecionado = signal('09:00 - 10:00');
+  readonly stepAtual = signal(1);
 
   constructor() {
     effect((onCleanup) => {
+      // Reage a mudanças de data ou trigger de atualização
+      this.reserva.atualizacao();
       const token = this.token();
+      const data = this.dataSelecionada();
+
       this.mesasLivres.set([]);
-      this.mesaSelecionada.set(null);
-      this.erro.set('');
-      if (!token) return;
-      // data padrão = hoje (próximo dia útil)
-      const hoje = new Date();
-      const dataISO = hoje.toISOString().split('T')[0];
-      this.dataSelecionada.set(dataISO);
-      this.carregarMesasLivres(token, dataISO);
-      onCleanup(() => {});
+      this.reserva.selecionada.set(null);
+      this.erroConsulta.set('');
+      this.carregandoMesas.set(false);
+
+      if (!token || !data || !this.usuario()) return;
+
+      this.carregandoMesas.set(true);
+      const sub = this.mesas.listarDisponiveis(data, token)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (mesas) => {
+            this.mesasLivres.set(mesas);
+            this.carregandoMesas.set(false);
+          },
+          error: (e) => {
+            this.carregandoMesas.set(false);
+            this.erroConsulta.set(
+              e.status === 400
+                ? (e.error?.detail ?? 'Escolha uma data válida.')
+                : 'Não foi possível carregar mesas livres. Atualize a disponibilidade.'
+            );
+            if (e.status === 401) this.auth.logout(true);
+          },
+        });
+      onCleanup(() => sub.unsubscribe());
     });
   }
 
   onDataChange() {
-    const token = this.token();
-    const data = this.dataSelecionada();
-    if (!token || !data) return;
-    this.mesaSelecionada.set(null);
-    this.carregarMesasLivres(token, data);
-  }
-
-  private carregarMesasLivres(token: string, data: string) {
-    this.carregandoMesas.set(true);
-    this.reservaService.listarDisponiveis(token, data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (mesas) => {
-        this.mesasLivres.set(mesas);
-        this.carregandoMesas.set(false);
-      },
-      error: (e) => {
-        this.carregandoMesas.set(false);
-        this.erro.set(e.status === 401 ? 'Sessão expirada. Entre novamente.' : 'Não foi possível carregar mesas livres.');
-        if (e.status === 401) this.auth.logout();
-      },
-    });
+    this.reserva.alterarData(this.dataSelecionada());
   }
 
   selecionarMesa(mesa: Mesa) {
-    this.mesaSelecionada.set(mesa);
-  }
-
-  async confirmarReserva() {
-    const mesa = this.mesaSelecionada();
-    const data = this.dataSelecionada();
-    const token = this.token();
-    if (!mesa || !data || !token) return;
-
-    this.confirmando.set(true);
-    this.erro.set('');
-    try {
-      await this.reservaService.criar(token, mesa.id, data).toPromise();
-      // Sucesso: limpar seleção e recarregar mesas (a mesa não estará mais livre)
-      this.mesaSelecionada.set(null);
-      this.carregarMesasLivres(token, data);
-    } catch (e: any) {
-      this.erro.set(e.status === 409 ? (e.error?.detail ?? 'Conflito ao reservar.') : 'Erro ao criar reserva.');
-    } finally {
-      this.confirmando.set(false);
+    if (!this.confirmando() && !this.carregandoMesas() && this.mesasLivres().some(m => m.id === mesa.id)) {
+      this.reserva.selecionada.set(mesa);
     }
   }
 
+  confirmarReserva() {
+    this.reserva.confirmar();
+  }
+
   irParaMapa() {
-    this.router.navigate(['/mapa']);
+    void this.router.navigate(['/mapa'], { queryParams: { data: this.dataSelecionada() } });
   }
 
   formatarDataBR(dataISO: string): string {
-    const d = new Date(dataISO + 'T00:00:00');
-    return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    if (!dataISO) return '';
+    return new Date(dataISO + 'T12:00:00Z').toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+    });
   }
 
   getSolicitanteLabel(): string {
-    const user = this.usuario();
-    if (!user) return '';
-    return this.perfil() === 'ADMIN' ? 'Administrador (pode reservar para outros)' : user.nome;
+    return this.usuario()?.nome ?? '';
   }
 
   getHorarioSelecionado(): string {

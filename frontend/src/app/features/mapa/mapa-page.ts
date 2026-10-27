@@ -1,50 +1,44 @@
-import { Component, inject, signal, effect, DestroyRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PlantaMesas } from '../planta/planta-mesas';
+import { Mesa } from '../mesas/mesa';
 import { AuthService } from '../../core/auth/auth.service';
+import { ReservaDiaria } from '../reservas/reserva-diaria';
+import { formatarData } from '../reservas/data-reserva';
+import { PainelArrastavel } from '../../shared/painel-arrastavel.directive';
+import { Notificacao } from '../../shared/notificacao/notificacao';
 
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [CommonModule, PlantaMesas],
+  imports: [FormsModule, PlantaMesas, PainelArrastavel, Notificacao],
+  providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
 })
 export class MapaPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
-
+  readonly reserva = inject(ReservaDiaria);
   readonly token = this.auth.token;
-  readonly mesaSelecionada = signal<any>(null);
-  readonly erro = signal('');
+  readonly usuario = this.auth.usuario;
+  readonly mesaSelecionada = this.reserva.selecionada;
+  readonly formatarData = formatarData;
 
-  constructor() {
-    effect((onCleanup) => {
-      const token = this.token();
-      this.mesaSelecionada.set(null);
-      this.erro.set('');
-      if (!token) return;
-      // A PlantaMesas carrega os dados automaticamente via token
-      onCleanup(() => {});
-    });
-  }
-
-  onMesaSelecionada(mesa: any) {
-    this.mesaSelecionada.set(mesa);
+  onMesaSelecionada(mesa: Mesa) {
+    if (!this.reserva.confirmando()) this.mesaSelecionada.set(mesa);
   }
 
   onSessaoExpirada() {
-    this.auth.logout();
+    this.auth.logout(true);
   }
 
   voltarParaAgendamento() {
-    this.router.navigate(['/agendamento']);
+    void this.router.navigate(['/agendamento'], { queryParams: { data: this.reserva.data() } });
   }
 
   fecharDetalhes() {
-    this.mesaSelecionada.set(null);
+    if (!this.reserva.confirmando()) this.mesaSelecionada.set(null);
   }
 }

@@ -1,11 +1,6 @@
 # Fluxo e regras de negócio do MVP de mesas
 
-> Atualização do catálogo: a decisão vigente é reservar **por horário**. O contrato
-> diário descrito abaixo é histórico e precisa de revisão antes da implementação
-> de reservas. `GET /api/mesas` já está implementado e inclui mesas inativas,
-> sem informar ocupação. Ver [catálogo de demonstração](catalogo-demonstracao.md).
-
-Este documento descreve o fluxo aprovado e as regras de negócio do MVP de agendamento de mesas. Ele é a referência para implementação do backend; nenhum endpoint está implementado nesta etapa.
+Este documento descreve o fluxo aprovado e as regras de negócio do MVP de agendamento de mesas. Ele é a referência para implementação do backend; autenticação, catálogo, disponibilidade diária e criação confirmada estão implementados.
 
 Parte do MVP: issue #1.
 
@@ -16,8 +11,8 @@ Parte do MVP: issue #1.
 3. Usuário seleciona uma mesa **LIVRE**, **ativa** e sem reserva na data.
 4. Usuário **revisa** o resumo (mesa, data e solicitante).
 5. Usuário **autentica** quando ainda não estiver logado (`POST /api/auth/login`).
-6. Usuário **confirma**: criação da reserva em estado `PENDENTE` (`POST /api/reservas`) e confirmação (`POST /api/reservas/{id}/confirmacao`).
-7. Usuário **consulta** suas reservas (`GET /api/reservas/minhas`) e pode **cancelar** a qualquer momento (`PATCH /api/reservas/{id}/cancelamento`).
+6. Usuário **confirma**: uma única chamada `POST /api/reservas` cria a reserva diretamente em estado `CONFIRMADA`.
+7. Evolução futura: usuário **consulta** suas reservas (`GET /api/reservas/minhas`) e pode **cancelar** a qualquer momento (`PATCH /api/reservas/{id}/cancelamento`).
 
 Todas as rotas, inclusive a consulta, exigem token de autenticação. Sem token a resposta é `401`.
 
@@ -49,8 +44,8 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 | 8 | Cancelamento | O dono pode cancelar a qualquer momento, mesmo depois do início do dia reservado. Cancelamento libera a mesa. |
 | 9 | Solicitante | Vem do contexto autenticado (token). Não é campo editável do request. |
 | 10 | Autenticação | Login local com e-mail e senha (hash BCrypt). Token JWT em `Authorization: Bearer`. |
-| 11 | Estados da reserva | `PENDENTE`, `CONFIRMADA` e `CANCELADA`. |
-| 12 | Confirmação | Criação gera `PENDENTE`; a confirmação explícita torna `CONFIRMADA`. Evita criação acidental e cobre o passo "revisar → confirmar" do fluxo. |
+| 11 | Estados da reserva | Novas reservas são `CONFIRMADA`. `PENDENTE` permanece compatível com dados legados; `CANCELADA` libera a data. |
+| 12 | Confirmação | Após revisar, o usuário envia um único POST. A API responde `201` somente após commit da reserva `CONFIRMADA`. |
 | 13 | Mesas fixas | Tipo `FIXA` não aparece em `/api/mesas/disponiveis` e gera `409` na tentativa de reserva. |
 
 ## Regra de sobreposição: adaptação de `[início, fim)`
@@ -61,7 +56,7 @@ A decisão original previa intervalos `[início, fim)`, em que períodos consecu
 - Dois dias consecutivos nunca se sobrepõem; a reserva do dia `D` não impede a reserva do dia `D+1`.
 - Reserva `CANCELADA` não bloqueia mesa nem usuário.
 
-Se o produto evoluir para horários por turno, a semântica `[início, fim)` (meio-aberto) volta a valer; registrar isso como decisão de produto antes de implementar.
+A reserva ocupa exclusivamente sua data. No dia seguinte a mesa está disponível se não houver outra reserva; não é necessário cancelar ou alterar automaticamente o status da reserva anterior.
 
 ## Datas, horários e fuso
 
@@ -77,13 +72,17 @@ Registradas para validação com o negócio. **Nenhuma restrição foi inventada
 
 | Pendência | Situação atual |
 | --- | --- |
-| Tempo de expiração de reserva `PENDENTE` | Sem prazo definido. Uma `PENDENTE` bloqueia a mesa e o usuário até confirmar ou cancelar. Se definido, o estado volta a ficar disponível automaticamente. |
+| Reservas `PENDENTE` legadas | Novas reservas não passam por esse estado. Dados legados continuam bloqueando mesa e usuário na data até seu cancelamento ou tratamento futuro. |
 | Interpretação da janela de 15 dias | Adotado "15 dias corridos". Se o negócio quiser "15 dias úteis", ajustar a regra. |
 | Horário de expediente de referência | Sem validação de expediente no MVP (regra aprovada). Exibição de expediente futuro fica pendente. |
 | Feriados e recesso | Não tratados. Reserva em feriado local é aceita se cair em dia útil. |
 | Tornar `FIXA` uma mesa com reservas futuras | Efeito sobre reservas existentes não definido; a implementação deve validar com o produto antes de alterar dados reais. |
 | Papel de administrador além dos endpoints do MVP | Gestão de usuários (criar/desativar) fora do MVP; seed no banco. |
 | Cancelamento por administrador de reserva com dia já passado | Permitido pela regra "a qualquer momento"; se o negócio quiser restrição, registrar decisão. |
+
+## Confirmação concorrente
+
+`ReservaService.criar` usa uma transação `READ_COMMITTED`, bloqueando primeiro a linha do usuário e depois a linha da mesa (`PESSIMISTIC_WRITE` / `SELECT ... FOR UPDATE`). A mesa já existe mesmo quando não há reservas; o bloqueio protege a primeira inserção. Após esperar, as consultas de mesa/data e usuário/data enxergam o commit anterior. Canceladas são ignoradas pelo status. Todos os caminhos futuros de escrita devem respeitar essa ordem de locks e revalidar conflitos dentro da transação. Falhas desfazem a escrita e liberam os locks.
 
 ## Fora do escopo do MVP
 

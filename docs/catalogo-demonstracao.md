@@ -41,41 +41,29 @@ Para desenvolvimento, configure o MySQL conforme `backend/.env.example` e execut
 Para testar: `mvnw.cmd -s .mvn/settings-public.xml -gs .mvn/settings-public.xml test`.
 Os testes automatizados usam H2; a execução contra MySQL requer uma instância local.
 
-## Inatividade, seleção e período
+## Inatividade, seleção e data
 
-`ativa` é a condição administrativa da mesa. `tipo=LIVRE` indica elegibilidade de
-catálogo, não ausência de reservas. Uma mesa inativa permanece visível e identificável.
-`MesaService.obterParaReserva(id)` recusa mesas inativas ou fixas com conflito (`409`),
-e IDs inexistentes com `404`. Esse método é o ponto de validação do catálogo para o
-futuro serviço de reservas; não grava uma reserva nem afirma disponibilidade.
+`ativa` é a condição administrativa da mesa. `tipo=LIVRE` indica elegibilidade de catálogo, não ausência de reservas. Fixas e inativas permanecem visíveis e não selecionáveis. O catálogo completo não tem disponibilidade global.
 
-A decisão atual é **reservar por horário**. Ocupação deve ser calculada pelas reservas
-que se sobrepõem ao período solicitado, sem alterar `ativa`, `tipo` ou criar um booleano
-global `disponivel`. Esta entrega não implementa criação de reservas nem consulta temporal.
-As seções antigas de reservas por dia em outros documentos e a coluna `reservas.data`
-precisam de evolução própria para o contrato por horário antes de implementar esse fluxo.
+Reservas são de **dia inteiro**. A planta combina `GET /api/mesas` com `GET /api/mesas/disponiveis?data=yyyy-MM-dd`. Mesas livres ausentes da disponibilidade são exibidas como ocupadas na data. Falha ou carregamento da consulta impede selecionar mesas. Trocar a data, o token ou atualizar a disponibilidade cancela consultas anteriores e limpa a seleção.
+
+`ReservaService.criar` revalida mesa, usuário, data e conflitos sob locks, em uma única transação. O frontend apenas apresenta a disponibilidade consultada; a confirmação é a autoridade final. Uma reserva de D não ocupa D+1, sem necessidade de alterar seu status à meia-noite.
 
 ## Consumidor Angular
 
-`MesaService.listar(token)` consulta exclusivamente `/api/mesas` com Bearer token.
-`PlantaMesas` é um componente standalone reutilizável para o fluxo autenticado:
+`MapaPage`, na rota protegida `/mapa`, permite escolher o dia e hospeda o componente abaixo. `AgendamentoPage`, em `/agendamento`, apresenta a lista de mesas disponíveis e o resumo da reserva. As duas telas compartilham `ReservaDiaria`, usam o mesmo POST e preservam a data ao navegar entre lista e planta:
 
 ```html
-<app-planta-mesas [token]="tokenDaSessao" (mesaSelecionada)="selecionarMesa($event)" />
+<app-planta-mesas [token]="tokenDaSessao" [data]="dataEscolhida"
+  [atualizacao]="versaoDaConsulta" (mesaSelecionada)="selecionarMesa($event)" />
 ```
 
-O hospedeiro importa `PlantaMesas` e fornece o token retornado por `/api/auth/login`.
-O componente não armazena credenciais; cancela a consulta anterior e limpa a seleção
-quando o token muda. Estados de carregamento, lista vazia e falha/401 são explícitos.
-Agrupa as mesas pela planta da resposta, desenha pelas coordenadas e emite a mesa com
-seu ID original. Fixas e inativas são visíveis, mas não selecionáveis. Selecionar
-uma mesa livre ainda exige validar disponibilidade por período no futuro fluxo de reserva.
+O login fica em `/login`, com sessão compartilhada por `AuthService`. O token é mantido em `localStorage`; os guards recuperam a identidade real em `GET /api/auth/perfil` antes de abrir as rotas protegidas após recarregar. Sair ou receber `401` limpa o token e volta ao login. A barra de navegação e a página preparatória `/minhas-reservas` da develop foram preservadas.
 
-`CatalogoPage`, na rota inicial `/`, hospeda o componente após o login local por
-e-mail e senha. O token permanece somente em memória: sair ou recarregar a página
-exige novo login. Uma resposta `401` do catálogo devolve o usuário ao formulário.
-A mesa selecionada tem seus detalhes exibidos, sem criar uma reserva.
-Não existe catálogo ou fallback fictício no frontend.
+Após selecionar uma mesa disponível, o usuário revisa mesa, dia inteiro e solicitante e envia `POST /api/reservas` com `mesaId` e `data`. O botão e a data ficam bloqueados durante o envio. A API deriva a autoria do token. Sucesso só é exibido após a resposta de confirmação, com identificação da reserva.
+
+Em `409`, a seleção é limpa e a disponibilidade é atualizada; `400` mostra a validação e `401` exige novo login. Falhas de rede/servidor não exibem sucesso e provocam nova consulta. O catálogo e os estados de ocupação vêm exclusivamente da API, sem fallback fictício.
+
 Testes: `npm.cmd test -- --watch=false`; compilação: `npm.cmd run build`.
 
 ## Padrão da planta
@@ -90,6 +78,4 @@ Cabeçalho e legenda se adaptam à tela sem acompanhar a escala do desenho. A pa
 de imagens exportadas do Figma foi removida; apenas o logo do Portal permanece como PNG.
 Cada mesa usa o código recebido no canto superior esquerdo, estado ao centro e
 marcador no canto direito. Livre tem borda verde, fixa tem fundo cinza, inativa usa
-borda tracejada e seleção tem borda laranja com confirmação visual. Verde representa
-`tipo=LIVRE` no catálogo, sem afirmar ausência de conflito em qualquer período.
-Não são exibidos os estados Reservada ou Suporte do SVG sem dados que os sustentem.
+borda tracejada e seleção tem borda laranja com confirmação visual. Verde representa disponibilidade na data consultada. Mesas ocupadas têm estado próprio em laranja. Nenhum nome ou reserva do SVG é incorporado ao produto.

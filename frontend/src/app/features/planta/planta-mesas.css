@@ -222,6 +222,17 @@
 .mesa:disabled {
   cursor: not-allowed;
 }
+.mesa.ocupada {
+  background: var(--orange-soft);
+  border-color: var(--orange-dark);
+}
+.mesa.ocupada .mesa__estado {
+  color: var(--orange-dark);
+}
+.amostra--ocupada {
+  background: var(--orange-soft);
+  border: 1.5px solid var(--orange-dark);
+}
 .mesa:focus-visible {
   outline: 3px solid var(--orange);
   outline-offset: 3px;

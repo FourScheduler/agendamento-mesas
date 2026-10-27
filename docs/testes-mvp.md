@@ -2,6 +2,8 @@
 
 Cenários que o backend deve cobrir com testes automatizados. Cada cenário referencia a regra em [fluxo-mvp](fluxo-mvp.md) e o contrato em [contratos-api-mvp](contratos-api-mvp.md).
 
+A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem, cancelamento e gestão administrativa de reservas abaixo permanecem cenários planejados para entregas futuras.
+
 ## Datas inválidas (`400`)
 
 | # | Cenário | Request | Esperado |
@@ -39,14 +41,23 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | 19 | Cancelamento libera | Cancelar reserva de `D` e re-reservar a mesa em `D` | `201` |
 | 20 | Cancelada não bloqueia usuário | Usuário com reserva `CANCELADA` em `D` cria outra em `D` | `201` |
 
-## Confirmação
+## Confirmação direta e concorrência
 
-| # | Cenário | Esperado |
-| --- | --- | --- |
-| 21 | Confirmar `PENDENTE` própria | `200`, status `CONFIRMADA`, `confirmadaEm` preenchido |
-| 22 | Confirmar reserva já `CONFIRMADA` | `409` |
-| 23 | Confirmar reserva `CANCELADA` | `409` |
-| 24 | Confirmar reserva inexistente | `404` |
+| Cenário | Esperado |
+| --- | --- |
+| POST autenticado com mesa/data válidas | `201`, `CONFIRMADA`, timestamps e solicitante do token; dados visíveis em outra transação após a resposta |
+| Request com `usuarioId` e `solicitante` de terceiro | Campos ignorados; reserva pertence ao usuário do token |
+| Duas requisições, usuários diferentes, mesma mesa/data, reservas inicialmente vazias | Um `201`, um `409`, uma reserva persistida |
+| Mesmo usuário, mesas diferentes, mesma data | Um `201`, um `409`, uma reserva persistida |
+| Usuários e mesas diferentes | Ambas confirmam |
+| Mesa bloqueada por transação que confirma enquanto a outra espera | Segunda requisição aguarda e revalida após commit; retorna `409` |
+| Falha depois do insert na mesma transação | Rollback integral; nova tentativa consegue reservar |
+| Reserva em D e consulta em D+1 | A mesa aparece disponível em D+1 se não houver outra reserva |
+| H2 e MySQL | Mesmos testes de contrato e concorrência; MySQL verifica uso de InnoDB |
+
+`ReservaApiTests` usa transações independentes e relógio fixo. `ReservaMySqlTests` repete a suíte em schema exclusivo terminado em `_test`, configurado por `TEST_MYSQL_URL`. O CI provisiona MySQL 8.4 e executa os dois bancos. `DataReservaValidatorTests` cobre a virada de dia UTC/São Paulo.
+
+O frontend cobre confirmação sem autoria editável tanto na lista quanto no mapa, duplo clique, sucesso após resposta, atualização de disponibilidade, erros `400`, `401`, `409`, rede/servidor e cancelamento de consulta ao trocar de data. Os testes de sessão/guards verificam restauração do perfil real, token expirado sem loop de navegação, logout e resposta de perfil recebida após logout. As rotas de login, agendamento, mapa e minhas reservas são preservadas, incluindo a data no trânsito entre lista e planta.
 
 ## Cancelamento
 
@@ -65,7 +76,7 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | 30 | Rota protegida sem token | `401` |
 | 31 | Token expirado/inválido | `401` |
 | 32 | Login com senha errada | `401` (mesma resposta do e-mail inexistente) |
-| 33 | Confirmar reserva de outro usuário | `403` |
+| 33 | Manipular autoria na criação | Campos ignorados; autoria do token |
 | 34 | Cancelar reserva de outro usuário | `403` |
 | 35 | Usuário comum em rota admin | `403` |
 | 36 | Usuário inativo tenta login | `401` |
