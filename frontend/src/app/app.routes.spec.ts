@@ -10,10 +10,12 @@ describe('Rotas da develop integradas à issue 7', () => {
   let http: HttpTestingController;
   beforeEach(() => {
     localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-27T12:00:00Z'));
     TestBed.configureTestingModule({ providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
   });
-  afterEach(() => { localStorage.clear(); http.verify(); });
+  afterEach(() => { localStorage.clear(); try { http.verify(); } finally { vi.useRealTimers(); } });
 
   it('abre o login ao acessar a rota inicial sem autenticação', async () => {
     const harness = await RouterTestingHarness.create('/');

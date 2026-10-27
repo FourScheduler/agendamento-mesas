@@ -10,7 +10,11 @@
       <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
       <input id="data-reserva" class="campo__entrada" type="date"
         [ngModel]="reserva.data()" (ngModelChange)="reserva.alterarData($event)"
-        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando()" required />
+        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando()"
+        [attr.aria-invalid]="reserva.erroData() ? true : null" aria-describedby="erro-data" required />
+      @if (reserva.erroData()) {
+        <p id="erro-data" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
+      }
     </div>
     <p>Reserve o dia inteiro, de segunda a sexta, com até 15 dias corridos de antecedência.</p>
     <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando()">
@@ -23,14 +27,15 @@
       [disabled]="reserva.confirmando() || !reserva.data()">Atualizar disponibilidade</button>
   </section>
 
-  @if (reserva.data()) {
+  @if (!reserva.erroData()) {
     <app-planta-mesas
       [token]="token()" [data]="reserva.data()" [atualizacao]="reserva.atualizacao()"
       (mesaSelecionada)="onMesaSelecionada($event)"
+      (disponibilidadeConsultada)="reserva.registrarDisponibilidade($event)"
       (sessaoExpirada)="onSessaoExpirada()"
     />
   } @else {
-    <p role="status">Escolha uma data para consultar a disponibilidade.</p>
+    <p role="status">Escolha uma data válida para consultar a disponibilidade.</p>
   }
 
   @if (mesaSelecionada(); as mesa) {
@@ -55,7 +60,7 @@
           A reserva ocupa somente este dia. No dia seguinte, a disponibilidade depende de outras reservas.
         </p>
         <button class="botao confirmar" type="button" (click)="reserva.confirmar()"
-          [disabled]="reserva.confirmando() || !usuario()">
+          [disabled]="reserva.confirmando() || !usuario() || !reserva.disponibilidadeAtual()">
           {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva do dia' }}
         </button>
       </div>

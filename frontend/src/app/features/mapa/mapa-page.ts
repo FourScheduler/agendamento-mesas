@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PlantaMesas } from '../planta/planta-mesas';
@@ -26,8 +26,15 @@ export class MapaPage {
   readonly mesaSelecionada = this.reserva.selecionada;
   readonly formatarData = formatarData;
 
+  constructor() {
+    effect(() => {
+      this.token();
+      this.reserva.iniciarConsulta();
+    });
+  }
+
   onMesaSelecionada(mesa: Mesa) {
-    if (!this.reserva.confirmando()) this.mesaSelecionada.set(mesa);
+    this.reserva.selecionar(mesa);
   }
 
   onSessaoExpirada() {
