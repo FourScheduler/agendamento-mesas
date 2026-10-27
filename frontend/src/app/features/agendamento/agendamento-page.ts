@@ -25,15 +25,27 @@ export class AgendamentoPage {
   readonly token = this.auth.token;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
 
-  // Filtro de data
+  // Filtros
   readonly dataSelecionada = signal('');
+  readonly busca = signal('');
   readonly mesasLivres = signal<readonly Mesa[]>([]);
   readonly mesaSelecionada = signal<Mesa | null>(null);
   readonly carregandoMesas = signal(false);
   readonly erro = signal('');
 
+  readonly mesasFiltradas = computed(() => {
+    const termo = this.busca().trim().toLowerCase();
+    if (!termo) return this.mesasLivres();
+    return this.mesasLivres().filter(m =>
+      m.codigo.toLowerCase().includes(termo) ||
+      m.regiao.toLowerCase().includes(termo)
+    );
+  });
+
   // Resumo da reserva (lado direito)
   readonly confirmando = signal(false);
+  readonly horarioSelecionado = signal('09:00 - 10:00'); // Horário padrão
+  readonly stepAtual = signal(1);
 
   // Datas para input date (apenas dias úteis, até +15 dias)
   readonly todayISO = computed(() => {
@@ -122,5 +134,9 @@ export class AgendamentoPage {
     const user = this.usuario();
     if (!user) return '';
     return this.perfil() === 'ADMIN' ? 'Administrador (pode reservar para outros)' : user.nome;
+  }
+
+  getHorarioSelecionado(): string {
+    return this.horarioSelecionado();
   }
 }

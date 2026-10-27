@@ -5,9 +5,9 @@
     <p class="subtitulo">Selecione a data, escolha uma mesa livre e confirme</p>
   </div>
 
-  <section class="filtro-data cartao" aria-label="Filtro de data">
+  <section class="filtro-data cartao" aria-label="Filtros de agendamento">
     <div class="filtro-data__linha">
-      <div>
+      <div class="filtro-campo">
         <label class="filtro-data__rotulo" for="data-reserva">Data da reserva</label>
         <input
           class="filtro-data__entrada"
@@ -18,6 +18,23 @@
           [min]="todayISO()"
           [max]="maxDateISO()"
         />
+      </div>
+      <div class="filtro-campo filtro-campo--busca">
+        <label class="filtro-data__rotulo" for="busca-mesa">Pesquisar</label>
+        <div class="filtro-campo__entrada-wrapper">
+          <svg class="filtro-campo__icone" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            class="filtro-campo__entrada"
+            id="busca-mesa"
+            type="search"
+            placeholder="Mesa ou local"
+            [(ngModel)]="busca"
+            (input)="busca.set($any($event.target).value)"
+          />
+        </div>
       </div>
       <button class="botao botao--mapa-header" type="button" (click)="irParaMapa()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -51,15 +68,34 @@
       </svg>
       <span>Carregando mesas…</span>
     </div>
-    } @else if (mesasLivres().length === 0) {
-    <p class="mesas-livres__vazio">Nenhuma mesa livre para esta data.</p>
+    } @else if (mesasFiltradas().length === 0) {
+    <p class="mesas-livres__vazio">Nenhuma mesa encontrada.</p>
     } @else {
     <ul class="mesas-livres__lista" role="listbox" aria-label="Mesas disponíveis">
-      @for (mesa of mesasLivres(); track mesa.id) {
+      @for (mesa of mesasFiltradas(); track mesa.id) {
       <li class="mesa-item" [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id" role="option" aria-selected="mesaSelecionada()?.id === mesa.id" (click)="selecionarMesa(mesa)">
-        <div class="mesa-item__codigo">Mesa {{ mesa.codigo }}</div>
-        <div class="mesa-item__regiao">{{ mesa.regiao }}</div>
-        <div class="mesa-item__tipo">Livre</div>
+         <img class="mesa-item__imagem" src="imgs/mesa.jpg" alt="Mesa {{ mesa.codigo }}" loading="lazy" />
+        <div class="mesa-item__info">
+          <div class="mesa-item__cabecalho">
+            <span class="mesa-item__nome">Mesa {{ mesa.codigo }}</span>
+            <span class="mesa-item__status">Disponível</span>
+          </div>
+          <div class="mesa-item__detalhes">
+            <span class="mesa-item__icone" title="Capacidade: 1 pessoa">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              1 pessoa
+            </span>
+            <span class="mesa-item__icone" title="Localização: {{ mesa.regiao }}">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              {{ mesa.regiao }}
+            </span>
+          </div>
+        </div>
       </li>
       }
     </ul>
@@ -68,8 +104,6 @@
 
   <!-- Lado direito: resumo da reserva -->
   <aside class="resumo-reserva cartao" aria-labelledby="resumo-titulo">
-    <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
-
     @if (!mesaSelecionada()) {
     <div class="resumo__vazio">
       <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -79,33 +113,96 @@
       <p>Selecione uma mesa na lista ao lado para ver o resumo.</p>
     </div>
     } @else {
-    <dl class="resumo__detalhes">
-      <dt>Data</dt>
-      <dd>{{ formatarDataBR(dataSelecionada()) }}</dd>
+      <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
+          <p class="resumo__subtitulo">Confira os detalhes antes de confirmar sua reserva.</p>
+    <div class="resumo__conteudo">
+          
+      <div class="resumo__divider"></div>
 
-      <dt>Mesa</dt>
-      <dd>Mesa {{ mesaSelecionada()!.codigo }} ({{ mesaSelecionada()!.regiao }})</dd>
+      <!-- Linhas de informação com ícones -->
+      <div class="resumo__info-grid">
+        <!-- Mesa / Localização -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Mesa</span>
+            <span class="resumo__info-value">Mesa {{ mesaSelecionada()!.codigo }} • {{ mesaSelecionada()!.regiao }}</span>
+          </div>
+        </div>
 
-      <dt>Solicitante</dt>
-      <dd>{{ getSolicitanteLabel() }}</dd>
-    </dl>
+        <!-- Capacidade -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Capacidade</span>
+            <span class="resumo__info-value">1 pessoa</span>
+          </div>
+        </div>
 
-    <div class="resumo__acoes">
-      <button class="botao botao--primario botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando()">
-        {{ confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
-      </button>
-      <button class="botao botao--outline botao--largura-total" type="button" (click)="irParaMapa()">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M9 12h6M12 9v6" />
+        <!-- Tomadas -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M2 22h20M2 12h20M2 2h20"/>
+              <path d="M12 2v20M2 12v10M22 12v10"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Recursos</span>
+            <span class="resumo__info-value">Tomadas integradas</span>
+          </div>
+        </div>
+
+        <!-- Solicitante -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Solicitante</span>
+            <span class="resumo__info-value">{{ getSolicitanteLabel() }}</span>
+          </div>
+        </div>
+         <!-- Cabeçalho com data/hora -->
+      <div class="resumo__header">
+        <div class="resumo__header-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+        </div>
+        <div class="resumo__header-info">
+          <span class="resumo__header-label">{{ formatarDataBR(dataSelecionada()) }}</span>
+        </div>
+      </div>
+      </div>
+
+      <div class="resumo__divider"></div>
+
+      <!-- Botão de confirmação -->
+      <button class="botao botao--confirmar botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando()">
+        <span>{{ confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
-        Ver mapa
       </button>
-    </div>
 
-    @if (erro()) {
-    <p class="resumo__erro" role="alert">{{ erro() }}</p>
-    }
+      @if (erro()) {
+      <p class="resumo__erro" role="alert">{{ erro() }}</p>
+      }
+    </div>
     }
   </aside>
 </div>
