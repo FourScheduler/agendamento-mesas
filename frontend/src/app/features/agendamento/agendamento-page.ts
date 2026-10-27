@@ -113,12 +113,14 @@ export class AgendamentoPage {
 
   formatarDataBR(dataISO: string): string {
     if (!dataISO) return '';
-    return new Date(dataISO + 'T12:00:00Z').toLocaleDateString('pt-BR', {
+    const data = new Date(dataISO + 'T12:00:00Z').toLocaleDateString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       weekday: 'long',
       day: '2-digit',
       month: 'long',
     });
+    // Capitaliza a primeira letra do dia da semana
+    return data.charAt(0).toUpperCase() + data.slice(1);
   }
 
   getSolicitanteLabel(): string {

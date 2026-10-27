@@ -129,6 +129,9 @@
     </div>
     } @else {
     <div class="resumo__conteudo">
+      <!-- Título do card -->
+      <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
+      <p class="resumo__subtitulo">Confira os detalhes da sua reserva antes de confirmar.</p>
       <!-- Cabeçalho com a data da reserva de dia inteiro -->
       <div class="resumo__header">
         <div class="resumo__header-icon">
@@ -145,8 +148,22 @@
 
       <div class="resumo__divider"></div>
 
-      <!-- Linhas de informação com ícones -->
+      <!-- Linhas de informação com ícones (incluindo Data) -->
       <div class="resumo__info-grid">
+        <!-- Data / Horário -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Data</span>
+            <span class="resumo__info-value">{{ formatarDataBR(dataSelecionada()) }}</span>
+          </div>
+        </div>
+
         <!-- Mesa / Localização -->
         <div class="resumo__info-item">
           <div class="resumo__info-icon" aria-hidden="true">
@@ -213,6 +230,9 @@
         </svg>
       </button>
 
+      @if (erro()) {
+      <p class="resumo__erro" role="alert">{{ erro() }}</p>
+      }
 
     </div>
     }

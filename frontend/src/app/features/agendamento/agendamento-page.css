@@ -177,16 +177,14 @@
 }
 .mesa-item:hover {
   border-color: var(--orange-400);
-  box-shadow: 0 2px 8px rgba(255,83,21,0.1);
+  
   border-left: 8px solid var(--orange);
-
 }
-.mesa-item:disabled { cursor: not-allowed; opacity: 0.65; }
+/* .mesa-item:disabled { cursor: not-allowed; opacity: 0.65; }
 .mesa-item--selecionada {
-  border-color: var(--orange);
-  background: var(--selection-bg);
-  box-shadow: 0 0 0 2px var(--orange-400);
-}
+ 
+
+} */
 .mesa-item__codigo {
   font-weight: 700;
   font-size: 1rem;
@@ -225,7 +223,7 @@
 }
 
 .resumo__subtitulo{
-  padding:0 0 0 0.75rem;
+  padding:0 0 0.75rem 0.75rem;
   color: var(--muted);
   font-size: 0.875rem;
   font-weight: 400;
@@ -306,16 +304,18 @@
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
+
+.mesa-item--selecionada {
+  border: 2px solid;
+  border-color: var(--orange-400);
+}
+
+
 .mesa-item:hover {
   border-color: var(--orange-400);
   box-shadow: 0 2px 8px rgba(255,83,21,0.1);
 }
-.mesa-item--selecionada {
-  border-color: 1px solid var(--orange);
-  background: var(--selection-bg);
-  box-shadow: 0 0 0 2px var(--orange-400);
-  border-left: 1px solid var(--orange);
-}
+
 
 /* Imagem da mesa */
 .mesa-item__imagem {
@@ -408,10 +408,9 @@
 }
 
 .resumo__conteudo {
-  padding: 0.8rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
 }
 
 /* Header com data e reserva de dia inteiro */
@@ -422,13 +421,10 @@
   padding-bottom: 1rem;
 }
 .resumo__header-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: var(--orange-soft);
   color: var(--orange);
   flex-shrink: 0;
 }
@@ -466,6 +462,7 @@
   gap: 0.875rem;
 }
 .resumo__info-item {
+  margin: 0.3rem 0;
   display: flex;
   align-items: center;
   gap: 0.995rem;
@@ -505,6 +502,7 @@
 
 /* Botão de confirmar */
 .botao--confirmar {
+  margin-top: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;

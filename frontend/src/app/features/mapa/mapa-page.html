@@ -16,9 +16,15 @@
         <p id="erro-data" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
       }
     </div>
-    <p>Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência. Horário de São Paulo.</p>
+
+    <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando()">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    Voltar ao agendamento
+  </button>
     <button id="atualizar-disponibilidade" type="button" class="botao" (click)="reserva.atualizarDisponibilidade()"
-      [disabled]="reserva.confirmando() || !!reserva.erroData()">Atualizar disponibilidade</button>
+      [disabled]="reserva.confirmando() || !reserva.data()">Atualizar disponibilidade</button>
   </section>
 
   @if (!reserva.erroData()) {
@@ -47,9 +53,7 @@
         <h3>Mesa {{ mesa.codigo }}</h3>
         <dl>
           <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
-          <dt>Planta</dt><dd>{{ mesa.referenciaVisual.planta }}</dd>
-          <dt>Disponibilidade</dt><dd>Disponível para a data consultada</dd>
-          <dt>Data — dia inteiro</dt><dd>{{ formatarData(reserva.data()) }}</dd>
+          <dt>Data</dt><dd>{{ formatarData(reserva.data()) }}</dd>
           <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
         </dl>
         <p class="detalhes__nota">
@@ -65,12 +69,7 @@
 </main>
 
 <div class="mapa__rodape">
-  <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando()">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-      <path d="M19 12H5M12 19l-7-7 7-7" />
-    </svg>
-    Voltar ao agendamento
-  </button>
+  
 </div>
 
 <app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
