@@ -51,6 +51,9 @@
     </ul>
   </header>
   <div class="mapa__corpo">
+    @if (data() && !carregando() && !erro() && mesas().length > 0 && disponiveis()?.size === 0) {
+      <p class="mapa__mensagem" role="status">Nenhuma mesa disponível para a data selecionada. Escolha outra data.</p>
+    }
     <div
       #viewport
       class="mapa__viewport"

@@ -1,11 +1,11 @@
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Mesa } from '../mesas/mesa';
-import { adicionarDias, formatarData, hojeSaoPaulo, proximoDiaUtil } from './data-reserva';
+import { adicionarDias, formatarData, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
 
 /** Estado por página, compartilhando as regras de confirmação entre lista e planta. */
 @Injectable()
@@ -18,6 +18,9 @@ export class ReservaDiaria {
   readonly dataMinima = hojeSaoPaulo();
   readonly dataMaxima = adicionarDias(this.dataMinima, 15);
   readonly data = signal(this.dataInicial());
+  readonly erroData = computed(() => validarDataReserva(this.data(), this.dataMinima));
+  private readonly dataConsultada = signal<string | null>(null);
+  readonly disponibilidadeAtual = computed(() => !this.erroData() && this.dataConsultada() === this.data());
   readonly selecionada = signal<Mesa | null>(null);
   readonly confirmando = signal(false);
   readonly erro = signal('');
@@ -31,22 +34,35 @@ export class ReservaDiaria {
 
   alterarData(data: string) {
     if (this.confirmando()) return;
-    this.data.set(data);
-    this.selecionada.set(null);
+    this.data.set(data ?? '');
+    this.iniciarConsulta();
     this.erro.set('');
     this.sucesso.set('');
   }
 
   atualizarDisponibilidade() {
     if (this.confirmando()) return;
-    this.selecionada.set(null);
+    this.iniciarConsulta();
     this.atualizacao.update(valor => valor + 1);
+  }
+
+  iniciarConsulta() {
+    this.selecionada.set(null);
+    this.dataConsultada.set(null);
+  }
+
+  registrarDisponibilidade(data: string) {
+    if (data === this.data() && !this.erroData()) this.dataConsultada.set(data);
+  }
+
+  selecionar(mesa: Mesa) {
+    if (!this.confirmando() && this.disponibilidadeAtual()) this.selecionada.set(mesa);
   }
 
   confirmar() {
     const mesa = this.selecionada();
     const sessao = this.auth.sessao();
-    if (this.confirmando() || !mesa || !sessao || !this.data()) return;
+    if (this.confirmando() || !mesa || !sessao || !this.disponibilidadeAtual()) return;
     this.confirmando.set(true);
     this.erro.set('');
     this.sucesso.set('');
@@ -76,7 +92,6 @@ export class ReservaDiaria {
   }
 
   private dataInicial(): string {
-    const data = this.route.snapshot.queryParamMap.get('data');
-    return data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : proximoDiaUtil(this.dataMinima);
+    return this.route.snapshot.queryParamMap.get('data') ?? proximoDiaUtil(this.dataMinima);
   }
 }

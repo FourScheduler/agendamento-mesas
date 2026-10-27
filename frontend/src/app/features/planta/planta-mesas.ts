@@ -33,6 +33,7 @@ export class PlantaMesas {
   readonly data = input('');
   readonly atualizacao = input(0);
   readonly mesaSelecionada = output<Mesa>();
+  readonly disponibilidadeConsultada = output<string>();
   readonly sessaoExpirada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly disponiveis = signal<ReadonlySet<number> | null>(null);
@@ -133,6 +134,7 @@ export class PlantaMesas {
           this.mesas.set(mesas);
           this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
           this.carregando.set(false);
+          if (data) this.disponibilidadeConsultada.emit(data);
         },
         error: (erro: HttpErrorResponse) => {
           this.carregando.set(false);

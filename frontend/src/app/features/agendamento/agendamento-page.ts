@@ -53,7 +53,6 @@ export class AgendamentoPage {
   readonly maxDateISO = this.reserva.dataMaxima;
 
   // UI extras
-  readonly horarioSelecionado = signal('09:00 - 10:00');
   readonly stepAtual = signal(1);
 
   constructor() {
@@ -62,13 +61,14 @@ export class AgendamentoPage {
       this.reserva.atualizacao();
       const token = this.token();
       const data = this.dataSelecionada();
+      const erroData = this.reserva.erroData();
 
       this.mesasLivres.set([]);
-      this.reserva.selecionada.set(null);
+      this.reserva.iniciarConsulta();
       this.erroConsulta.set('');
       this.carregandoMesas.set(false);
 
-      if (!token || !data || !this.usuario()) return;
+      if (!token || erroData || !this.usuario()) return;
 
       this.carregandoMesas.set(true);
       const sub = this.mesas.listarDisponiveis(data, token)
@@ -76,6 +76,7 @@ export class AgendamentoPage {
         .subscribe({
           next: (mesas) => {
             this.mesasLivres.set(mesas);
+            this.reserva.registrarDisponibilidade(data);
             this.carregandoMesas.set(false);
           },
           error: (e) => {
@@ -92,13 +93,13 @@ export class AgendamentoPage {
     });
   }
 
-  onDataChange() {
-    this.reserva.alterarData(this.dataSelecionada());
+  onDataChange(data: string) {
+    this.reserva.alterarData(data);
   }
 
   selecionarMesa(mesa: Mesa) {
     if (!this.confirmando() && !this.carregandoMesas() && this.mesasLivres().some(m => m.id === mesa.id)) {
-      this.reserva.selecionada.set(mesa);
+      this.reserva.selecionar(mesa);
     }
   }
 
@@ -124,7 +125,4 @@ export class AgendamentoPage {
     return this.usuario()?.nome ?? '';
   }
 
-  getHorarioSelecionado(): string {
-    return this.horarioSelecionado();
-  }
 }

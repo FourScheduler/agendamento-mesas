@@ -59,6 +59,19 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 
 O frontend cobre confirmação sem autoria editável tanto na lista quanto no mapa, duplo clique, sucesso após resposta, atualização de disponibilidade, erros `400`, `401`, `409`, rede/servidor e cancelamento de consulta ao trocar de data. Os testes de sessão/guards verificam restauração do perfil real, token expirado sem loop de navegação, logout e resposta de perfil recebida após logout. As rotas de login, agendamento, mapa e minhas reservas são preservadas, incluindo a data no trânsito entre lista e planta.
 
+## Filtro de disponibilidade diária — issue #11
+
+Os testes de lista e mapa alteram o campo `input[type=date]` por eventos reais
+de formulário. Cobrem data obrigatória, passada, fim de semana, fora da janela,
+troca rápida de datas, carregamento, resposta vazia, erro e nova tentativa.
+A confirmação é bloqueada até concluir a consulta da data atual, mesmo se um
+evento antigo tentar selecionar uma mesa durante a atualização. O resumo usa
+dia inteiro e a data de confirmação é a mesma enviada na consulta.
+
+`data-reserva.spec.ts` cobre formato, datas inexistentes, fuso de São Paulo e os
+limites inclusivos da janela. O backend mantém sua validação autoritativa.
+Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
+
 ## Cancelamento
 
 | # | Cenário | Esperado |
