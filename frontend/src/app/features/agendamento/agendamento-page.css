@@ -53,17 +53,6 @@
   border-color: var(--orange);
   box-shadow: 0 0 0 3px var(--orange-soft);
 }
-.botao--mapa-header {
-  background: transparent;
-  color: var(--navy);
-  border: 1px solid var(--border);
-  min-height: 44px;
-}
-.botao--mapa-header:hover:not(:disabled) {
-  background: var(--orange-soft);
-  border-color: var(--orange);
-  color: var(--orange);
-}
 .filtro-data__erro {
   margin-top: 0.5rem;
   color: var(--error);
@@ -228,16 +217,6 @@
 }
 .botao--largura-total {
   width: 100%;
-}
-.botao--outline {
-  background: transparent;
-  color: var(--navy);
-  border: 1px solid var(--border);
-}
-.botao--outline:hover:not(:disabled) {
-  background: var(--orange-soft);
-  border-color: var(--orange);
-  color: var(--orange);
 }
 .resumo__erro {
   margin-top: 1rem;

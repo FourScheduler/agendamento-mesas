@@ -45,6 +45,10 @@ visual e a marca, com componentes próprios para seus contratos de API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
   a disponibilidade. O cartão de revisão mostra mesa, data e solicitante; a confirmação
   tem estado de envio e resultados acessíveis (`role=status`/`role=alert`).
+- No mapa em telas acima de 700px, o cartão de detalhes pode ser arrastado pelo
+  cabeçalho ou movido com as setas ao focar o cabeçalho (Shift acelera). O movimento
+  fica dentro da janela; fechar e confirmar continuam independentes do arraste.
+  Em telas menores, o cartão permanece no fluxo da página.
 - Os dados e posições continuam vindo exclusivamente da API de mesas. Nenhum
   catálogo, fluxo de salas ou autenticação mockada foi copiado.
 

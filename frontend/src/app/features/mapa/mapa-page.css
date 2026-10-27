@@ -56,6 +56,10 @@
   justify-content: space-between;
   gap: 1rem;
 }
+@media (min-width: 701px) {
+  .detalhes__cabecalho { cursor: grab; user-select: none; touch-action: none; }
+  .painel--arrastando .detalhes__cabecalho { cursor: grabbing; }
+}
 .detalhes__fechar {
   display: grid;
   flex: none;

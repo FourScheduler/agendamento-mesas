@@ -6,11 +6,12 @@ import { Mesa } from '../mesas/mesa';
 import { AuthService } from '../../core/auth/auth.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { formatarData } from '../reservas/data-reserva';
+import { PainelArrastavel } from '../../shared/painel-arrastavel.directive';
 
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [FormsModule, PlantaMesas],
+  imports: [FormsModule, PlantaMesas, PainelArrastavel],
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
