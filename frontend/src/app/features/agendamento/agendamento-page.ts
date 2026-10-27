@@ -1,7 +1,8 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/auth/auth.service';
 import { MesaService } from '../mesas/mesa.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
@@ -20,55 +21,84 @@ export class AgendamentoPage {
   private readonly auth = inject(AuthService);
   private readonly mesas = inject(MesaService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // Estado da reserva (compartilhado via ReservaDiaria)
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
   readonly token = this.auth.token;
-  readonly dataSelecionada = this.reserva.data;
+  readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
+
+  // Filtros locais (lista de mesas)
+  readonly busca = signal('');
   readonly mesasLivres = signal<readonly Mesa[]>([]);
-  readonly mesaSelecionada = this.reserva.selecionada;
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
-  readonly erro = computed(() => this.reserva.erro() || this.erroConsulta());
+
+  readonly mesasFiltradas = computed(() => {
+    const termo = this.busca().trim().toLowerCase();
+    if (!termo) return this.mesasLivres();
+    return this.mesasLivres().filter(m =>
+      m.codigo.toLowerCase().includes(termo) ||
+      m.regiao.toLowerCase().includes(termo)
+    );
+  });
+
+  // Helpers para o template
+  readonly dataSelecionada = this.reserva.data;
+  readonly mesaSelecionada = this.reserva.selecionada;
   readonly confirmando = this.reserva.confirmando;
-  readonly todayISO = () => this.reserva.dataMinima;
-  readonly maxDateISO = () => this.reserva.dataMaxima;
+  readonly erro = this.reserva.erro;
+  readonly todayISO = this.reserva.dataMinima;
+  readonly maxDateISO = this.reserva.dataMaxima;
+
+  // UI extras
+  readonly horarioSelecionado = signal('09:00 - 10:00');
+  readonly stepAtual = signal(1);
 
   constructor() {
-    effect(onCleanup => {
+    effect((onCleanup) => {
+      // Reage a mudanças de data ou trigger de atualização
+      this.reserva.atualizacao();
       const token = this.token();
       const data = this.dataSelecionada();
-      this.reserva.atualizacao();
+
       this.mesasLivres.set([]);
-      this.mesaSelecionada.set(null);
+      this.reserva.selecionada.set(null);
       this.erroConsulta.set('');
       this.carregandoMesas.set(false);
+
       if (!token || !data || !this.usuario()) return;
 
       this.carregandoMesas.set(true);
-      const consulta = this.mesas.listarDisponiveis(data, token).subscribe({
-        next: mesas => {
-          this.mesasLivres.set(mesas);
-          this.carregandoMesas.set(false);
-        },
-        error: erro => {
-          this.carregandoMesas.set(false);
-          this.erroConsulta.set(erro.status === 400
-            ? (erro.error?.detail ?? 'Escolha uma data válida.')
-            : 'Não foi possível carregar mesas livres. Atualize a disponibilidade.');
-          if (erro.status === 401) this.auth.logout(true);
-        },
-      });
-      onCleanup(() => consulta.unsubscribe());
+      const sub = this.mesas.listarDisponiveis(data, token)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (mesas) => {
+            this.mesasLivres.set(mesas);
+            this.carregandoMesas.set(false);
+          },
+          error: (e) => {
+            this.carregandoMesas.set(false);
+            this.erroConsulta.set(
+              e.status === 400
+                ? (e.error?.detail ?? 'Escolha uma data válida.')
+                : 'Não foi possível carregar mesas livres. Atualize a disponibilidade.'
+            );
+            if (e.status === 401) this.auth.logout(true);
+          },
+        });
+      onCleanup(() => sub.unsubscribe());
     });
   }
 
-  onDataChange(data: string) {
-    this.reserva.alterarData(data);
+  onDataChange() {
+    this.reserva.alterarData(this.dataSelecionada());
   }
 
   selecionarMesa(mesa: Mesa) {
     if (!this.confirmando() && !this.carregandoMesas() && this.mesasLivres().some(m => m.id === mesa.id)) {
-      this.mesaSelecionada.set(mesa);
+      this.reserva.selecionada.set(mesa);
     }
   }
 
@@ -83,11 +113,18 @@ export class AgendamentoPage {
   formatarDataBR(dataISO: string): string {
     if (!dataISO) return '';
     return new Date(dataISO + 'T12:00:00Z').toLocaleDateString('pt-BR', {
-      timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long',
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
     });
   }
 
   getSolicitanteLabel(): string {
     return this.usuario()?.nome ?? '';
+  }
+
+  getHorarioSelecionado(): string {
+    return this.horarioSelecionado();
   }
 }
