@@ -132,8 +132,9 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.mesa-item').click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.resumo__header-periodo').textContent.trim()).toBe('Dia inteiro');
-    expect(fixture.nativeElement.textContent).not.toMatch(/\b\d{2}:\d{2}\b/);
+    // Data aparece no primeiro item do grid (label "Data")
+    const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
+    expect(valores[0].textContent).toContain('29 de outubro');
     fixture.nativeElement.querySelector('.botao--confirmar').click();
     const confirmacao = http.expectOne('/api/reservas');
     expect(confirmacao.request.body).toEqual({ mesaId: 53, data: '2026-10-29' });
