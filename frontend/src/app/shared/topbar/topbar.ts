@@ -47,13 +47,13 @@ export class Topbar {
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       map(
         (event) =>
-          /^\/(?:agendamento|minhas-reservas)(?:\/|[?#]|$)/.test(
+          /^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
             event.urlAfterRedirects,
           ),
       ),
     ),
     {
-      initialValue: /^\/(?:agendamento|minhas-reservas)(?:\/|[?#]|$)/.test(
+      initialValue: /^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
         this.router.url,
       ),
     },
@@ -64,13 +64,13 @@ export class Topbar {
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       map(
         (event) =>
-          !/^\/(?:agendamento|minhas-reservas)(?:\/|[?#]|$)/.test(
+          !/^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
             event.urlAfterRedirects,
           ),
       ),
     ),
     {
-      initialValue: !/^\/(?:agendamento|minhas-reservas)(?:\/|[?#]|$)/.test(
+      initialValue: !/^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
         this.router.url,
       ),
     },

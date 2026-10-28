@@ -29,20 +29,50 @@ export class AgendamentoPage {
   readonly token = this.auth.token;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
 
-  // Filtros locais (lista de mesas)
-  readonly busca = signal('');
+  // Catálogo completo de mesas (para busca)
+  readonly todasMesas = signal<readonly Mesa[]>([]);
+  // Mesas livres na data selecionada
   readonly mesasLivres = signal<readonly Mesa[]>([]);
+  // Filtros locais
+  readonly busca = signal('');
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
 
   readonly mesasFiltradas = computed(() => {
     const termo = this.busca().trim().toLowerCase();
+
+    // Busca vazia: mostra apenas mesas livres
     if (!termo) return this.mesasLivres();
-    return this.mesasLivres().filter(m =>
+
+    // Busca com termo: busca no catálogo completo
+    const termoNormalizado = termo.replace(/^mesa\s*/i, '');
+
+    const resultados = this.todasMesasParaBusca().filter(m =>
+      m.codigo.toLowerCase().includes(termoNormalizado) ||
       m.codigo.toLowerCase().includes(termo) ||
+      `mesa ${m.codigo}`.toLowerCase().includes(termo) ||
       m.regiao.toLowerCase().includes(termo)
     );
+
+    // Prioriza mesas livres no topo
+    return resultados.sort((a, b) => {
+      const aLivre = this.estaDisponivel(a);
+      const bLivre = this.estaDisponivel(b);
+      if (aLivre && !bLivre) return -1;
+      if (!aLivre && bLivre) return 1;
+      return a.codigo.localeCompare(b.codigo);
+    });
   });
+
+  /** Todas as mesas do catálogo para busca (livres + ocupadas), ordenadas por código. */
+  private todasMesasParaBusca(): readonly Mesa[] {
+    return [...this.todasMesas()].sort((a, b) => a.codigo.localeCompare(b.codigo));
+  }
+
+  /** Verifica se uma mesa está livre na data selecionada. */
+  estaDisponivel(mesa: Mesa): boolean {
+    return this.mesasLivres().some(m => m.id === mesa.id);
+  }
 
   // Helpers para o template
   readonly dataSelecionada = this.reserva.data;
@@ -56,6 +86,14 @@ export class AgendamentoPage {
   readonly stepAtual = signal(1);
 
   constructor() {
+    // Carrega catálogo completo uma vez
+    this.mesas.listar()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (mesas) => this.todasMesas.set(mesas),
+        error: () => this.todasMesas.set([]),
+      });
+
     effect((onCleanup) => {
       // Reage a mudanças de data ou trigger de atualização
       this.reserva.atualizacao();
@@ -97,7 +135,7 @@ export class AgendamentoPage {
   }
 
   selecionarMesa(mesa: Mesa) {
-    if (!this.confirmando() && !this.carregandoMesas() && this.mesasLivres().some(m => m.id === mesa.id)) {
+    if (!this.confirmando() && !this.carregandoMesas() && this.estaDisponivel(mesa)) {
       this.reserva.selecionar(mesa);
     }
   }
@@ -126,4 +164,8 @@ export class AgendamentoPage {
     return this.usuario()?.nome ?? '';
   }
 
+  /** Remove zeros à esquerda do código da mesa (ex: "053" → "53", "005" → "5"). */
+  formatarCodigoMesa(codigo: string): string {
+    return String(parseInt(codigo, 10));
+  }
 }
