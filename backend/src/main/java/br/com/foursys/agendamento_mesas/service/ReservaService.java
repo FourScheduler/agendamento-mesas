@@ -15,6 +15,7 @@ import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Isolation;
@@ -92,9 +93,16 @@ public class ReservaService {
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
     }
 
-    public List<ReservaResponse> minhasReservas(Long usuarioId) {
+    public List<ReservaResponse> minhasReservas(Long usuarioId, LocalDate data, LocalDate dataInicio,
+                                               LocalDate dataFim, StatusReserva status) {
+        if (data != null && (dataInicio != null || dataFim != null)) {
+            throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
+        }
+        if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
+            throw new DadosInvalidosException("'dataInicio' deve ser anterior ou igual a 'dataFim'.");
+        }
         return reservaRepository
-            .findByUsuario_Id(usuarioId)
+            .listarMinhas(usuarioId, data != null ? data : dataInicio, data != null ? data : dataFim, status)
             .stream()
             .map(ReservaResponse::toResponse)
             .toList();

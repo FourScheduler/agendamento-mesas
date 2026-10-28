@@ -49,4 +49,19 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
     List<Reserva> findByDataAndStatusInOrderByCriadaEmDesc(LocalDate data, Collection<StatusReserva> status);
 
     List<Reserva> findByUsuario_Id(Long idUsuario);
+
+    @Query("""
+            select r from Reserva r
+            join fetch r.mesa
+            join fetch r.usuario
+            where r.usuario.id = :usuarioId
+              and (:inicio is null or r.data >= :inicio)
+              and (:fim is null or r.data <= :fim)
+              and (:status is null or r.status = :status)
+            order by r.data desc, r.id desc
+            """)
+    List<Reserva> listarMinhas(@Param("usuarioId") Long usuarioId,
+                              @Param("inicio") LocalDate inicio,
+                              @Param("fim") LocalDate fim,
+                              @Param("status") StatusReserva status);
 }
