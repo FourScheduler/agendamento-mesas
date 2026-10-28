@@ -235,6 +235,63 @@ public class ReservaApiTests {
     }
 
     @Test
+    void listaHistoricoProprioComPeriodoStatusEOrdenacaoEstavel() throws Exception {
+        var antiga = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE.minusDays(2), StatusReserva.PENDENTE));
+        var confirmada = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+        var cancelada = reservas.saveAndFlush(new Reserva(outraMesa, maria, HOJE, StatusReserva.CANCELADA));
+        var futura = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE.plusDays(20), StatusReserva.CONFIRMADA));
+        reservas.saveAndFlush(new Reserva(outraMesa, joao, HOJE.plusDays(21), StatusReserva.CONFIRMADA));
+        var token = "Bearer " + jwt.gerarToken(maria);
+
+        for (int tentativa = 0; tentativa < 2; tentativa++) {
+            mvc.perform(get("/api/reservas/minhas").header("Authorization", token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(futura.getId().intValue(), cancelada.getId().intValue(),
+                            confirmada.getId().intValue(), antiga.getId().intValue())));
+        }
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token)
+                .param("dataInicio", HOJE.minusDays(2).toString()).param("dataFim", HOJE.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(cancelada.getId().intValue(),
+                        confirmada.getId().intValue(), antiga.getId().intValue())));
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token)
+                .param("dataInicio", HOJE.toString()).param("status", "CONFIRMADA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(futura.getId().intValue(), confirmada.getId().intValue())));
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token)
+                .param("dataFim", HOJE.minusDays(2).toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(antiga.getId().intValue())));
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token)
+                .param("data", HOJE.toString()).param("status", "CANCELADA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(cancelada.getId().intValue())));
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token).param("status", "PENDENTE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(antiga.getId().intValue())));
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token)
+                .param("dataInicio", HOJE.toString()).param("dataFim", HOJE.toString()).param("status", "CONFIRMADA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(confirmada.getId().intValue())));
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", token).param("data", HOJE.plusDays(1).toString()))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+    }
+
+    @Test
+    void validaFiltrosDaListagemEExigeAutenticacao() throws Exception {
+        for (String query : List.of("status=INVALIDO", "data=28-10-2026", "dataInicio=2026-02-30",
+                "dataFim=invalida", "dataInicio=2026-10-28&dataFim=2026-10-26",
+                "data=2026-10-26&dataInicio=2026-10-26", "data=2026-10-26&dataFim=2026-10-26")) {
+            mvc.perform(get("/api/reservas/minhas?" + query)
+                    .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
+        }
+        mvc.perform(get("/api/reservas/minhas")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/reservas/minhas").header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+    }
+
+    @Test
     void primeiraReservaConcorrenteDaMesmaMesaConfirmaSomenteUma() throws Exception {
         assertThat(reservas.count()).isZero();
         var resultados = disputar(() -> criar(maria, mesa, HOJE).andReturn().getResponse().getStatus(),

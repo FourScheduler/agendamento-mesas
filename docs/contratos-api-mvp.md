@@ -1,6 +1,6 @@
 # Contratos da API do MVP de mesas
 
-Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária e `POST /api/reservas` estão implementados. Listagem/cancelamento de reservas e demais rotas administrativas abaixo são contratos planejados para outras entregas.
+Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, `POST /api/reservas` e listagem de reservas próprias com filtros estão implementados. Cancelamento de reservas e demais rotas administrativas abaixo descrevem os contratos previstos.
 
 ## Convenções
 
@@ -235,16 +235,20 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 
 ---
 
-## GET /api/reservas/minhas (planejado)
+## GET /api/reservas/minhas
 
-Lista as reservas do usuário autenticado, com filtro opcional por status e data.
+Lista somente as reservas do usuário autenticado, com filtros opcionais por status e data ou período. Ordenação fixa por `data` decrescente e, em caso de empate, `id` decrescente.
 
 ### Query params
 
 | Campo | Obrigatório | Formato | Observação |
 | --- | --- | --- | --- |
 | `status` | Não | `PENDENTE` \| `CONFIRMADA` \| `CANCELADA` | Filtra por estado. |
-| `data` | Não | `yyyy-MM-DD` | Filtra por data da reserva. |
+| `data` | Não | `yyyy-MM-dd` | Filtra por dia exato. Não pode ser combinado com `dataInicio` ou `dataFim`. |
+| `dataInicio` | Não | `yyyy-MM-dd` | Limite inicial inclusivo. Sem `dataFim`, não há limite final. |
+| `dataFim` | Não | `yyyy-MM-dd` | Limite final inclusivo. Sem `dataInicio`, não há limite inicial. |
+
+`status` pode ser combinado com dia exato ou período. Sem filtros, retorna todo o histórico do usuário. Datas passadas e fins de semana são permitidos na consulta; a janela de criação de 15 dias não se aplica. `dataInicio` deve ser anterior ou igual a `dataFim`.
 
 ### Response `200`
 
@@ -271,7 +275,7 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 
 | Status | Situação |
 | --- | --- |
-| `400` | `status` ou `data` com valor inválido. |
+| `400` | Status/data inválidos, período invertido ou combinação de `data` com os limites do período. |
 | `401` | Sem ou com token inválido. |
 
 ---

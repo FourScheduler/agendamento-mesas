@@ -8,6 +8,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import java.net.URI;
+import java.time.LocalDate;
+import br.com.foursys.agendamento_mesas.enums.StatusReserva;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.List;
 
@@ -34,11 +37,15 @@ public class ReservaController {
 
     @GetMapping("/minhas")
     public ResponseEntity<List<ReservaResponse>> minhasReservas(
-            @AuthenticationPrincipal UsuarioAutenticado usuario
+            @AuthenticationPrincipal UsuarioAutenticado usuario,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @RequestParam(required = false) StatusReserva status
         ) {
 
         return ResponseEntity
-                .ok(reservaService.minhasReservas(usuario.id()));
+                .ok(reservaService.minhasReservas(usuario.id(), data, dataInicio, dataFim, status));
     }
 
     @PatchMapping("/{id}/cancelamento")

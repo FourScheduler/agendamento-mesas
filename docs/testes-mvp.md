@@ -2,7 +2,7 @@
 
 Cenários que o backend deve cobrir com testes automatizados. Cada cenário referencia a regra em [fluxo-mvp](fluxo-mvp.md) e o contrato em [contratos-api-mvp](contratos-api-mvp.md).
 
-A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem, cancelamento e gestão administrativa de reservas abaixo permanecem cenários planejados para entregas futuras.
+A issue #7 implementa criação diária com confirmação direta, autoria e serialização. A listagem própria possui filtros e ordenação estável cobertos por testes. Cancelamento e gestão administrativa de reservas abaixo descrevem cenários previstos no contrato.
 
 ## Datas inválidas (`400`)
 
@@ -59,6 +59,9 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 
 O frontend cobre confirmação sem autoria editável tanto na lista quanto no mapa, duplo clique, sucesso após resposta, atualização de disponibilidade, erros `400`, `401`, `409`, rede/servidor e cancelamento de consulta ao trocar de data. Os testes de sessão/guards verificam restauração do perfil real, token expirado sem loop de navegação, logout e resposta de perfil recebida após logout. As rotas de login, agendamento, mapa e minhas reservas são preservadas, incluindo a data no trânsito entre lista e planta.
 
+## Listagem de reservas próprias
+
+`ReservaApiTests` cobre filtros por dia exato, período inclusivo (inclusive limites iguais ou abertos) e status, retorno vazio, autenticação e isolamento por usuário. A consulta inclui histórico e datas além da janela de criação. A ordem é `data DESC, id DESC`, com desempate verificado em chamadas repetidas. Datas/status inválidos, período invertido e combinação de dia exato com período retornam `400`.
 ## Filtro de disponibilidade diária — issue #11
 
 Os testes de lista e mapa alteram o campo `input[type=date]` por eventos reais
