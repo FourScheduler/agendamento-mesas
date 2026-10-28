@@ -11,7 +11,7 @@ import { ToastService } from '../../shared/toast/toast';
 
 type Filtro = 'futuras' | 'passadas';
 
-type StatusReserva = 'PENDENTE' | 'CONFIRMADA' | 'CANCELADA';
+type StatusReserva = 'CONFIRMADA' | 'CANCELADA' | 'PENDENTE';
 
 interface PeriodoPersonalizado {
   inicio: string | null;
@@ -30,7 +30,7 @@ const ROTULOS_STATUS: Record<StatusReserva, string> = {
   PENDENTE: 'Pendente',
 };
 
-const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA', 'PENDENTE'];
+const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA'];
 
 @Component({
   selector: 'app-minhas-reservas-page',

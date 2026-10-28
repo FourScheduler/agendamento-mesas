@@ -129,7 +129,6 @@
                     class="minhas-reservas__status"
                     [class.minhas-reservas__status--confirmada]="cartao.reserva.status === 'CONFIRMADA'"
                     [class.minhas-reservas__status--cancelada]="ehCancelada(cartao.reserva.status)"
-                    [class.minhas-reservas__status--pendente]="ehPendente(cartao.reserva.status)"
                   >
                     {{ rotuloStatus(cartao.reserva.status) }}
                   </span>
