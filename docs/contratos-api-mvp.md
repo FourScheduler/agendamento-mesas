@@ -1,6 +1,6 @@
 # Contratos da API do MVP de mesas
 
-Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, `POST /api/reservas` e listagem de reservas próprias com filtros estão implementados. Cancelamento de reservas e demais rotas administrativas abaixo descrevem os contratos previstos.
+Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, criação/listagem/cancelamento de reservas próprias e gerenciamento administrativo de mesas estão implementados. Listagem e cancelamento administrativos de reservas continuam planejados.
 
 ## Convenções
 
@@ -8,7 +8,7 @@ Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil,
 - Datas no formato ISO `yyyy-MM-dd`; data/hora local sem offset no formato `yyyy-MM-dd'T'HH:mm:ss`; fuso único `America/Sao_Paulo` (ver [fluxo-mvp](fluxo-mvp.md)).
 - Todas as rotas exigem autenticação: header `Authorization: Bearer <token>`. Exceção: `POST /api/auth/login`. Sem token ou com token inválido: `401`.
 - O token JWT expira em 8 horas (`JWT_EXPIRACAO_HORAS` em dev). Token expirado responde `401`; o cliente deve autenticar de novo. Não há refresh token no MVP.
-- O solicitante é sempre o usuário do token. Nenhum request aceita `usuarioId`/`solicitante` editável.
+- O solicitante de reservas é sempre o usuário do token. O `usuarioId` das operações de atribuição administrativa identifica o responsável fixo, sem criar ou transferir reservas.
 - Campos `id` são numéricos inteiros gerados pelo banco.
 
 ### Formato padrão de erro
@@ -230,6 +230,7 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `404` | `mesaId` inexistente. | `Mesa 999 não encontrada.` |
 | `409` | Mesa `FIXA`. | `Mesa 018 é fixa e não pode ser reservada.` |
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
+| `409` | Usuário autenticado possui mesa fixa. | `Você já possui uma mesa fixa e não pode realizar novas reservas de mesas compartilhadas.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
 | `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
 
@@ -280,31 +281,16 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 
 ---
 
-## PATCH /api/reservas/{id}/cancelamento (planejado)
+## PATCH /api/reservas/{id}/cancelamento
 
-Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento. A mesa volta a ficar disponível.
+Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento.
+A reserva deixa de bloquear sua data; a mesa só fica disponível se continuar ativa,
+`LIVRE` e sem outros bloqueios. Não altera tipo, ativação nem responsável fixo.
 
 ### Response `200`
 
-```json
-{
-  "id": 10,
-  "status": "CANCELADA",
-  "data": "2026-10-28",
-  "criadaEm": "2026-10-23T14:30:00",
-  "canceladaEm": "2026-10-24T09:00:00",
-  "mesa": {
-    "id": 44,
-    "codigo": "044",
-    "regiao": "TAMBORÉ"
-  },
-  "solicitante": {
-    "id": 3,
-    "nome": "Maria Souza",
-    "email": "maria.souza@exemplo.com"
-  }
-}
-```
+A implementação atual retorna `200` sem corpo. Consulte `/api/reservas/minhas`
+para recuperar os dados atualizados da reserva.
 
 ### Erros
 
@@ -316,6 +302,14 @@ Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momen
 | `409` | Reserva já `CANCELADA`; repetir o cancelamento é recusado e não altera o registro. | `Reserva 10 já está cancelada.` |
 
 ---
+
+## GET /api/mesas/minha-fixa
+
+Disponível a qualquer usuário autenticado, sem permissão administrativa.
+Retorna um objeto com campo `mesa`: formato do catálogo comum, ou `null` se não houver atribuição.
+A identidade vem exclusivamente do token; não recebe `usuarioId` e não lista vínculos de outras pessoas.
+Serve à tela comum de reservas para apresentar o bloqueio. Mesmo sem essa consulta,
+`POST /api/reservas` revalida sob lock e retorna `409` para usuário com mesa fixa.
 
 ## Rotas de administrador
 
@@ -364,7 +358,52 @@ Provisiona um usuário fictício para demonstração. Cadastro público não exi
 | `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
 | `409` | E-mail já cadastrado. | `E-mail já cadastrado.` |
 
-### GET /api/admin/reservas
+### GET /api/admin/usuarios?ativo=true
+
+Implementado. Lista somente usuários ativos, ordenados por nome e, em caso de empate, por ID.
+Retorna uma lista de objetos com `id`, `nome` e `email`, sem perfil nem credenciais.
+O filtro `ativo` é opcional e assume `true`; `false` ou formato inválido retorna `400`.
+O resultado vazio é válido. O backend revalida a situação do usuário no momento da atribuição.
+
+### GET /api/admin/mesas
+
+Implementado. Lista todas as mesas por código, inclusive inativas e fixas legadas sem atribuição.
+Cada objeto contém `id`, `codigo`, `regiao`, `tipo`, `ativa` e `responsavel`.
+`responsavel` é `null` quando não há vínculo; caso contrário contém somente `id`, `nome` e `email`.
+O responsável continua visível se posteriormente ficar inativo. O catálogo comum não expõe esses dados pessoais.
+
+### PUT /api/admin/mesas/{id}/responsavel
+
+Implementado. Recebe `usuarioId` obrigatório e positivo. Fixa uma mesa ou troca seu responsável.
+Retorna `200` com o mesmo formato da consulta administrativa de mesas.
+
+- Exige mesa ativa e usuário existente e ativo; IDs inexistentes retornam `404`.
+- Usuário com outra mesa fixa recebe `409`; não há transferência automática.
+- Repetir o mesmo vínculo retorna `200`, desde que mesa e usuário continuem ativos.
+- A atribuição passa a `FIXA` sem alterar `ativa` nem criar reserva.
+- A mesa e o novo responsável não podem possuir reservas `PENDENTE` ou `CONFIRMADA` de hoje em diante, no fuso `America/Sao_Paulo`. Conflito retorna `409`, sem cancelar reservas.
+- Mesa inativa, usuário inativo ou responsável alterado durante a espera por lock retornam `409`.
+- A troca é atômica. Se recusada, o vínculo anterior é preservado.
+
+### DELETE /api/admin/mesas/{id}/responsavel
+
+Implementado. Remove a atribuição e altera o tipo para `LIVRE`, preservando `ativa` e as reservas.
+Permite desvincular usuário inativo e regularizar mesa fixa legada sem responsável.
+Retorna `200` com a mesa administrativa atualizada; repetir a remoção é permitido.
+Mesa inexistente retorna `404`; mudança concorrente do responsável retorna `409` e exige atualização.
+
+### PATCH /api/admin/mesas/{id}/estado
+
+Implementado. Recebe `ativa` obrigatório, booleano, e retorna `200` com a mesa administrativa atualizada.
+Ausência do campo ou request inválido retorna `400`; mesa inexistente retorna `404`.
+
+- Inativação com qualquer responsável vinculado retorna `409`, inclusive se o usuário estiver inativo.
+- Primeiro é necessário desfixar explicitamente. Não há desfixação automática.
+- Reserva `PENDENTE` ou `CONFIRMADA` da mesa de hoje em diante impede a inativação (`409`).
+- Ativação não atribui responsável nem cria reserva; preserva o tipo, inclusive em mesa fixa legada.
+- Reservas passadas e canceladas são preservadas e não impedem a operação.
+
+### GET /api/admin/reservas (planejado)
 
 Lista reservas de todos os usuários.
 
@@ -376,49 +415,14 @@ Lista reservas de todos os usuários.
 
 `200`: lista no mesmo formato de `/api/reservas/minhas`, com o campo `solicitante` sempre presente.
 
-### PATCH /api/admin/reservas/{id}/cancelamento
+### PATCH /api/admin/reservas/{id}/cancelamento (planejado)
 
 Cancela a reserva de qualquer usuário (mesmas regras de estado de `PATCH /api/reservas/{id}/cancelamento`). `200` com a reserva `CANCELADA`; erros `401`, `403`, `404` e `409` como na rota do usuário.
 
-### PATCH /api/admin/mesas/{id}/tipo
-
-Altera o tipo da mesa entre `FIXA` e `LIVRE`.
-
-#### Request
-
-```json
-{
-  "tipo": "FIXA"
-}
-```
-
-#### Response `200`
-
-```json
-{
-  "id": 44,
-  "codigo": "044",
-  "regiao": "TAMBORÉ",
-  "tipo": "FIXA",
-  "ativa": true,
-  "referenciaVisual": {
-    "planta": "TAMBORÉ",
-    "x": 590,
-    "y": 1108
-  }
-}
-```
-
-#### Erros
-
-| Status | Situação | Exemplo de `detail` |
-| --- | --- | --- |
-| `400` | `tipo` ausente ou diferente de `FIXA`/`LIVRE`. | `Campo 'tipo' deve ser FIXA ou LIVRE.` |
-| `401` | Sem ou com token inválido. | |
-| `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
-| `404` | Mesa inexistente. | `Mesa 999 não encontrada.` |
-
-> Efeito sobre reservas existentes ao tornar `FIXA` uma mesa com reservas futuras é pendência de negócio (ver [fluxo-mvp](fluxo-mvp.md)). A implementação deve validar antes de aplicar a mudança.
+As operações de responsável substituem o antigo contrato planejado de alteração direta de tipo.
+Não há rota para criar reservas em nome de outra pessoa. As rotas administrativas implementadas
+respondem `401` sem sessão válida e `403` para usuário comum. Violações de integridade ou
+disputa de locks são convertidas em `409`, sem exposição de detalhes do banco.
 
 ---
 
@@ -430,13 +434,18 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | GET | `/api/auth/perfil` | Sim | Qualquer |
 | GET | `/api/mesas` | Sim | Qualquer |
 | GET | `/api/mesas/disponiveis` | Sim | Qualquer |
+| GET | `/api/mesas/minha-fixa` | Sim | Qualquer |
 | POST | `/api/reservas` | Sim | Qualquer |
 | GET | `/api/reservas/minhas` | Sim | Qualquer |
 | PATCH | `/api/reservas/{id}/cancelamento` | Sim | Dono |
 | POST | `/api/admin/usuarios` | Sim | ADMIN |
+| GET | `/api/admin/usuarios?ativo=true` | Sim | ADMIN |
+| GET | `/api/admin/mesas` | Sim | ADMIN |
+| PUT | `/api/admin/mesas/{id}/responsavel` | Sim | ADMIN |
+| DELETE | `/api/admin/mesas/{id}/responsavel` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/estado` | Sim | ADMIN |
 | GET | `/api/admin/reservas` | Sim | ADMIN |
 | PATCH | `/api/admin/reservas/{id}/cancelamento` | Sim | ADMIN |
-| PATCH | `/api/admin/mesas/{id}/tipo` | Sim | ADMIN |
 
 ## Verificação
 

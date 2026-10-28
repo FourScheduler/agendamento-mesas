@@ -10,6 +10,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import lombok.*;
 
 /**
@@ -41,6 +44,10 @@ public class Mesa {
     @Column(name = "ativa", nullable = false)
     private boolean ativa;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_id", unique = true)
+    private Usuario responsavel;
+
     @Column(name = "planta", nullable = false, length = 20)
     private String planta;
 
@@ -49,4 +56,10 @@ public class Mesa {
 
     @Column(name = "posicao_y", nullable = false)
     private Integer posicaoY;
+
+    // Mantém a construção do catálogo e dos dados legados sem responsável.
+    public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
+                String planta, Integer posicaoX, Integer posicaoY) {
+        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY);
+    }
 }

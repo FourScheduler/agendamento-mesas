@@ -2,6 +2,8 @@ package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.request.CriarUsuarioRequest;
 import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
+import br.com.foursys.agendamento_mesas.dto.UsuarioResponsavelResumo;
+import java.util.List;
 import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;
 import br.com.foursys.agendamento_mesas.model.Usuario;
@@ -41,6 +43,12 @@ public class UsuarioService {
                         true));
         return new UsuarioAdminResumo(usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPapel(),
                 usuario.isAtivo());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResponsavelResumo> listarAtivos() {
+        return usuarioRepository.findByAtivoTrueOrderByNomeAscIdAsc().stream()
+                .map(UsuarioResponsavelResumo::de).toList();
     }
 
     private void validarEntrada(CriarUsuarioRequest request) {

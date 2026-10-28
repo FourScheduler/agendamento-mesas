@@ -2,6 +2,7 @@ package br.com.foursys.agendamento_mesas.web;
 
 import br.com.foursys.agendamento_mesas.exceptions.CredenciaisInvalidasException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioInativoException;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -33,7 +35,13 @@ public class ApiExceptionHandler {
             MethodArgumentTypeMismatchException.class})
     public ProblemDetail requestInvalido(Exception e, HttpServletRequest request) {
         return problema(HttpStatus.BAD_REQUEST, "Dados inválidos",
-                "Verifique os campos obrigatórios e os formatos: mesaId inteiro e data yyyy-MM-dd.", request);
+                "Verifique os campos obrigatórios e os formatos informados.", request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail integridade(DataIntegrityViolationException e, HttpServletRequest request) {
+        return problema(HttpStatus.CONFLICT, "Conflito de dados",
+                "A operação conflita com os vínculos existentes. Atualize os dados e tente novamente.", request);
     }
 
     @ExceptionHandler(PessimisticLockingFailureException.class)
@@ -55,6 +63,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(UsuarioInativoException.class)
     public ProblemDetail usuarioInativo(UsuarioInativoException e, HttpServletRequest request) {
         return problema(HttpStatus.UNAUTHORIZED, "Usuário inativo", e.getMessage(), request);
+    }
+
+    @ExceptionHandler(UsuarioSemPermissaoException.class)
+    public ProblemDetail semPermissao(UsuarioSemPermissaoException e, HttpServletRequest request) {
+        return problema(HttpStatus.FORBIDDEN, "Acesso negado", e.getMessage(), request);
     }
 
     @ExceptionHandler(EmailJaCadastradoException.class)

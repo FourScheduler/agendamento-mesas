@@ -65,6 +65,12 @@ public class ReservaService {
                 .filter(Usuario::isAtivo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
 
+        // Sob o mesmo lock de usuário usado pela atribuição administrativa.
+        if (mesaRepositoryPort.buscarPorResponsavelId(usuario.getId()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Você já possui uma mesa fixa e não pode realizar novas reservas de mesas compartilhadas.");
+        }
+
         Mesa mesa = mesaRepositoryPort.buscarParaReserva(request.mesaId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));
 
@@ -113,24 +119,26 @@ public class ReservaService {
             .toList();
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancelar(Long idReserva, UsuarioAutenticado usuarioAutenticado) {
+        usuarios.buscarParaReserva(usuarioAutenticado.id()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inexistente."));
         Reserva reserva = buscarReserva(idReserva);
-        Mesa mesa = buscarMesa(reserva.getMesa().getId());
 
         if (!reserva.getUsuario().getId().equals(usuarioAutenticado.id())) {
             throw new UsuarioSemPermissaoException();
         }
+
+        mesaRepositoryPort.buscarParaReserva(reserva.getMesa().getId()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa não encontrada."));
 
         if (reserva.getStatus() == StatusReserva.CANCELADA) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Reserva " + idReserva + " já está cancelada.");
         }
 
-        reserva.setCanceladaEm(LocalDateTime.now());
+        reserva.setCanceladaEm(LocalDateTime.now(relogio));
         reserva.setStatus(StatusReserva.CANCELADA);
-
-        mesa.setAtiva(true);
-        mesa.setTipo(TipoMesa.LIVRE);
 
         reservaRepositoryPort.salvar(reserva);
     }
