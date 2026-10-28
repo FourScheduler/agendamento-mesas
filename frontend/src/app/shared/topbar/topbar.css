@@ -30,6 +30,49 @@
   padding-right: 1.25rem;
   border-right: 2px solid white;
 }
+.topbar__localizacao,
+.topbar__reservas {
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.topbar__localizacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.topbar__reservas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffffff;
+  text-transform: none;
+  white-space: nowrap;
+}
+.topbar__acoes-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+.topbar__reservas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffffff;
+  text-transform: none;
+  white-space: nowrap;
+}
+.topbar__reservas:hover {
+  color: var(--orange-400);
+}
+.topbar__reservas--ativo {
+  color: var(--orange);
+}
+.topbar__menuIcone {
+  flex: none;
+}
 .topbar__item {
   display: inline-flex;
   align-items: center;
@@ -47,9 +90,6 @@
   border-bottom: 2px solid var(--orange);
   color: var(--orange);
 }
-.topbar__menu-icone {
-  flex: none;
-}
 .topbar__selo {
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
@@ -62,7 +102,6 @@
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  margin-left: auto;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -89,29 +128,34 @@
   font: inherit;
   cursor: pointer;
 }
+.topbar__avatar:focus-visible,
+.topbar__menu-perfil-sair:focus-visible {
+  outline: 2px solid var(--orange);
+}
 .topbar__menu-perfil {
   position: absolute;
   top: calc(100% + 1rem);
   right: 0;
   z-index: 20;
   width: min(250px, calc(100vw - 2rem));
+  height: 240px;
   padding: 1.5rem 1.25rem;
   border: 1px solid var(--border-soft);
   border-radius: 6px;
-  background: white;
+  background: #ffffff;
   color: var(--navy);
-  box-shadow: 0 4px 14px rgb(19 19 31 / 16%);
+  box-shadow: 0 4px 14px rgba(19, 19, 31, 0.16);
 }
 .topbar__menu-perfil::before {
   position: absolute;
   top: -0.5rem;
-  right: 0.5rem;
+  right: 0.75rem;
   width: 0.875rem;
   height: 0.875rem;
   border-top: 1px solid var(--border-soft);
   border-left: 1px solid var(--border-soft);
-  background: white;
-  content: "";
+  background: #ffffff;
+  content: '';
   transform: rotate(45deg);
 }
 .topbar__menu-perfil-cabecalho {
@@ -119,30 +163,32 @@
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--surface);
+  padding: 0.25rem 0 1rem;
+  border-bottom: 1px solid #eeeeee;
 }
 .topbar__menu-perfil-avatar {
-  display: grid;
+  display: inline-flex;
   flex: none;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
   background: var(--orange-400);
-  color: white;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
 }
 .topbar__menu-perfil-nome {
-  overflow-wrap: anywhere;
+  margin: 0;
   font-weight: 600;
 }
 .topbar__menu-perfil-sair {
   width: 100%;
-  min-height: 44px;
   padding: 0.5rem 0.25rem;
   border: 0;
   background: transparent;
-  color: inherit;
+  color: var(--navy);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -156,13 +202,14 @@
   border: 1px solid var(--orange);
   border-radius: 6px;
   background: var(--orange);
-  color: white;
+  color: #ffffff;
   font-size: 0.8125rem;
   font-weight: 700;
+  cursor: pointer;
 }
 .topbar__entrar:hover {
-  border-color: var(--orange-dark);
   background: var(--orange-dark);
+  border-color: var(--orange-dark);
 }
 @media (max-width: 900px) {
   .topbar__texto {
@@ -171,19 +218,49 @@
 }
 @media (max-width: 700px) {
   .topbar {
+    flex-wrap: wrap;
     gap: 0.75rem;
     padding: 0 1rem;
   }
   .topbar__nome {
     display: none;
   }
+  .topbar__localizacao,
+  .topbar__reservas {
+    font-size: 0.75rem;
+  }
+}
+@media (max-width: 480px) {
+  .topbar {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  .topbar__marca {
+    gap: 0.5rem;
+    font-size: 1.125rem;
+  }
   .topbar__item {
     gap: 0.375rem;
-    padding: 0.875rem 0.25rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+  .topbar__selo {
+    padding: 0.125rem 0.4375rem;
+    font-size: 0.625rem;
   }
 }
 @media (max-width: 400px) {
-  .topbar__selo {
+  .topbar {
+    padding: 0.75rem 0.5rem;
+  }
+  .topbar__icone {
     display: none;
+  }
+  .topbar__marca {
+    font-size: 1rem;
+  }
+  .topbar__item {
+    font-size: 0.75rem;
   }
 }

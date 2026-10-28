@@ -19,6 +19,9 @@
   --gray-500: #6f6f6f;
   --gray-800: #1e1e1e;
   --error: #dc2626;
+  --green: #07bc0c;
+  --green-soft: #ecfdf5;
+  --green-text: #047857;
   --selection-bg: #fffaf6;
   --mesa-livre: #10b981;
   --mesa-livre-texto: #047857;
@@ -110,6 +113,23 @@ input {
 .botao:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+.botao--suave {
+  background: var(--orange-soft);
+  color: var(--orange);
+  border-color: transparent;
+}
+.botao--suave:hover:not(:disabled) {
+  background: var(--orange);
+  color: #ffffff;
+}
+.botao--contorno {
+  background: transparent;
+  color: var(--orange);
+  border-color: var(--orange);
+}
+.botao--contorno:hover:not(:disabled) {
+  background: var(--orange-soft);
 }
 .campo {
   display: flex;
