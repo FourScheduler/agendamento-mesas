@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.model.Usuario;
-import br.com.foursys.agendamento_mesas.repository.ReservaRepository;
+import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
 import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import com.jayway.jsonpath.JsonPath;
@@ -48,7 +48,7 @@ class AutenticacaoMvpTests {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private ReservaRepository reservaRepository;
+    private ReservaRepositoryPort reservaRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -65,7 +65,7 @@ class AutenticacaoMvpTests {
 
     @BeforeEach
     void preparar() {
-        reservaRepository.deleteAll();
+        reservaRepository.deletarTodos();
         usuarioRepository.deleteAll();
         admin = usuarioRepository
                 .save(new Usuario("Ana Admin", "admin@exemplo.com", passwordEncoder.encode(SENHA), PerfilUsuario.ADMIN,
