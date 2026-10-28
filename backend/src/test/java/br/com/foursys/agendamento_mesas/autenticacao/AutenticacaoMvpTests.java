@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
-import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import com.jayway.jsonpath.JsonPath;
 import java.nio.charset.StandardCharsets;
@@ -45,7 +45,7 @@ class AutenticacaoMvpTests {
     private MockMvc mockMvc;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private UsuarioRepositoryPort usuarioRepository;
 
     @Autowired
     private ReservaRepositoryPort reservaRepository;
@@ -66,14 +66,14 @@ class AutenticacaoMvpTests {
     @BeforeEach
     void preparar() {
         reservaRepository.deletarTodos();
-        usuarioRepository.deleteAll();
+        usuarioRepository.deletarTodos();
         admin = usuarioRepository
-                .save(new Usuario("Ana Admin", "admin@exemplo.com", passwordEncoder.encode(SENHA), PerfilUsuario.ADMIN,
+                .salvar(new Usuario("Ana Admin", "admin@exemplo.com", passwordEncoder.encode(SENHA), PerfilUsuario.ADMIN,
                         true));
-        maria = usuarioRepository.save(
+        maria = usuarioRepository.salvar(
                 new Usuario("Maria Souza", "maria.souza@exemplo.com", passwordEncoder.encode(SENHA),
                         PerfilUsuario.USUARIO, true));
-        inativo = usuarioRepository.save(
+        inativo = usuarioRepository.salvar(
                 new Usuario("Paulo Inativo", "paulo.inativo@exemplo.com", passwordEncoder.encode(SENHA),
                         PerfilUsuario.USUARIO, false));
     }
@@ -217,7 +217,7 @@ class AutenticacaoMvpTests {
                 .andExpect(jsonPath("$.ativo").value(true))
                 .andExpect(jsonPath("$.senha").doesNotExist());
 
-        Usuario criado = usuarioRepository.findByEmail("carlos.lima@exemplo.com").orElseThrow();
+        Usuario criado = usuarioRepository.buscarPorEmail("carlos.lima@exemplo.com").orElseThrow();
         assertThat(criado.getSenhaHash()).isNotEqualTo(SENHA).startsWith("$2");
         assertThat(passwordEncoder.matches(SENHA, criado.getSenhaHash())).isTrue();
     }
