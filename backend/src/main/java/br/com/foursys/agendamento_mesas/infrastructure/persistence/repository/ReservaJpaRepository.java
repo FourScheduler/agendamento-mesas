@@ -1,22 +1,16 @@
-package br.com.foursys.agendamento_mesas.repository;
+package br.com.foursys.agendamento_mesas.infrastructure.persistence.repository;
 
-import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
+import br.com.foursys.agendamento_mesas.model.Reserva;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ReservaRepository extends JpaRepository<Reserva, Long> {
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 
-    Collection<StatusReserva> BLOQUEIA_MESA = List.of(StatusReserva.PENDENTE, StatusReserva.CONFIRMADA);
-
-    /**
-     * Disponibilidade da mesa na data: bloqueia apenas reservas PENDENTE ou CONFIRMADA;
-     * CANCELADA não bloqueia (regra do MVP).
-     */
+public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
     @Query("""
             select count(r) > 0
             from Reserva r
@@ -24,10 +18,11 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
               and r.data = :data
               and r.status in :bloqueios
             """)
-    boolean mesaOcupadaNaData(@Param("mesaId") Long mesaId, @Param("data") LocalDate data,
-                              @Param("bloqueios") Collection<StatusReserva> bloqueios);
+    boolean mesaOcupadaNaData(
+        @Param("mesaId") Long mesaId, @Param("data") LocalDate data,
+        @Param("bloqueios") Collection<StatusReserva> bloqueios
+    );
 
-    /** Usuário já tem reserva não cancelada na mesma data (regra: sem sobreposição no tempo). */
     @Query("""
             select count(r) > 0
             from Reserva r
@@ -35,8 +30,11 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
               and r.data = :data
               and r.status in :bloqueios
             """)
-    boolean usuarioTemReservaNaData(@Param("usuarioId") Long usuarioId, @Param("data") LocalDate data,
-                                    @Param("bloqueios") Collection<StatusReserva> bloqueios);
+    boolean usuarioTemReservaNaData(
+        @Param("usuarioId") Long usuarioId,
+        @Param("data") LocalDate data,
+        @Param("bloqueios") Collection<StatusReserva> bloqueios
+    );
 
     List<Reserva> findByUsuarioIdOrderByDataDesc(Long usuarioId);
 
@@ -60,8 +58,10 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
               and (:status is null or r.status = :status)
             order by r.data desc, r.id desc
             """)
-    List<Reserva> listarMinhas(@Param("usuarioId") Long usuarioId,
-                              @Param("inicio") LocalDate inicio,
-                              @Param("fim") LocalDate fim,
-                              @Param("status") StatusReserva status);
+    List<Reserva> listarMinhas(
+        @Param("usuarioId") Long usuarioId,
+        @Param("inicio") LocalDate inicio,
+        @Param("fim") LocalDate fim,
+        @Param("status") StatusReserva status
+    );
 }

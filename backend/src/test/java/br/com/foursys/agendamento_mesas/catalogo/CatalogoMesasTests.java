@@ -5,13 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
+import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
 import com.jayway.jsonpath.JsonPath;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
-import br.com.foursys.agendamento_mesas.repository.MesaRepository;
-import br.com.foursys.agendamento_mesas.repository.ReservaRepository;
 import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import br.com.foursys.agendamento_mesas.service.MesaService;
@@ -40,10 +40,10 @@ import java.util.Map;
 @Transactional
 class CatalogoMesasTests {
     @Autowired MockMvc mvc;
-    @Autowired MesaRepository repository;
+    @Autowired MesaRepositoryPort repository;
     @Autowired MesaService service;
     @Autowired UsuarioRepository usuarios;
-    @Autowired ReservaRepository reservas;
+    @Autowired ReservaRepositoryPort reservas;
     @Autowired JwtService jwt;
 
     @Test
@@ -96,20 +96,20 @@ class CatalogoMesasTests {
         LocalDate data = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"))
                 .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
         var usuario = usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow();
-        Mesa pendente = repository.save(new Mesa(null, "901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20));
-        Mesa confirmada = repository.save(new Mesa(null, "902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40));
-        Mesa cancelada = repository.save(new Mesa(null, "903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 50, 60));
-        Mesa outraData = repository.save(new Mesa(null, "904", "DEMO", TipoMesa.LIVRE, true, "DEMO", 70, 80));
-        repository.save(new Mesa(null, "905", "DEMO", TipoMesa.FIXA, true, "DEMO", 90, 100));
-        repository.save(new Mesa(null, "906", "DEMO", TipoMesa.LIVRE, false, "DEMO", 110, 120));
+        Mesa pendente = repository.salvar(new Mesa(null, "901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20));
+        Mesa confirmada = repository.salvar(new Mesa(null, "902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40));
+        Mesa cancelada = repository.salvar(new Mesa(null, "903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 50, 60));
+        Mesa outraData = repository.salvar(new Mesa(null, "904", "DEMO", TipoMesa.LIVRE, true, "DEMO", 70, 80));
+        repository.salvar(new Mesa(null, "905", "DEMO", TipoMesa.FIXA, true, "DEMO", 90, 100));
+        repository.salvar(new Mesa(null, "906", "DEMO", TipoMesa.LIVRE, false, "DEMO", 110, 120));
 
-        reservas.save(new Reserva(pendente, usuario, data, StatusReserva.PENDENTE));
-        reservas.save(new Reserva(confirmada, usuario, data, StatusReserva.CONFIRMADA));
+        reservas.salvar(new Reserva(pendente, usuario, data, StatusReserva.PENDENTE));
+        reservas.salvar(new Reserva(confirmada, usuario, data, StatusReserva.CONFIRMADA));
         Reserva reservaCancelada = new Reserva(cancelada, usuario, data, StatusReserva.CANCELADA);
         reservaCancelada.setCanceladaEm(LocalDateTime.now());
-        reservas.save(reservaCancelada);
-        reservas.save(new Reserva(outraData, usuario, data.plusDays(1), StatusReserva.CONFIRMADA));
-        reservas.flush();
+        reservas.salvar(reservaCancelada);
+        reservas.salvar(new Reserva(outraData, usuario, data.plusDays(1), StatusReserva.CONFIRMADA));
+        reservas.sincronizar();
 
         String token = jwt.gerarToken(usuario);
         String resposta = mvc.perform(get("/api/mesas/disponiveis")
@@ -140,17 +140,17 @@ class CatalogoMesasTests {
 
     @Test
     void elegibilidadeRecusaInativaMesmoQuandoLivreEFixaENaoEncontrada() {
-        Mesa inativa = repository.save(new Mesa(null, "999", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 0));
+        Mesa inativa = repository.salvar(new Mesa(null, "999", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 0));
         assertThatThrownBy(() -> service.obterParaReserva(inativa.getId()))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         erro -> assertThat(erro.getStatusCode()).isEqualTo(HttpStatus.CONFLICT))
                 .hasMessageContaining("inativa");
-        assertThatThrownBy(() -> service.obterParaReserva(repository.findByCodigo("001").orElseThrow().getId()))
+        assertThatThrownBy(() -> service.obterParaReserva(repository.buscarPorCodigo("001").orElseThrow().getId()))
                 .hasMessageContaining("fixa");
         assertThatThrownBy(() -> service.obterParaReserva(-1L))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         erro -> assertThat(erro.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
-        assertThat(service.obterParaReserva(repository.findByCodigo("044").orElseThrow().getId()).getCodigo())
+        assertThat(service.obterParaReserva(repository.buscarPorCodigo("044").orElseThrow().getId()).getCodigo())
                 .isEqualTo("044");
     }
 
