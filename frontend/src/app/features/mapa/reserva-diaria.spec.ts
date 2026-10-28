@@ -28,7 +28,6 @@ describe('Reserva diária pela planta', () => {
     http.expectOne('/api/mesas').flush([mesa]);
     const consulta = http.expectOne(r => r.url === '/api/mesas/disponiveis');
     expect(consulta.request.params.get('data')).toBe('2026-10-28');
-    expect(consulta.request.headers.get('Authorization')).toBe('Bearer token');
     consulta.flush(disponiveis);
   }
 
@@ -41,6 +40,8 @@ describe('Reserva diária pela planta', () => {
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.mesa').click();
     fixture.detectChanges();
+    http.expectNone('/api/mesas');
+    http.expectNone(r => r.url === '/api/mesas/disponiveis');
     return fixture;
   }
 
@@ -66,7 +67,6 @@ describe('Reserva diária pela planta', () => {
     const request = http.expectOne('/api/reservas');
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({ mesaId: 44, data: '2026-10-28' });
-    expect(request.request.headers.get('Authorization')).toBe('Bearer token');
     request.flush({ id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario });
     fixture.detectChanges();
     carregar([]);
@@ -96,18 +96,6 @@ describe('Reserva diária pela planta', () => {
     });
   }
 
-  it('encerra a sessão em 401 da confirmação sem exibir sucesso', () => {
-    const fixture = abrir();
-    fixture.componentInstance.reserva.confirmar();
-    http.expectOne('/api/reservas').flush({}, { status: 401, statusText: 'Unauthorized' });
-    fixture.detectChanges();
-    expect(TestBed.inject(AuthService).sessao()).toBeNull();
-    expect(TestBed.inject(AuthService).token()).toBe('');
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/login'], { queryParams: { sessao: 'expirada' } });
-    expect(fixture.componentInstance.reserva.sucesso()).toBe('');
-    http.expectNone('/api/mesas');
-  });
-
   it('limpa a seleção ao mudar de dia e consulta a nova data', () => {
     const fixture = abrir();
     alterarCampo(fixture, '2026-10-29');
@@ -136,7 +124,7 @@ describe('Reserva diária pela planta', () => {
   it('leva a data escolhida ao voltar para a lista de agendamento', () => {
     const fixture = abrir();
     fixture.componentInstance.voltarParaAgendamento();
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28' } });
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
   it('mostra a crítica de reserva existente uma única vez e permite fechar o popup', () => {

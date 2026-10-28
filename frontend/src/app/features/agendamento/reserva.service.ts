@@ -8,32 +8,25 @@ import { Mesa } from '../mesas/mesa';
 export class ReservaService {
   private readonly http = inject(HttpClient);
 
-  listarMinhas(token: string, params?: { status?: string; data?: string }) {
+  listarMinhas(params?: { status?: string; data?: string }) {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set('status', params.status);
     if (params?.data) searchParams.set('data', params.data);
     const query = searchParams.toString();
-    return this.http.get<readonly Reserva[]>(`${environment.apiUrl}/reservas/minhas${query ? `?${query}` : ''}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    return this.http.get<readonly Reserva[]>(`${environment.apiUrl}/reservas/minhas${query ? `?${query}` : ''}`);
   }
 
-  listarDisponiveis(token: string, data: string) {
+  listarDisponiveis(data: string) {
     return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas/disponiveis`, {
-      headers: { Authorization: `Bearer ${token}` },
       params: { data },
     });
   }
 
-  criar(token: string, mesaId: number, data: string) {
-    return this.http.post<ReservaConfirmada>(`${environment.apiUrl}/reservas`, { mesaId, data }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  criar(mesaId: number, data: string) {
+    return this.http.post<ReservaConfirmada>(`${environment.apiUrl}/reservas`, { mesaId, data });
   }
 
-  cancelar(token: string, id: number) {
-    return this.http.patch<Reserva>(`${environment.apiUrl}/reservas/${id}/cancelamento`, {}, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  cancelar(id: number) {
+    return this.http.patch<Reserva>(`${environment.apiUrl}/reservas/${id}/cancelamento`, {});
   }
 }

@@ -1,10 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { AgendamentoPage } from './agendamento-page';
 import { Mesa } from '../mesas/mesa';
+import { authInterceptor } from '../../core/auth/auth.interceptor';
 
 const mesa: Mesa = { id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
   referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
@@ -16,7 +17,7 @@ describe('Agendamento integrado à reserva diária', () => {
     localStorage.clear();
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-27T12:00:00Z'));
-    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   });
@@ -87,7 +88,7 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     expect(TestBed.inject(AuthService).autenticado()).toBe(false);
     expect(fixture.componentInstance.reserva.sucesso()).toBe('');
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/login'], { queryParams: { sessao: 'expirada' } });
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/login'], { queryParams: { sessao: 'expirada', retorno: 'agendamento' } });
   });
 
   it('cancela a consulta anterior ao trocar de data e impede selecionar resultados antigos', () => {
@@ -107,7 +108,7 @@ describe('Agendamento integrado à reserva diária', () => {
   it('preserva a data na navegação para a planta', () => {
     const fixture = abrir();
     fixture.componentInstance.irParaMapa();
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/mapa'], { queryParams: { data: '2026-10-28' } });
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/mapa'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
   it('identifica o próprio administrador sem oferecer reserva em nome de terceiros', () => {

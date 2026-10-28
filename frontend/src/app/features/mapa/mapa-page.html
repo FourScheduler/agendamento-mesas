@@ -9,7 +9,7 @@
     <div class="campo">
       <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
       <input id="data-reserva" class="campo__entrada" type="date"
-        [ngModel]="reserva.data()" (ngModelChange)="reserva.alterarData($event)"
+        [ngModel]="reserva.data()" (ngModelChange)="onDataChange($event)"
         [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando()"
         [attr.aria-invalid]="reserva.erroData() ? true : null" aria-describedby="erro-data" required />
       @if (reserva.erroData()) {
@@ -29,10 +29,10 @@
 
   @if (!reserva.erroData()) {
     <app-planta-mesas
-      [token]="token()" [data]="reserva.data()" [atualizacao]="reserva.atualizacao()"
+      [data]="reserva.data()" [atualizacao]="reserva.atualizacao()" [mesaInicialId]="mesaInicialId()"
       (mesaSelecionada)="onMesaSelecionada($event)"
       (disponibilidadeConsultada)="reserva.registrarDisponibilidade($event)"
-      (sessaoExpirada)="onSessaoExpirada()"
+      (mesaInicialInvalidada)="onMesaInicialInvalidada()"
     />
   } @else {
     <p role="status">Escolha uma data válida para consultar a disponibilidade.</p>

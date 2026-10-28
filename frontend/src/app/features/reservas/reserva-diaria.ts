@@ -1,7 +1,7 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Mesa } from '../mesas/mesa';
@@ -14,6 +14,7 @@ export class ReservaDiaria {
   private readonly reservas = inject(ReservaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly dataMinima = hojeSaoPaulo();
   readonly dataMaxima = adicionarDias(this.dataMinima, 15);
@@ -38,6 +39,7 @@ export class ReservaDiaria {
     this.iniciarConsulta();
     this.erro.set('');
     this.sucesso.set('');
+    this.sincronizarContexto(null);
   }
 
   atualizarDisponibilidade() {
@@ -56,7 +58,24 @@ export class ReservaDiaria {
   }
 
   selecionar(mesa: Mesa) {
-    if (!this.confirmando() && this.disponibilidadeAtual()) this.selecionada.set(mesa);
+    if (!this.confirmando() && this.disponibilidadeAtual()) {
+      this.selecionada.set(mesa);
+      this.sincronizarContexto(mesa.id);
+    }
+  }
+
+  restaurarSelecao(mesasDisponiveis: readonly Mesa[]) {
+    const mesaId = Number(this.route.snapshot.queryParamMap.get('mesaId'));
+    if (!Number.isSafeInteger(mesaId) || mesaId <= 0) return;
+    const mesa = mesasDisponiveis.find(item => item.id === mesaId);
+    if (mesa && this.disponibilidadeAtual()) this.selecionada.set(mesa);
+    else this.sincronizarContexto(null);
+  }
+
+  limparSelecao() {
+    if (this.confirmando()) return;
+    this.selecionada.set(null);
+    this.sincronizarContexto(null);
   }
 
   confirmar() {
@@ -66,22 +85,20 @@ export class ReservaDiaria {
     this.confirmando.set(true);
     this.erro.set('');
     this.sucesso.set('');
-    this.reservas.criar(sessao.token, mesa.id, this.data())
+    this.reservas.criar(mesa.id, this.data())
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: reserva => {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
           this.sucesso.set(`Reserva #${reserva.id} confirmada: mesa ${reserva.mesa.codigo}, dia ${formatarData(reserva.data)}, para ${reserva.solicitante.nome}.`);
+          this.sincronizarContexto(null);
           this.atualizarDisponibilidade();
         },
         error: (erro: HttpErrorResponse) => {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
-          if (erro.status === 401) {
-            this.auth.logout(true);
-            return;
-          }
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
+          this.sincronizarContexto(null);
           this.erro.set(erro.status === 409
             ? (detalhe || 'A mesa ou o seu dia já possui uma reserva. Revise a disponibilidade e selecione novamente.')
             : erro.status === 400 ? (detalhe || 'Verifique a data e a mesa selecionadas.')
@@ -93,5 +110,14 @@ export class ReservaDiaria {
 
   private dataInicial(): string {
     return this.route.snapshot.queryParamMap.get('data') ?? proximoDiaUtil(this.dataMinima);
+  }
+
+  private sincronizarContexto(mesaId: number | null) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { data: this.data(), mesaId: mesaId ? String(mesaId) : null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 }
