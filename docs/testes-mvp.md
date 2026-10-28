@@ -62,6 +62,18 @@ O frontend cobre confirmação sem autoria editável tanto na lista quanto no ma
 ## Listagem de reservas próprias
 
 `ReservaApiTests` cobre filtros por dia exato, período inclusivo (inclusive limites iguais ou abertos) e status, retorno vazio, autenticação e isolamento por usuário. A consulta inclui histórico e datas além da janela de criação. A ordem é `data DESC, id DESC`, com desempate verificado em chamadas repetidas. Datas/status inválidos, período invertido e combinação de dia exato com período retornam `400`.
+## Filtro de disponibilidade diária — issue #11
+
+Os testes de lista e mapa alteram o campo `input[type=date]` por eventos reais
+de formulário. Cobrem data obrigatória, passada, fim de semana, fora da janela,
+troca rápida de datas, carregamento, resposta vazia, erro e nova tentativa.
+A confirmação é bloqueada até concluir a consulta da data atual, mesmo se um
+evento antigo tentar selecionar uma mesa durante a atualização. O resumo usa
+dia inteiro e a data de confirmação é a mesma enviada na consulta.
+
+`data-reserva.spec.ts` cobre formato, datas inexistentes, fuso de São Paulo e os
+limites inclusivos da janela. O backend mantém sua validação autoritativa.
+Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 
 ## Cancelamento
 
