@@ -11,7 +11,6 @@ import br.com.foursys.agendamento_mesas.model.*;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
-import br.com.foursys.agendamento_mesas.repository.*;
 import br.com.foursys.agendamento_mesas.security.*;
 import br.com.foursys.agendamento_mesas.service.ReservaService;
 import java.time.*;
