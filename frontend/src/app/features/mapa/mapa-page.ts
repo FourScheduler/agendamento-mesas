@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { PlantaMesas } from '../planta/planta-mesas';
 import { Mesa } from '../mesas/mesa';
 import { AuthService } from '../../core/auth/auth.service';
@@ -20,25 +21,35 @@ import { Notificacao } from '../../shared/notificacao/notificacao';
 export class MapaPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly reserva = inject(ReservaDiaria);
-  readonly token = this.auth.token;
   readonly usuario = this.auth.usuario;
+  readonly mesaInicialId = signal(Number(this.route.snapshot.queryParamMap.get('mesaId')) || null);
   readonly mesaSelecionada = this.reserva.selecionada;
   readonly formatarData = formatarData;
 
   onMesaSelecionada(mesa: Mesa) {
-    if (!this.reserva.confirmando()) this.mesaSelecionada.set(mesa);
+    this.reserva.selecionar(mesa);
   }
 
-  onSessaoExpirada() {
-    this.auth.logout(true);
+  onDataChange(data: string) {
+    this.mesaInicialId.set(null);
+    this.reserva.alterarData(data);
+  }
+
+  onMesaInicialInvalidada() {
+    this.mesaInicialId.set(null);
+    this.reserva.limparSelecao();
   }
 
   voltarParaAgendamento() {
-    void this.router.navigate(['/agendamento'], { queryParams: { data: this.reserva.data() } });
+    void this.router.navigate(['/agendamento'], { queryParams: { data: this.reserva.data(), mesaId: this.mesaSelecionada()?.id ?? null } });
   }
 
   fecharDetalhes() {
-    if (!this.reserva.confirmando()) this.mesaSelecionada.set(null);
+    if (!this.reserva.confirmando()) {
+      this.mesaInicialId.set(null);
+      this.reserva.limparSelecao();
+    }
   }
 }

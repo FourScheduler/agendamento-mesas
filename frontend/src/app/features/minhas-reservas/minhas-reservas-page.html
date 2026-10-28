@@ -1,24 +1,187 @@
-<header class="page-header">
-  <p class="eyebrow">Agendamento de Mesas</p>
-  <h1 class="titulo">Minhas Reservas</h1>
-  <p class="subtitulo">Acompanhe o status das suas reservas</p>
-</header>
+<section class="pagina minhas-reservas">
+  <header class="minhas-reservas__cabecalho">
+    <div>
+      <h1 class="titulo">Minhas reservas</h1>
+      <p class="subtitulo">Acompanhe as mesas reservadas por você.</p>
+    </div>
 
-<main class="page-conteudo">
-  <section class="estado-vazio cartao" aria-labelledby="estado-vazio-titulo">
-    <svg class="estado-vazio__icone" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M9 12h6M12 9v6" />
-    </svg>
-    <h2 id="estado-vazio-titulo">Funcionalidade em desenvolvimento</h2>
-    <p>Esta página será implementada na próxima etapa do MVP. Enquanto isso, você pode gerenciar suas reservas na página de Agendamento.</p>
-    <div class="estado-vazio__acoes">
-      <button class="botao" type="button" (click)="irParaAgendamento()">
-        Ir para Agendamento
+    <button
+      class="botao botao--suave minhas-reservas__voltar"
+      type="button"
+      (click)="irParaAgendamento()"
+    >
+      <span aria-hidden="true">&#8592;</span>
+      Voltar
+    </button>
+  </header>
+
+  <div class="minhas-reservas__barraFiltros">
+    <div class="minhas-reservas__filtros" role="group" aria-label="Filtrar reservas por período">
+      <button
+        class="minhas-reservas__filtro"
+        type="button"
+        [class.minhas-reservas__filtro--ativo]="filtro() === 'futuras'"
+        [attr.aria-pressed]="filtro() === 'futuras'"
+        [disabled]="periodoPersonalizado()"
+        (click)="trocarFiltro('futuras')"
+      >
+        Futuras
       </button>
-      <button class="botao" type="button" (click)="irParaMapa()">
-        Ver mapa de mesas
+      <button
+        class="minhas-reservas__filtro"
+        type="button"
+        [class.minhas-reservas__filtro--ativo]="filtro() === 'passadas'"
+        [attr.aria-pressed]="filtro() === 'passadas'"
+        [disabled]="periodoPersonalizado()"
+        (click)="trocarFiltro('passadas')"
+      >
+        Passadas
       </button>
     </div>
-  </section>
-</main>
+
+    <div class="minhas-reservas__campos">
+      <label class="campo minhas-reservas__campo">
+        <span class="campo__rotulo">Status</span>
+        <select
+          class="campo__entrada"
+          [value]="statusFiltro() ?? ''"
+          (change)="trocarStatus($event)"
+        >
+          <option value="">Todos os status</option>
+          @for (opcao of opcoesStatus; track opcao) {
+            <option [value]="opcao">{{ rotuloStatus(opcao) }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="campo minhas-reservas__campo">
+        <span class="campo__rotulo">De</span>
+        <input
+          class="campo__entrada"
+          type="date"
+          [value]="periodoFiltro().inicio ?? ''"
+          (change)="trocarData('inicio', $event)"
+        />
+      </label>
+
+      <label class="campo minhas-reservas__campo">
+        <span class="campo__rotulo">Até</span>
+        <input
+          class="campo__entrada"
+          type="date"
+          [value]="periodoFiltro().fim ?? ''"
+          (change)="trocarData('fim', $event)"
+        />
+      </label>
+
+      @if (temFiltroAtivo()) {
+        <button
+          class="minhas-reservas__limpar"
+          type="button"
+          (click)="limparFiltros()"
+        >
+          Limpar filtros
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (periodoInvalido()) {
+    <p class="campo__erro minhas-reservas__aviso" role="alert">
+      A data inicial não pode ser posterior à data final.
+    </p>
+  }
+
+  @if (carregando()) {
+    <app-carregando texto="Buscando suas reservas..." />
+  } @else if (erroApi(); as mensagem) {
+    <app-erro
+      titulo="Não foi possível carregar suas reservas"
+      [mensagem]="mensagem"
+      (tentarNovamente)="buscar()"
+    />
+  } @else if (cartoes().length === 0) {
+    <app-vazio
+      [titulo]="tituloVazio"
+      [mensagem]="mensagemVazio()"
+      acao="Agendar uma mesa"
+      (acaoClicada)="irParaAgendamento()"
+    />
+  } @else {
+    <ul class="minhas-reservas__lista">
+      @for (cartao of cartoes(); track cartao.chave) {
+        <li class="cartao minhas-reservas__cartao">
+          @if (cartao.posicao !== null) {
+            <span
+              class="minhas-reservas__ordem"
+              [attr.aria-label]="'Reserva de número ' + cartao.posicao"
+            >
+              {{ ordinal(cartao.posicao) }}
+            </span>
+          }
+
+          <div class="minhas-reservas__conteudo">
+            <div class="minhas-reservas__linha">
+              <div class="minhas-reservas__identificacao">
+                <div class="minhas-reservas__nomeLinha">
+                  <p class="minhas-reservas__mesa">Mesa {{ cartao.reserva.mesa.codigo }} - {{ cartao.reserva.mesa.regiao }}</p>
+                  <span
+                    class="minhas-reservas__status"
+                    [class.minhas-reservas__status--confirmada]="cartao.reserva.status === 'CONFIRMADA'"
+                    [class.minhas-reservas__status--cancelada]="ehCancelada(cartao.reserva.status)"
+                  >
+                    {{ rotuloStatus(cartao.reserva.status) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="minhas-reservas__acoes">
+                @if (podeCancelar(cartao)) {
+                  @if (cancelamentoSolicitado() === cartao.chave) {
+                    <div class="minhas-reservas__confirmacao">
+                      <span class="minhas-reservas__confirmacaoTexto">Cancelar esta reserva?</span>
+                      <button
+                        class="minhas-reservas__acao minhas-reservas__acao--perigo"
+                        type="button"
+                        [disabled]="cancelamentoEmAndamento() === cartao.chave"
+                        (click)="cancelarReserva(cartao)"
+                      >
+                        {{ cancelamentoEmAndamento() === cartao.chave ? 'Cancelando...' : 'Sim, cancelar' }}
+                      </button>
+                      <button
+                        class="minhas-reservas__acao minhas-reservas__acao--manter"
+                        type="button"
+                        [disabled]="cancelamentoEmAndamento() === cartao.chave"
+                        (click)="desistirCancelamento()"
+                      >
+                        Manter
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      class="minhas-reservas__acao minhas-reservas__acao--cancelar"
+                      type="button"
+                      (click)="solicitarCancelamento(cartao)"
+                    >
+                      Cancelar
+                    </button>
+                  }
+                }
+              </div>
+            </div>
+
+            <p class="minhas-reservas__meta">
+              <span class="minhas-reservas__quando">
+                {{ formatarData(cartao.reserva.data) }}
+              </span>
+              <span class="minhas-reservas__separador" aria-hidden="true">·</span>
+              <span class="minhas-reservas__detalhes">
+                Criada em {{ formatarData(cartao.reserva.criadaEm.split('T')[0]) }}
+              </span>
+            </p>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

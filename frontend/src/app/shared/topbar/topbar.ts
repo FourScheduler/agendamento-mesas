@@ -8,7 +8,9 @@ import {
   output,
   signal,
 } from "@angular/core";
-import { RouterLink, RouterLinkActive } from "@angular/router";
+import { RouterLink, RouterLinkActive, Router, NavigationEnd } from "@angular/router";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { filter, map } from "rxjs";
 
 @Component({
   selector: "app-topbar",
@@ -25,6 +27,10 @@ export class Topbar {
   readonly usuario = input("");
   readonly sair = output<void>();
   readonly menuAberto = signal(false);
+
+  private readonly router = inject(Router);
+  private readonly elemento = inject(ElementRef<HTMLElement>);
+
   readonly iniciais = computed(() =>
     this.usuario()
       .trim()
@@ -35,7 +41,40 @@ export class Topbar {
       .join("")
       .toUpperCase(),
   );
-  private readonly elemento = inject(ElementRef<HTMLElement>);
+
+  readonly exibirLocalizacao = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(
+        (event) =>
+          /^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
+            event.urlAfterRedirects,
+          ),
+      ),
+    ),
+    {
+      initialValue: /^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
+        this.router.url,
+      ),
+    },
+  );
+
+  readonly exibirAcoesPortal = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map(
+        (event) =>
+          !/^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
+            event.urlAfterRedirects,
+          ),
+      ),
+    ),
+    {
+      initialValue: !/^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
+        this.router.url,
+      ),
+    },
+  );
 
   constructor() {
     effect(() => {

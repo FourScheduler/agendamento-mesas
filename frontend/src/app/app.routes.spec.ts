@@ -10,22 +10,25 @@ describe('Rotas da develop integradas à issue 7', () => {
   let http: HttpTestingController;
   beforeEach(() => {
     localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-27T12:00:00Z'));
     TestBed.configureTestingModule({ providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
   });
-  afterEach(() => { localStorage.clear(); http.verify(); });
+  afterEach(() => { localStorage.clear(); try { http.verify(); } finally { vi.useRealTimers(); } });
 
   it('abre o login ao acessar a rota inicial sem autenticação', async () => {
     const harness = await RouterTestingHarness.create('/');
-    expect(TestBed.inject(Router).url).toBe('/login');
+    expect(TestBed.inject(Router).url).toBe('/login?retorno=agendamento');
     expect(harness.routeNativeElement?.textContent).toContain('Entre para acessar');
   });
 
   it('mantém a página de minhas reservas e a navegação para agendamento', async () => {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { id: 7, nome: 'Maria', email: '', perfil: 'USUARIO' } });
     const harness = await RouterTestingHarness.create('/minhas-reservas');
-    expect(harness.routeNativeElement?.textContent).toContain('Minhas Reservas');
-    expect(harness.routeNativeElement?.textContent).toContain('Funcionalidade em desenvolvimento');
+    http.expectOne('/api/reservas/minhas').flush([]);
+    expect(harness.routeNativeElement?.textContent).toContain('Minhas reservas');
+    expect(harness.routeNativeElement?.textContent).toContain('Acompanhe as mesas reservadas por você');
   });
 
   it('preserva a data na abertura direta do mapa e consulta disponibilidade diária', async () => {

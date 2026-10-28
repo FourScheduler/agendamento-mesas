@@ -16,6 +16,10 @@
   padding: 0 clamp(1.5rem, 4vw, 4rem) 2rem;
 }
 
+.campo__rotulo{
+  color: var(--orange);
+}
+
 .detalhes {
   position: fixed;
   z-index: 15;

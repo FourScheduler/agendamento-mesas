@@ -10,6 +10,7 @@ import {
   DestroyRef,
   ElementRef,
   viewChild,
+  HostListener,
 } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
 import { Mesa } from "../mesas/mesa";
@@ -28,12 +29,12 @@ import {
   styleUrl: "./planta-mesas.css",
 })
 export class PlantaMesas {
-  // Recebido da sessão local pelo componente hospedeiro; nunca persistido pelo catálogo.
-  readonly token = input.required<string>();
   readonly data = input('');
   readonly atualizacao = input(0);
+  readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionada = output<Mesa>();
-  readonly sessaoExpirada = output<void>();
+  readonly disponibilidadeConsultada = output<string>();
+  readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly disponiveis = signal<ReadonlySet<number> | null>(null);
   readonly carregando = signal(false);
@@ -45,6 +46,22 @@ export class PlantaMesas {
   private readonly viewport =
     viewChild.required<ElementRef<HTMLElement>>("viewport");
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Mesas disponíveis para navegação por teclado (ordenadas por planta, y, x) */
+  private readonly mesasNavegaveis = computed(() =>
+    this.mesas()
+      .filter((m) => this.estaDisponivel(m))
+      .sort((a, b) => {
+        const pa = a.referenciaVisual.planta.localeCompare(b.referenciaVisual.planta);
+        if (pa !== 0) return pa;
+        const ya = a.referenciaVisual.y - b.referenciaVisual.y;
+        if (ya !== 0) return ya;
+        return a.referenciaVisual.x - b.referenciaVisual.x;
+      })
+  );
+
+  /** Índice da mesa focada na lista de navegáveis */
+  private focoIndex = signal(-1);
   readonly plantas = computed(() =>
     [...new Set(this.mesas().map((m) => m.referenciaVisual.planta))].map(
       (nome) => {
@@ -112,7 +129,6 @@ export class PlantaMesas {
       }
     });
     effect((onCleanup) => {
-      const token = this.token();
       const data = this.data();
       this.atualizacao();
       this.mesas.set([]);
@@ -120,19 +136,24 @@ export class PlantaMesas {
       this.selecionada.set(null);
       this.erro.set("");
       this.carregando.set(false);
-      if (!token) {
-        this.erro.set("Entre com sua conta para consultar a planta.");
-        return;
-      }
       this.carregando.set(true);
       const consulta = forkJoin({
-        mesas: this.catalogo.listar(token),
-        disponiveis: data ? this.catalogo.listarDisponiveis(data, token) : of(null),
+        mesas: this.catalogo.listar(),
+        disponiveis: data ? this.catalogo.listarDisponiveis(data) : of(null),
       }).subscribe({
         next: ({ mesas, disponiveis }) => {
           this.mesas.set(mesas);
           this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
           this.carregando.set(false);
+          if (data) {
+            this.disponibilidadeConsultada.emit(data);
+            const mesaInicialId = this.mesaInicialId();
+            if (mesaInicialId !== null) {
+              const mesaInicial = mesas.find(mesa => mesa.id === mesaInicialId);
+              if (mesaInicial && this.estaDisponivel(mesaInicial)) this.selecionar(mesaInicial);
+              else this.mesaInicialInvalidada.emit();
+            }
+          }
         },
         error: (erro: HttpErrorResponse) => {
           this.carregando.set(false);
@@ -142,7 +163,6 @@ export class PlantaMesas {
               : erro.status === 400 ? (erro.error?.detail ?? 'Escolha uma data válida.')
               : "Não foi possível carregar a disponibilidade. Tente atualizar a consulta.",
           );
-          if (erro.status === 401) this.sessaoExpirada.emit();
         },
       });
       onCleanup(() => consulta.unsubscribe());
@@ -171,5 +191,90 @@ export class PlantaMesas {
 
   codigoExibido(codigo: string) {
     return codigo.replace(/^0+(?=\d)/, "");
+  }
+
+  /** Move o foco para a próxima/anteior mesa disponível (wrap around) */
+  private moverFoco(delta: number) {
+    const navegaveis = this.mesasNavegaveis();
+    if (navegaveis.length === 0) return;
+
+    let idx = this.focoIndex();
+    if (idx === -1) {
+      // Se nada focado, foca a primeira ou a selecionada
+      const sel = this.selecionada();
+      idx = sel ? navegaveis.findIndex(m => m.id === sel) : -1;
+      if (idx === -1) idx = 0;
+    }
+    idx = (idx + delta + navegaveis.length) % navegaveis.length;
+    this.focoIndex.set(idx);
+
+    // Scroll para trazer a mesa focada para a vista
+    const mesa = navegaveis[idx];
+    const el = this.viewport()?.nativeElement.querySelector(
+      `button.mesa[style*="left: ${mesa.referenciaVisual.x}px"][style*="top: ${mesa.referenciaVisual.y}px"]`
+    ) as HTMLElement;
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }
+
+  /** Seleciona a mesa atualmente focada */
+  private selecionarFocada() {
+    const navegaveis = this.mesasNavegaveis();
+    const idx = this.focoIndex();
+    if (idx >= 0 && idx < navegaveis.length) {
+      this.selecionar(navegaveis[idx]);
+    }
+  }
+
+  /** Handler de teclado no viewport da planta */
+  @HostListener('keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent) {
+    // Só processa se o viewport ou algum botão de mesa tiver foco
+    const target = event.target as HTMLElement;
+    const isViewport = target === this.viewport()?.nativeElement;
+    const isMesa = target.closest('button.mesa') !== null;
+
+    if (!isViewport && !isMesa) return;
+
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        event.preventDefault();
+        this.moverFoco(1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        event.preventDefault();
+        this.moverFoco(-1);
+        break;
+      case 'Enter':
+      case ' ':
+        // Só seleciona se estiver sobre uma mesa ou viewport com foco válido
+        if (isMesa || this.focoIndex() >= 0) {
+          event.preventDefault();
+          this.selecionarFocada();
+        }
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.focoIndex.set(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        const navegaveis = this.mesasNavegaveis();
+        this.focoIndex.set(navegaveis.length - 1);
+        break;
+      case 'Escape':
+        // Limpa seleção e foco
+        this.selecionada.set(null);
+        this.focoIndex.set(-1);
+        break;
+    }
+  }
+
+  /** Chamado quando uma mesa recebe foco (mouse ou teclado) */
+  onMesaFocus(mesa: Mesa) {
+    const navegaveis = this.mesasNavegaveis();
+    const idx = navegaveis.findIndex(m => m.id === mesa.id);
+    if (idx >= 0) this.focoIndex.set(idx);
   }
 }

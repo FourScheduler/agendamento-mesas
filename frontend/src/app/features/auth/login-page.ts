@@ -29,7 +29,13 @@ export class LoginPage {
 
     try {
       await firstValueFrom(this.auth.login(this.email.trim(), this.senha));
-      void this.router.navigate(['/agendamento']);
+      const retorno = this.route.snapshot.queryParamMap.get('retorno') === 'mapa' ? '/mapa' : '/agendamento';
+      const data = this.route.snapshot.queryParamMap.get('data');
+      const mesaId = this.route.snapshot.queryParamMap.get('mesaId');
+      const queryParams: Record<string, string> = {};
+      if (data && /^\d{4}-\d{2}-\d{2}$/.test(data)) queryParams['data'] = data;
+      if (mesaId && /^\d+$/.test(mesaId)) queryParams['mesaId'] = mesaId;
+      void this.router.navigate([retorno], { queryParams });
     } catch (e: any) {
       this.erro.set(e?.status === 401
         ? 'E-mail ou senha inválidos, ou usuário inativo.'

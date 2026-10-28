@@ -5,9 +5,9 @@
     <p class="subtitulo">Selecione a data, escolha uma mesa livre e confirme</p>
   </div>
 
-  <section class="filtro-data cartao" aria-label="Filtro de data">
+  <section class="filtro-data cartao" aria-label="Filtros de agendamento">
     <div class="filtro-data__linha">
-      <div>
+      <div class="filtro-campo">
         <label class="filtro-data__rotulo" for="data-reserva">Data da reserva</label>
         <input
           class="filtro-data__entrada"
@@ -15,11 +15,33 @@
           type="date"
           [ngModel]="dataSelecionada()"
           (ngModelChange)="onDataChange($event)"
-          [min]="todayISO()"
-          [max]="maxDateISO()"
+          [min]="todayISO"
+          [max]="maxDateISO"
           [disabled]="confirmando()"
+          [attr.aria-invalid]="reserva.erroData() ? true : null"
+          aria-describedby="erro-data"
           required
         />
+        @if (reserva.erroData()) {
+          <p id="erro-data" class="filtro-data__erro" role="alert">{{ reserva.erroData() }}</p>
+        }
+      </div>
+      <div class="filtro-campo filtro-campo--busca">
+        <label class="filtro-data__rotulo" for="busca-mesa">Pesquisar</label>
+        <div class="filtro-campo__entrada-wrapper">
+          <svg class="filtro-campo__icone" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            class="filtro-campo__entrada"
+            id="busca-mesa"
+            type="search"
+            placeholder="Mesa ou local"
+            [(ngModel)]="busca"
+            (input)="busca.set($any($event.target).value)"
+          />
+        </div>
       </div>
       <button class="botao" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -28,10 +50,9 @@
         </svg>
         Ver mapa
       </button>
-      <button class="botao" type="button" (click)="reserva.atualizarDisponibilidade()"
-        [disabled]="confirmando() || !dataSelecionada()">Atualizar disponibilidade</button>
+      <button id="atualizar-disponibilidade" class="botao" type="button" (click)="reserva.atualizarDisponibilidade()" [disabled]="confirmando() || !!reserva.erroData()">Atualizar disponibilidade</button>
     </div>
-    <p class="subtitulo">Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência. Horário de São Paulo.</p>
+    <p class="subtitulo">Dia inteiro, de segunda a sexta, até 15 dias corridos de antecedência.</p>
     @if (erroConsulta()) {
     <p class="filtro-data__erro" role="alert">{{ erroConsulta() }}</p>
     }
@@ -46,7 +67,9 @@
       <span class="mesas-livres__contagem">({{ mesasLivres().length }})</span>
     </h2>
 
-    @if (carregandoMesas()) {
+    @if (reserva.erroData()) {
+      <p class="mesas-livres__vazio" role="status">Escolha uma data válida para consultar as mesas.</p>
+    } @else if (carregandoMesas()) {
     <div class="mesas-livres__loading" role="status">
       <svg class="spinner" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
@@ -56,19 +79,47 @@
       </svg>
       <span>Carregando mesas…</span>
     </div>
+    } @else if (erroConsulta()) {
+      <p class="mesas-livres__vazio" role="status">Consulta indisponível. Use “Atualizar disponibilidade” para tentar novamente.</p>
     } @else if (mesasLivres().length === 0) {
-    <p class="mesas-livres__vazio">Nenhuma mesa livre para esta data.</p>
+      <p class="mesas-livres__vazio" role="status">Nenhuma mesa disponível para a data selecionada.</p>
+    } @else if (mesasFiltradas().length === 0) {
+      <p class="mesas-livres__vazio" role="status">Nenhuma mesa encontrada para a pesquisa.</p>
     } @else {
-    <ul class="mesas-livres__lista" aria-label="Mesas disponíveis">
-      @for (mesa of mesasLivres(); track mesa.id) {
-      <li>
-      <button type="button" class="mesa-item" [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id"
-        [attr.aria-pressed]="mesaSelecionada()?.id === mesa.id" [disabled]="confirmando()" (click)="selecionarMesa(mesa)">
-        <div class="mesa-item__codigo">Mesa {{ mesa.codigo }}</div>
-        <div class="mesa-item__regiao">{{ mesa.regiao }}</div>
-        <div class="mesa-item__tipo">Livre</div>
-      </button>
-      </li>
+    <ul class="mesas-livres__lista" role="listbox" aria-label="Mesas disponíveis">
+      @for (mesa of mesasFiltradas(); track mesa.id) {
+        <li class="mesa-item"
+          [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id"
+          [class.mesa-item--indisponivel]="!estaDisponivel(mesa)"
+          role="option"
+          [aria-selected]="mesaSelecionada()?.id === mesa.id"
+          [aria-disabled]="!estaDisponivel(mesa)"
+          (click)="selecionarMesa(mesa)">
+          <img class="mesa-item__imagem" src="imgs/mesa.jpg" alt="Mesa {{ formatarCodigoMesa(mesa.codigo) }}" loading="lazy" />
+          <div class="mesa-item__info">
+            <div class="mesa-item__cabecalho">
+              <span class="mesa-item__nome">Mesa {{ formatarCodigoMesa(mesa.codigo) }}</span>
+              <span class="mesa-item__status" [class.mesa-item__status--indisponivel]="!estaDisponivel(mesa)">
+                {{ estaDisponivel(mesa) ? 'Disponível' : 'Indisponível' }}
+              </span>
+            </div>
+            <div class="mesa-item__detalhes">
+              <span class="mesa-item__icone" title="Capacidade: 1 pessoa">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                1 pessoa
+              </span>
+              <span class="mesa-item__icone" title="Localização: {{ mesa.regiao }}">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {{ mesa.regiao }}
+              </span>
+            </div>
+          </div>
+        </li>
       }
     </ul>
     }
@@ -76,8 +127,6 @@
 
   <!-- Lado direito: resumo da reserva -->
   <aside class="resumo-reserva cartao" aria-labelledby="resumo-titulo">
-    <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
-
     @if (!mesaSelecionada()) {
     <div class="resumo__vazio">
       <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -87,30 +136,102 @@
       <p>Selecione uma mesa na lista ao lado para ver o resumo.</p>
     </div>
     } @else {
-    <dl class="resumo__detalhes">
-      <dt>Data — dia inteiro</dt>
-      <dd>{{ formatarDataBR(dataSelecionada()) }}</dd>
+    <div class="resumo__conteudo">
+      <!-- Título do card -->
+      <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
+      <p class="resumo__subtitulo">Confira os detalhes da sua reserva antes de confirmar.</p>
+      <!-- Cabeçalho com a data da reserva de dia inteiro -->
+      
 
-      <dt>Mesa</dt>
-      <dd>Mesa {{ mesaSelecionada()!.codigo }} ({{ mesaSelecionada()!.regiao }})</dd>
+      <div class="resumo__divider"></div>
 
-      <dt>Solicitante</dt>
-      <dd>{{ getSolicitanteLabel() }}</dd>
-    </dl>
+      <!-- Linhas de informação com ícones (incluindo Data) -->
+      <div class="resumo__info-grid">
+        <!-- Data / Horário -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Data</span>
+            <span class="resumo__info-value">{{ formatarDataBR(dataSelecionada()) }}</span>
+          </div>
+        </div>
 
-    <div class="resumo__acoes">
-      <button class="botao botao--primario botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando() || !usuario()">
-        {{ confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
-      </button>
-      <button class="botao botao--largura-total" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M9 12h6M12 9v6" />
+        <!-- Mesa / Localização -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Mesa</span>
+            <span class="resumo__info-value">Mesa {{ mesaSelecionada()!.codigo }}</span>
+          </div>
+        </div>
+
+        <!-- Capacidade -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Capacidade</span>
+            <span class="resumo__info-value">1 pessoa</span>
+          </div>
+        </div>
+
+        <!-- Tomadas -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M2 22h20M2 12h20M2 2h20"/>
+              <path d="M12 2v20M2 12v10M22 12v10"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Recursos</span>
+            <span class="resumo__info-value">Tomadas integradas</span>
+          </div>
+        </div>
+
+        <!-- Solicitante -->
+        <div class="resumo__info-item">
+          <div class="resumo__info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="resumo__info-text">
+            <span class="resumo__info-label">Solicitante</span>
+            <span class="resumo__info-value">{{ getSolicitanteLabel() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="resumo__divider"></div>
+
+      <!-- Botão de confirmação -->
+      <button class="botao botao--confirmar botao--largura-total" type="button" (click)="confirmarReserva()" [disabled]="confirmando() || !reserva.disponibilidadeAtual()">
+        <span>{{ confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
-        Ver mapa
       </button>
-    </div>
 
+      @if (erro()) {
+      <p class="resumo__erro" role="alert">{{ erro() }}</p>
+      }
+
+    </div>
     }
   </aside>
 </div>

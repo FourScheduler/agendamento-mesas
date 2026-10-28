@@ -9,8 +9,8 @@ import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Usuario;
-import br.com.foursys.agendamento_mesas.repository.MesaRepository;
-import br.com.foursys.agendamento_mesas.repository.ReservaRepository;
+import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
+import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
 import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,10 +39,10 @@ class PersistenciaMvpTests {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private MesaRepository mesaRepository;
+    private MesaRepositoryPort mesaRepository;
 
     @Autowired
-    private ReservaRepository reservaRepository;
+    private ReservaRepositoryPort reservaRepository;
 
     @Autowired
     private org.flywaydb.core.Flyway flyway;
@@ -56,8 +56,8 @@ class PersistenciaMvpTests {
     @BeforeEach
     void limparBanco() {
         // Ordem respeita as FKs: reservas dependem de mesas e usuarios.
-        reservaRepository.deleteAll();
-        mesaRepository.deleteAll();
+        reservaRepository.deletarTodos();
+        mesaRepository.deletarTodos();
         usuarioRepository.deleteAll();
     }
 
@@ -71,8 +71,8 @@ class PersistenciaMvpTests {
         assertThat(resultado.migrationsExecuted).isZero();
         assertThat(usuarioRepository.count()).isEqualTo(1);
         // Estrutura completa existe (tabelas acessÃ­veis pelos repositories).
-        assertThat(mesaRepository.count()).isZero();
-        assertThat(reservaRepository.count()).isZero();
+        assertThat(mesaRepository.contar()).isZero();
+        assertThat(reservaRepository.contar()).isZero();
     }
 
     @Test
@@ -80,14 +80,14 @@ class PersistenciaMvpTests {
     void reservaPersisteComVinculoParaUsuarioEMesa() {
         Usuario usuario = usuarioRepository.save(
                 new Usuario("Maria Souza", "maria@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
-        Mesa mesa = mesaRepository.save(
-                new Mesa("001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
+        Mesa mesa = mesaRepository.salvar(
+                new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
 
-        Reserva salva = reservaRepository.saveAndFlush(
+        Reserva salva = reservaRepository.salvarESincronizar(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
         entityManager.clear(); // Recarrega do banco para forÃ§ar a recuperaÃ§Ã£o dos vÃ­nculos.
 
-        Reserva recuperada = reservaRepository.findById(salva.getId()).orElseThrow();
+        Reserva recuperada = reservaRepository.buscarPorId(salva.getId()).orElseThrow();
         assertThat(recuperada.getUsuario().getId()).isEqualTo(usuario.getId());
         assertThat(recuperada.getUsuario().getEmail()).isEqualTo("maria@exemplo.com");
         assertThat(recuperada.getMesa().getCodigo()).isEqualTo("001");
@@ -119,16 +119,16 @@ class PersistenciaMvpTests {
 
     @Test
     void codigoDeMesaDuplicadoERejeitado() {
-        mesaRepository.save(new Mesa("001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
-        Mesa duplicada = new Mesa("001", "TAMBORÉ", TipoMesa.FIXA, true, "TAMBORÉ", 180, 80);
+        mesaRepository.salvar(new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
+        Mesa duplicada = new Mesa(null, "001", "TAMBORÉ", TipoMesa.FIXA, true, "TAMBORÉ", 180, 80);
 
-        assertThatThrownBy(() -> mesaRepository.saveAndFlush(duplicada))
+        assertThatThrownBy(() -> mesaRepository.salvarESincronizar(duplicada))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void fkInvalidasSaoRejeitadas() {
-        Mesa mesa = mesaRepository.save(new Mesa("002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140));
+        Mesa mesa = mesaRepository.salvar(new Mesa(null, "002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140));
         Usuario usuario = usuarioRepository.save(
                 new Usuario("Joao Pereira", "joao@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
 
@@ -150,40 +150,40 @@ class PersistenciaMvpTests {
     void disponibilidadeTrataStatusCorretamente() {
         Usuario usuario = usuarioRepository.save(
                 new Usuario("Maria Souza", "disponibilidade@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
-        Mesa mesa = mesaRepository.save(
-                new Mesa("003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80));
-        Reserva reserva = reservaRepository.saveAndFlush(
+        Mesa mesa = mesaRepository.salvar(
+                new Mesa(null, "003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80));
+        Reserva reserva = reservaRepository.salvarESincronizar(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
 
         assertThat(mesaRepository.buscarMesasDisponiveis(
-                DATA, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA))
+                DATA, TipoMesa.LIVRE, ReservaRepositoryPort.BLOQUEIA_MESA))
                 .doesNotContain(mesa);
-        assertThat(reservaRepository.mesaOcupadaNaData(mesa.getId(), DATA, ReservaRepository.BLOQUEIA_MESA)).isTrue();
-        assertThat(reservaRepository.usuarioTemReservaNaData(usuario.getId(), DATA, ReservaRepository.BLOQUEIA_MESA))
+        assertThat(reservaRepository.mesaOcupadaNaData(mesa.getId(), DATA, ReservaRepositoryPort.BLOQUEIA_MESA)).isTrue();
+        assertThat(reservaRepository.usuarioTemReservaNaData(usuario.getId(), DATA, ReservaRepositoryPort.BLOQUEIA_MESA))
                 .isTrue();
 
         // Cancelamento libera a mesa e a data do usuÃ¡rio.
         reserva.setStatus(StatusReserva.CANCELADA);
         reserva.setCanceladaEm(LocalDateTime.now());
-        reservaRepository.flush();
+        reservaRepository.sincronizar();
 
         assertThat(mesaRepository.buscarMesasDisponiveis(
-                DATA, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA))
+                DATA, TipoMesa.LIVRE, ReservaRepositoryPort.BLOQUEIA_MESA))
                 .contains(mesa);
-        assertThat(reservaRepository.mesaOcupadaNaData(mesa.getId(), DATA, ReservaRepository.BLOQUEIA_MESA)).isFalse();
-        assertThat(reservaRepository.usuarioTemReservaNaData(usuario.getId(), DATA, ReservaRepository.BLOQUEIA_MESA))
+        assertThat(reservaRepository.mesaOcupadaNaData(mesa.getId(), DATA, ReservaRepositoryPort.BLOQUEIA_MESA)).isFalse();
+        assertThat(reservaRepository.usuarioTemReservaNaData(usuario.getId(), DATA, ReservaRepositoryPort.BLOQUEIA_MESA))
                 .isFalse();
 
         reserva.setStatus(StatusReserva.CONFIRMADA);
         reserva.setCanceladaEm(null);
-        reservaRepository.flush();
+        reservaRepository.sincronizar();
 
         assertThat(mesaRepository.buscarMesasDisponiveis(
-                DATA, TipoMesa.LIVRE, ReservaRepository.BLOQUEIA_MESA))
+                DATA, TipoMesa.LIVRE, ReservaRepositoryPort.BLOQUEIA_MESA))
                 .doesNotContain(mesa);
 
         // O vÃ­nculo histÃ³rico com o solicitante permanece apÃ³s o cancelamento.
-        assertThat(reservaRepository.findById(reserva.getId()).orElseThrow().getUsuario().getId())
+        assertThat(reservaRepository.buscarPorId(reserva.getId()).orElseThrow().getUsuario().getId())
                 .isEqualTo(usuario.getId());
     }
 }

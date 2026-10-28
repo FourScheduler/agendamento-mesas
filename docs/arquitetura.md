@@ -15,9 +15,25 @@ O frontend usa bootstrap standalone, HttpClient e tokens visuais. O componente r
 
 `PlantaMesas` consome IDs e coordenadas do catálogo completo e combina a disponibilidade da data escolhida. A confirmação no backend continua serializada por usuário e mesa em transação `READ_COMMITTED`. O proxy local encaminha `/api/**` para 8081; em produção a infraestrutura deve encaminhar `/api` ao backend no mesmo domínio.
 
+O filtro diário compartilha a validação de datas no frontend e registra em
+`ReservaDiaria` a data cuja disponibilidade terminou de carregar. Trocar a data
+ou atualizar invalida essa referência e a seleção antes da nova requisição.
+`PlantaMesas.disponibilidadeConsultada` informa a conclusão ao mapa; a lista
+registra a conclusão de sua própria consulta. Somente resultados da data atual
+liberam seleção e confirmação. Ver [issue #11](issue-11-filtro-data.md).
+
 Profiles Spring: `dev` por padrão, `prod` para logs e erros de produção e `test` para os testes. Nenhum exige credenciais nesta etapa. A configuração `prod` não representa infraestrutura de implantação pronta.
 
 Na evolução, organizar o backend por responsabilidades e o frontend em `core/`, `shared/` e `features/`. As regras diárias estão documentadas em `fluxo-mvp.md`.
+
+O backend oferece administração de mesas em `/api/admin/mesas`, restrita a `ADMIN`,
+e listagem de usuários ativos em `/api/admin/usuarios`. `MesaAdminService` implementa
+atribuição, troca, desfixação e ativação com transações e locks compatíveis com a reserva comum.
+A persistência de mesas e reservas passa por portas em `port/out` e adaptadores JPA em
+`infrastructure/persistence`. A migration V5 adiciona responsável opcional com FK, unicidade
+e verificação de mesa ativa/fixa. O catálogo comum mantém seu contrato; o DTO administrativo
+inclui o responsável e `/api/mesas/minha-fixa` devolve apenas a própria atribuição.
+Usuário atribuído não cria reservas e o cancelamento preserva o cadastro da mesa.
 
 ## Integração contínua
 

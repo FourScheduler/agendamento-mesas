@@ -1,38 +1,45 @@
 package br.com.foursys.agendamento_mesas.service;
 
-import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
+import br.com.foursys.agendamento_mesas.model.Mesa;
+import br.com.foursys.agendamento_mesas.model.Reserva;
+import br.com.foursys.agendamento_mesas.model.Usuario;
+import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
+import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
+import org.springframework.stereotype.Service;
+import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
-import br.com.foursys.agendamento_mesas.model.Reserva;
-import br.com.foursys.agendamento_mesas.repository.MesaRepository;
-import br.com.foursys.agendamento_mesas.repository.ReservaRepository;
 import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 public class ReservaService {
     private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final UsuarioRepository usuarios;
-    private final MesaRepository mesas;
-    private final ReservaRepository reservas;
+    private final MesaRepositoryPort mesaRepositoryPort;
+    private final ReservaRepositoryPort reservaRepositoryPort;
     private final DataReservaValidator datas;
     private final Clock relogio;
 
-    public ReservaService(UsuarioRepository usuarios, MesaRepository mesas, ReservaRepository reservas,
-                          DataReservaValidator datas, Clock relogio) {
+    public ReservaService(UsuarioRepository usuarios, MesaRepositoryPort mesaRepositoryPort,
+                          ReservaRepositoryPort reservaRepositoryPort, DataReservaValidator datas, Clock relogio
+    ) {
         this.usuarios = usuarios;
-        this.mesas = mesas;
-        this.reservas = reservas;
+        this.mesaRepositoryPort = mesaRepositoryPort;
+        this.reservaRepositoryPort = reservaRepositoryPort;
         this.datas = datas;
         this.relogio = relogio;
     }
@@ -47,36 +54,103 @@ public class ReservaService {
         if (autenticado == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticação obrigatória.");
         }
+
         if (request == null || request.mesaId() == null || request.mesaId() <= 0) {
             throw new DadosInvalidosException("Campo 'mesaId' deve ser um inteiro positivo.");
         }
+
         datas.validar(request.data());
 
-        var usuario = usuarios.buscarParaReserva(autenticado.id())
-                .filter(u -> u.isAtivo())
+        Usuario usuario = usuarios.buscarParaReserva(autenticado.id())
+                .filter(Usuario::isAtivo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
-        var mesa = mesas.buscarParaReserva(request.mesaId()).orElseThrow(() ->
+
+        // Sob o mesmo lock de usuário usado pela atribuição administrativa.
+        if (mesaRepositoryPort.buscarPorResponsavelId(usuario.getId()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Você já possui uma mesa fixa e não pode realizar novas reservas de mesas compartilhadas.");
+        }
+
+        Mesa mesa = mesaRepositoryPort.buscarParaReserva(request.mesaId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));
+
         // Revalida também a data: o request pode ter aguardado a liberação dos locks.
         datas.validar(request.data());
         if (!mesa.isAtiva()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " está inativa.");
         }
+
         if (mesa.getTipo() != TipoMesa.LIVRE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " é fixa e não pode ser reservada.");
         }
-        if (reservas.mesaOcupadaNaData(mesa.getId(), request.data(), ReservaRepository.BLOQUEIA_MESA)) {
+
+        if (reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
         }
-        if (reservas.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepository.BLOQUEIA_MESA)) {
+
+        if (reservaRepositoryPort.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Você já possui uma reserva em " + request.data().format(DATA_BR)
                             + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
-        var reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
+
+        Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
         reserva.setConfirmadaEm(LocalDateTime.now(relogio));
-        return ReservaResponse.de(reservas.saveAndFlush(reserva));
+        return ReservaResponse.toResponse(reservaRepositoryPort.salvarESincronizar(reserva));
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
+    }
+
+    public List<ReservaResponse> minhasReservas(Long usuarioId, LocalDate data, LocalDate dataInicio,
+                                               LocalDate dataFim, StatusReserva status
+    ) {
+        if (data != null && (dataInicio != null || dataFim != null)) {
+            throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
+        }
+
+        if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
+            throw new DadosInvalidosException("'dataInicio' deve ser anterior ou igual a 'dataFim'.");
+        }
+
+        return reservaRepositoryPort
+            .listarMinhas(usuarioId, data != null ? data : dataInicio, data != null ? data : dataFim, status)
+            .stream()
+            .map(ReservaResponse::toResponse)
+            .toList();
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void cancelar(Long idReserva, UsuarioAutenticado usuarioAutenticado) {
+        usuarios.buscarParaReserva(usuarioAutenticado.id()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inexistente."));
+        Reserva reserva = buscarReserva(idReserva);
+
+        if (!reserva.getUsuario().getId().equals(usuarioAutenticado.id())) {
+            throw new UsuarioSemPermissaoException();
+        }
+
+        mesaRepositoryPort.buscarParaReserva(reserva.getMesa().getId()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa não encontrada."));
+
+        if (reserva.getStatus() == StatusReserva.CANCELADA) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Reserva " + idReserva + " já está cancelada.");
+        }
+
+        reserva.setCanceladaEm(LocalDateTime.now(relogio));
+        reserva.setStatus(StatusReserva.CANCELADA);
+
+        reservaRepositoryPort.salvar(reserva);
+    }
+
+    //Métodos Utilitários
+    public Reserva buscarReserva(Long idReserva) {
+        return reservaRepositoryPort.buscarPorId(idReserva)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva " + idReserva + " não encontrada."));
+    }
+
+    public Mesa buscarMesa(Long idMesa) {
+        return mesaRepositoryPort.buscarPorId(idMesa)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + idMesa + " não encontrada."));
     }
 }

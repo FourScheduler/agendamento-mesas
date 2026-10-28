@@ -1,21 +1,20 @@
-package br.com.foursys.agendamento_mesas.repository;
+package br.com.foursys.agendamento_mesas.infrastructure.persistence.repository;
 
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
-
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.List;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface MesaRepository extends JpaRepository<Mesa, Long> {
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
+public interface MesaJpaRepository extends JpaRepository<Mesa, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Mesa m where m.id = :id")
     Optional<Mesa> buscarParaReserva(@Param("id") Long id);
@@ -25,6 +24,14 @@ public interface MesaRepository extends JpaRepository<Mesa, Long> {
     Optional<Mesa> findByCodigo(String codigo);
 
     boolean existsByCodigo(String codigo);
+
+    @Query("select u.id from Mesa m left join m.responsavel u where m.id = :id")
+    Optional<Long> buscarResponsavelId(@Param("id") Long id);
+
+    Optional<Mesa> findByResponsavelId(Long usuarioId);
+
+    @Query("select m from Mesa m left join fetch m.responsavel order by m.codigo")
+    List<Mesa> buscarTodosComResponsavelPorCodigoAsc();
 
     @Query("""
     SELECT m

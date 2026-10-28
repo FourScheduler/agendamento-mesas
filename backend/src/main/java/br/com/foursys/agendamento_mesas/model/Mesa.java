@@ -10,15 +10,23 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import lombok.*;
 
 /**
  * Mesa é uma estação individual de trabalho. {@code planta}, {@code posicaoX} e {@code posicaoY}
  * são apenas referência visual para o desenho da planta no frontend; não participam de regra de negócio.
  */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+@Getter
 @Entity
 @Table(name = "mesas", uniqueConstraints = @UniqueConstraint(name = "uk_mesas_codigo", columnNames = "codigo"))
 public class Mesa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -36,6 +44,10 @@ public class Mesa {
     @Column(name = "ativa", nullable = false)
     private boolean ativa;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_id", unique = true)
+    private Usuario responsavel;
+
     @Column(name = "planta", nullable = false, length = 20)
     private String planta;
 
@@ -45,48 +57,9 @@ public class Mesa {
     @Column(name = "posicao_y", nullable = false)
     private Integer posicaoY;
 
-    protected Mesa() {
-    }
-
-    public Mesa(String codigo, String regiao, TipoMesa tipo, boolean ativa, String planta, Integer posicaoX, Integer posicaoY) {
-        this.codigo = codigo;
-        this.regiao = regiao;
-        this.tipo = tipo;
-        this.ativa = ativa;
-        this.planta = planta;
-        this.posicaoX = posicaoX;
-        this.posicaoY = posicaoY;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getCodigo() {
-        return codigo;
-    }
-
-    public String getRegiao() {
-        return regiao;
-    }
-
-    public TipoMesa getTipo() {
-        return tipo;
-    }
-
-    public boolean isAtiva() {
-        return ativa;
-    }
-
-    public String getPlanta() {
-        return planta;
-    }
-
-    public Integer getPosicaoX() {
-        return posicaoX;
-    }
-
-    public Integer getPosicaoY() {
-        return posicaoY;
+    // Mantém a construção do catálogo e dos dados legados sem responsável.
+    public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
+                String planta, Integer posicaoX, Integer posicaoY) {
+        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY);
     }
 }

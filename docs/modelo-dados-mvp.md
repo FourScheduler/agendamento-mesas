@@ -26,11 +26,21 @@ Reservas são de dia inteiro, armazenadas em `reservas.data`. A criação confir
 | `regiao` | VARCHAR(40) | NOT NULL. Localização física (demonstração: `TAMBORÉ`). |
 | `tipo` | VARCHAR(10) | NOT NULL. `LIVRE` ou `FIXA`. |
 | `ativa` | BOOLEAN | NOT NULL, padrão `TRUE`. |
+| `responsavel_id` | BIGINT | NULL permitido, FK → `usuarios(id)`, UNIQUE. Adicionado pela migration V5. |
 | `planta` | VARCHAR(20) | Referência visual da planta (demonstração: `TAMBORÉ`). |
 | `posicao_x` | INTEGER | Referência visual (coordenada x na planta). |
 | `posicao_y` | INTEGER | Referência visual (coordenada y na planta). |
 
 `planta`/`posicao_x`/`posicao_y` servem apenas ao desenho do frontend; não participam de regra de negócio.
+
+`responsavel_id` identifica a atribuição fixa, independente das reservas por data.
+Sua unicidade garante uma mesa fixa por usuário; múltiplas mesas sem responsável são permitidas.
+`ck_mesas_responsavel_ativo_fixa` exige `tipo = 'FIXA'` e `ativa = TRUE` quando houver responsável.
+Mesas fixas legadas sem responsável continuam válidas. Inativação exige remoção explícita do vínculo,
+mesmo que o usuário esteja inativo. Não há exclusão em cascata de usuários, mesas ou reservas.
+
+A V5 é aplicada após as versões V2–V4 usadas pelo seed de desenvolvimento. Ela acrescenta
+coluna, FK, unicidade e check sem atribuir usuários nem reescrever os dados existentes.
 
 ### `reservas`
 

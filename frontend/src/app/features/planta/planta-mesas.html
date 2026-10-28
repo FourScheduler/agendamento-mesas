@@ -51,6 +51,9 @@
     </ul>
   </header>
   <div class="mapa__corpo">
+    @if (data() && !carregando() && !erro() && mesas().length > 0 && disponiveis()?.size === 0) {
+      <p class="mapa__mensagem" role="status">Nenhuma mesa disponível para a data selecionada. Escolha outra data.</p>
+    }
     <div
       #viewport
       class="mapa__viewport"
@@ -128,6 +131,7 @@
             [attr.aria-pressed]="selecionada() === mesa.id"
             [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data')"
             (click)="selecionar(mesa)"
+            (focus)="onMesaFocus(mesa)"
           >
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
             @if (!mesa.ativa) {

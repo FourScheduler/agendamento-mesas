@@ -2,7 +2,28 @@
 
 Cenários que o backend deve cobrir com testes automatizados. Cada cenário referencia a regra em [fluxo-mvp](fluxo-mvp.md) e o contrato em [contratos-api-mvp](contratos-api-mvp.md).
 
-A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem, cancelamento e gestão administrativa de reservas abaixo permanecem cenários planejados para entregas futuras.
+A issue #7 implementa criação diária com confirmação direta, autoria e serialização. A listagem própria possui filtros e ordenação estável cobertos por testes. Cancelamento próprio e gestão de mesas estão implementados; gestão administrativa de reservas continua planejada.
+
+## Administração de mesas (#37)
+
+`MesaAdminApiTests` cobre as rotas com commits reais em H2. `MesaAdminMySqlTests`
+repete a mesma suíte em MySQL quando `TEST_MYSQL_URL` aponta um schema exclusivo `_test`.
+O CI configura esse banco; sem a variável, somente as suítes MySQL são ignoradas.
+
+- `401` sem token ou com token expirado e `403` para usuário comum em todas as rotas administrativas.
+- Usuários ativos por nome/ID, respostas mínimas e lista vazia no serviço.
+- Mesas por código, inclusive inativas e fixas legadas sem responsável; dados do responsável somente no DTO administrativo.
+- Fixação/troca/desfixação, rejeição de usuário inativo/inexistente, segunda mesa por usuário e atribuição em mesa inativa.
+- Inativação exige desfixar, inclusive com responsável inativo; ativação preserva o tipo e não atribui automaticamente.
+- Reservas `PENDENTE`/`CONFIRMADA` de hoje em diante impedem fixar a mesa, atribuir o usuário ou inativar a mesa. Passadas e canceladas não impedem.
+- Usuário com atribuição fixa recebe `409` ao reservar; após desfixação ou troca pode reservar novamente.
+- `/api/mesas/minha-fixa` identifica apenas o usuário do token, ignorando tentativa de escolher outro usuário.
+- Cancelamento preserva tipo, ativação, atribuição e autoria; timestamp usa o relógio do sistema no fuso do projeto.
+- Rollback não deixa vínculo parcial; o banco rejeita vínculo duplicado, mesa atribuída inativa ou `LIVRE`.
+- Disputas: duas mesas para o mesmo usuário, dois responsáveis para a mesma mesa, fixação/inativação, fixação/reserva por mesa ou usuário e inativação/reserva.
+
+`MigracaoResponsavelTests` migra V1–V4 com seed e reserva existente para V5,
+confere preservação dos registros e reaplicação sem alterações.
 
 ## Datas inválidas (`400`)
 
@@ -58,6 +79,22 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 `ReservaApiTests` usa transações independentes e relógio fixo. `ReservaMySqlTests` repete a suíte em schema exclusivo terminado em `_test`, configurado por `TEST_MYSQL_URL`. O CI provisiona MySQL 8.4 e executa os dois bancos. `DataReservaValidatorTests` cobre a virada de dia UTC/São Paulo.
 
 O frontend cobre confirmação sem autoria editável tanto na lista quanto no mapa, duplo clique, sucesso após resposta, atualização de disponibilidade, erros `400`, `401`, `409`, rede/servidor e cancelamento de consulta ao trocar de data. Os testes de sessão/guards verificam restauração do perfil real, token expirado sem loop de navegação, logout e resposta de perfil recebida após logout. As rotas de login, agendamento, mapa e minhas reservas são preservadas, incluindo a data no trânsito entre lista e planta.
+
+## Listagem de reservas próprias
+
+`ReservaApiTests` cobre filtros por dia exato, período inclusivo (inclusive limites iguais ou abertos) e status, retorno vazio, autenticação e isolamento por usuário. A consulta inclui histórico e datas além da janela de criação. A ordem é `data DESC, id DESC`, com desempate verificado em chamadas repetidas. Datas/status inválidos, período invertido e combinação de dia exato com período retornam `400`.
+## Filtro de disponibilidade diária — issue #11
+
+Os testes de lista e mapa alteram o campo `input[type=date]` por eventos reais
+de formulário. Cobrem data obrigatória, passada, fim de semana, fora da janela,
+troca rápida de datas, carregamento, resposta vazia, erro e nova tentativa.
+A confirmação é bloqueada até concluir a consulta da data atual, mesmo se um
+evento antigo tentar selecionar uma mesa durante a atualização. O resumo usa
+dia inteiro e a data de confirmação é a mesma enviada na consulta.
+
+`data-reserva.spec.ts` cobre formato, datas inexistentes, fuso de São Paulo e os
+limites inclusivos da janela. O backend mantém sua validação autoritativa.
+Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 
 ## Cancelamento
 

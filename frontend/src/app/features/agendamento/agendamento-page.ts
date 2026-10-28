@@ -1,7 +1,8 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/auth/auth.service';
 import { MesaService } from '../mesas/mesa.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
@@ -20,45 +21,112 @@ export class AgendamentoPage {
   private readonly auth = inject(AuthService);
   private readonly mesas = inject(MesaService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // Estado da reserva (compartilhado via ReservaDiaria)
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
   readonly token = this.auth.token;
-  readonly dataSelecionada = this.reserva.data;
+  readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
+
+  // Catálogo completo de mesas (para busca)
+  readonly todasMesas = signal<readonly Mesa[]>([]);
+  // Mesas livres na data selecionada
   readonly mesasLivres = signal<readonly Mesa[]>([]);
-  readonly mesaSelecionada = this.reserva.selecionada;
+  // Filtros locais
+  readonly busca = signal('');
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
-  readonly erro = computed(() => this.reserva.erro() || this.erroConsulta());
+
+  readonly mesasFiltradas = computed(() => {
+    const termo = this.busca().trim().toLowerCase();
+
+    // Busca vazia: mostra apenas mesas livres
+    if (!termo) return this.mesasLivres();
+
+    // Busca com termo: busca no catálogo completo
+    const termoNormalizado = termo.replace(/^mesa\s*/i, '');
+
+    const resultados = this.todasMesasParaBusca().filter(m =>
+      m.codigo.toLowerCase().includes(termoNormalizado) ||
+      m.codigo.toLowerCase().includes(termo) ||
+      `mesa ${m.codigo}`.toLowerCase().includes(termo) ||
+      m.regiao.toLowerCase().includes(termo)
+    );
+
+    // Prioriza mesas livres no topo
+    return resultados.sort((a, b) => {
+      const aLivre = this.estaDisponivel(a);
+      const bLivre = this.estaDisponivel(b);
+      if (aLivre && !bLivre) return -1;
+      if (!aLivre && bLivre) return 1;
+      return a.codigo.localeCompare(b.codigo);
+    });
+  });
+
+  /** Todas as mesas do catálogo para busca (livres + ocupadas), ordenadas por código. */
+  private todasMesasParaBusca(): readonly Mesa[] {
+    return [...this.todasMesas()].sort((a, b) => a.codigo.localeCompare(b.codigo));
+  }
+
+  /** Verifica se uma mesa está livre na data selecionada. */
+  estaDisponivel(mesa: Mesa): boolean {
+    return this.mesasLivres().some(m => m.id === mesa.id);
+  }
+
+  // Helpers para o template
+  readonly dataSelecionada = this.reserva.data;
+  readonly mesaSelecionada = this.reserva.selecionada;
   readonly confirmando = this.reserva.confirmando;
-  readonly todayISO = () => this.reserva.dataMinima;
-  readonly maxDateISO = () => this.reserva.dataMaxima;
+  readonly erro = this.reserva.erro;
+  readonly todayISO = this.reserva.dataMinima;
+  readonly maxDateISO = this.reserva.dataMaxima;
+
+  // UI extras
+  readonly stepAtual = signal(1);
 
   constructor() {
-    effect(onCleanup => {
-      const token = this.token();
-      const data = this.dataSelecionada();
+    // Carrega catálogo completo uma vez
+    this.mesas.listar()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (mesas) => this.todasMesas.set(mesas),
+        error: () => this.todasMesas.set([]),
+      });
+
+    effect((onCleanup) => {
+      // Reage a mudanças de data ou trigger de atualização
       this.reserva.atualizacao();
+      const data = this.dataSelecionada();
+      const erroData = this.reserva.erroData();
+
       this.mesasLivres.set([]);
-      this.mesaSelecionada.set(null);
+      this.reserva.iniciarConsulta();
       this.erroConsulta.set('');
       this.carregandoMesas.set(false);
-      if (!token || !data || !this.usuario()) return;
+
+      if (!this.token() || erroData || !this.usuario()) return;
 
       this.carregandoMesas.set(true);
-      const consulta = this.mesas.listarDisponiveis(data, token).subscribe({
-        next: mesas => {
-          this.mesasLivres.set(mesas);
-          this.carregandoMesas.set(false);
-        },
-        error: erro => {
-          this.carregandoMesas.set(false);
-          this.erroConsulta.set(erro.status === 400
-            ? (erro.error?.detail ?? 'Escolha uma data válida.')
-            : 'Não foi possível carregar mesas livres. Atualize a disponibilidade.');
-          if (erro.status === 401) this.auth.logout(true);
-        },
-      });
-      onCleanup(() => consulta.unsubscribe());
+      const sub = this.mesas.listarDisponiveis(data)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (mesas) => {
+            this.mesasLivres.set(mesas);
+            this.reserva.registrarDisponibilidade(data);
+            this.reserva.restaurarSelecao(mesas);
+            this.carregandoMesas.set(false);
+          },
+          error: (e) => {
+            this.carregandoMesas.set(false);
+            this.erroConsulta.set(
+              e.status === 400
+                ? (e.error?.detail ?? 'Escolha uma data válida.')
+                : 'Não foi possível carregar mesas livres. Atualize a disponibilidade.'
+            );
+          },
+        });
+      onCleanup(() => sub.unsubscribe());
     });
   }
 
@@ -67,8 +135,8 @@ export class AgendamentoPage {
   }
 
   selecionarMesa(mesa: Mesa) {
-    if (!this.confirmando() && !this.carregandoMesas() && this.mesasLivres().some(m => m.id === mesa.id)) {
-      this.mesaSelecionada.set(mesa);
+    if (!this.confirmando() && !this.carregandoMesas() && this.estaDisponivel(mesa)) {
+      this.reserva.selecionar(mesa);
     }
   }
 
@@ -77,17 +145,27 @@ export class AgendamentoPage {
   }
 
   irParaMapa() {
-    void this.router.navigate(['/mapa'], { queryParams: { data: this.dataSelecionada() } });
+    void this.router.navigate(['/mapa'], { queryParams: { data: this.dataSelecionada(), mesaId: this.mesaSelecionada()?.id ?? null } });
   }
 
   formatarDataBR(dataISO: string): string {
     if (!dataISO) return '';
-    return new Date(dataISO + 'T12:00:00Z').toLocaleDateString('pt-BR', {
-      timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long',
+    const data = new Date(dataISO + 'T12:00:00Z').toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
     });
+    // Capitaliza a primeira letra do dia da semana
+    return data.charAt(0).toUpperCase() + data.slice(1);
   }
 
   getSolicitanteLabel(): string {
     return this.usuario()?.nome ?? '';
+  }
+
+  /** Remove zeros à esquerda do código da mesa (ex: "053" → "53", "005" → "5"). */
+  formatarCodigoMesa(codigo: string): string {
+    return String(parseInt(codigo, 10));
   }
 }

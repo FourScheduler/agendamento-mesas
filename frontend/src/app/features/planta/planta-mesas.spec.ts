@@ -20,7 +20,6 @@ describe("PlantaMesas", () => {
 
   it("não sobrepõe as 115 mesas quando a API ainda usa a grade anterior ao SVG", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
-    fixture.componentRef.setInput("token", "token-teste");
     fixture.detectChanges();
     http.expectOne("/api/mesas").flush(
       Array.from({ length: 115 }, (_, i) => ({
@@ -64,12 +63,8 @@ describe("PlantaMesas", () => {
 
   it("usa os IDs e posições da API e impede seleção de inativas e fixas", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
-    fixture.componentRef.setInput("token", "token-teste");
     fixture.detectChanges();
     const request = http.expectOne("/api/mesas");
-    expect(request.request.headers.get("Authorization")).toBe(
-      "Bearer token-teste",
-    );
     const mesas: Mesa[] = [
       {
         id: 731,
@@ -118,7 +113,6 @@ describe("PlantaMesas", () => {
 
   it("mantém a geometria de Tamboré com entrada e parede sem duplicar mesas", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
-    fixture.componentRef.setInput("token", "token-teste");
     fixture.detectChanges();
     http.expectOne("/api/mesas").flush([
       {
@@ -148,9 +142,8 @@ describe("PlantaMesas", () => {
     ).toContain("DEMO");
   });
 
-  it("informa sessão expirada e limpa o catálogo ao trocar o token", () => {
+  it("informa sessão inválida quando o catálogo responde 401", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
-    fixture.componentRef.setInput("token", "expirado");
     fixture.detectChanges();
     http
       .expectOne("/api/mesas")
@@ -159,9 +152,5 @@ describe("PlantaMesas", () => {
     expect(fixture.nativeElement.textContent).toContain(
       "Sessão inválida ou expirada",
     );
-    fixture.componentRef.setInput("token", "");
-    fixture.detectChanges();
-    expect(fixture.componentInstance.mesas()).toEqual([]);
-    http.expectNone("/api/mesas");
   });
 });
