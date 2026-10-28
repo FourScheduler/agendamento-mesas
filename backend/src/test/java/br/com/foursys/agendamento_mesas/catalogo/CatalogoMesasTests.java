@@ -96,12 +96,12 @@ class CatalogoMesasTests {
         LocalDate data = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"))
                 .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
         var usuario = usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow();
-        Mesa pendente = repository.save(new Mesa("901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20));
-        Mesa confirmada = repository.save(new Mesa("902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40));
-        Mesa cancelada = repository.save(new Mesa("903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 50, 60));
-        Mesa outraData = repository.save(new Mesa("904", "DEMO", TipoMesa.LIVRE, true, "DEMO", 70, 80));
-        repository.save(new Mesa("905", "DEMO", TipoMesa.FIXA, true, "DEMO", 90, 100));
-        repository.save(new Mesa("906", "DEMO", TipoMesa.LIVRE, false, "DEMO", 110, 120));
+        Mesa pendente = repository.save(new Mesa(null, "901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20));
+        Mesa confirmada = repository.save(new Mesa(null, "902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40));
+        Mesa cancelada = repository.save(new Mesa(null, "903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 50, 60));
+        Mesa outraData = repository.save(new Mesa(null, "904", "DEMO", TipoMesa.LIVRE, true, "DEMO", 70, 80));
+        repository.save(new Mesa(null, "905", "DEMO", TipoMesa.FIXA, true, "DEMO", 90, 100));
+        repository.save(new Mesa(null, "906", "DEMO", TipoMesa.LIVRE, false, "DEMO", 110, 120));
 
         reservas.save(new Reserva(pendente, usuario, data, StatusReserva.PENDENTE));
         reservas.save(new Reserva(confirmada, usuario, data, StatusReserva.CONFIRMADA));
@@ -140,7 +140,7 @@ class CatalogoMesasTests {
 
     @Test
     void elegibilidadeRecusaInativaMesmoQuandoLivreEFixaENaoEncontrada() {
-        Mesa inativa = repository.save(new Mesa("999", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 0));
+        Mesa inativa = repository.save(new Mesa(null, "999", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 0));
         assertThatThrownBy(() -> service.obterParaReserva(inativa.getId()))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         erro -> assertThat(erro.getStatusCode()).isEqualTo(HttpStatus.CONFLICT))

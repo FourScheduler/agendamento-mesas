@@ -81,7 +81,7 @@ class PersistenciaMvpTests {
         Usuario usuario = usuarioRepository.save(
                 new Usuario("Maria Souza", "maria@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Mesa mesa = mesaRepository.save(
-                new Mesa("001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
+                new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
 
         Reserva salva = reservaRepository.saveAndFlush(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
@@ -119,8 +119,8 @@ class PersistenciaMvpTests {
 
     @Test
     void codigoDeMesaDuplicadoERejeitado() {
-        mesaRepository.save(new Mesa("001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
-        Mesa duplicada = new Mesa("001", "TAMBORÉ", TipoMesa.FIXA, true, "TAMBORÉ", 180, 80);
+        mesaRepository.save(new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
+        Mesa duplicada = new Mesa(null, "001", "TAMBORÉ", TipoMesa.FIXA, true, "TAMBORÉ", 180, 80);
 
         assertThatThrownBy(() -> mesaRepository.saveAndFlush(duplicada))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -128,7 +128,7 @@ class PersistenciaMvpTests {
 
     @Test
     void fkInvalidasSaoRejeitadas() {
-        Mesa mesa = mesaRepository.save(new Mesa("002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140));
+        Mesa mesa = mesaRepository.save(new Mesa(null, "002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140));
         Usuario usuario = usuarioRepository.save(
                 new Usuario("Joao Pereira", "joao@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
 
@@ -151,7 +151,7 @@ class PersistenciaMvpTests {
         Usuario usuario = usuarioRepository.save(
                 new Usuario("Maria Souza", "disponibilidade@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Mesa mesa = mesaRepository.save(
-                new Mesa("003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80));
+                new Mesa(null, "003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80));
         Reserva reserva = reservaRepository.saveAndFlush(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
 

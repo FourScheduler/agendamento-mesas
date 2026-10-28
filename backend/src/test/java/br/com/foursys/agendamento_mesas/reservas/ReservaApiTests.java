@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.*;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.model.*;
 import br.com.foursys.agendamento_mesas.repository.*;
 import br.com.foursys.agendamento_mesas.security.*;
@@ -64,8 +65,8 @@ public class ReservaApiTests {
         usuarios.deleteAll();
         maria = usuarios.save(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
         joao = usuarios.save(new Usuario("João", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
-        mesa = mesas.save(new Mesa("044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0));
-        outraMesa = mesas.save(new Mesa("053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0));
+        mesa = mesas.save(new Mesa(null, "044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0));
+        outraMesa = mesas.save(new Mesa(null, "053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0));
     }
 
     @Test
@@ -129,8 +130,8 @@ public class ReservaApiTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"mesaId\":9999999,\"data\":\"2026-10-26\"}"))
                 .andExpect(status().isNotFound());
-        var fixa = mesas.save(new Mesa("018", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 100));
-        var inativa = mesas.save(new Mesa("005", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 200));
+        var fixa = mesas.save(new Mesa(null, "018", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 100));
+        var inativa = mesas.save(new Mesa(null, "005", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 200));
         criar(maria, fixa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("fixa")));
         criar(maria, inativa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("inativa")));
         assertThat(reservas.count()).isZero();
@@ -157,6 +158,80 @@ public class ReservaApiTests {
         reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CANCELADA));
         disponiveis(HOJE).andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(mesa.getId().intValue())));
         criar(maria, mesa, HOJE).andExpect(status().isCreated());
+    }
+
+    @Test
+    void recusaCancelamentoRepetidoSemAlterarReservaJaCancelada() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+        var token = "Bearer " + jwt.gerarToken(maria);
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(content().string(""));
+
+        var cancelada = reservas.findById(reserva.getId()).orElseThrow();
+        var canceladaEm = cancelada.getCanceladaEm();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(canceladaEm).isNotNull();
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Reserva " + reserva.getId() + " já está cancelada."));
+
+        var persistida = reservas.findById(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(persistida.getCanceladaEm()).isEqualTo(canceladaEm);
+
+        criar(joao, mesa, HOJE).andExpect(status().isCreated());
+    }
+
+    @Test
+    void cancelaReservaPendenteMesmoAposDataReservada() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE.minusDays(1), StatusReserva.PENDENTE));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(""));
+
+        var persistida = reservas.findById(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(persistida.getCanceladaEm()).isNotNull();
+    }
+
+    @Test
+    void exigeAutenticacaoAoCancelarReserva() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId()))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(reservas.findById(reserva.getId()).orElseThrow().getStatus())
+                .isEqualTo(StatusReserva.CONFIRMADA);
+    }
+
+    @Test
+    void recusaCancelarReservaDeOutroUsuarioSemAlterarReserva() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+
+        assertThatThrownBy(() -> mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao))))
+                .isInstanceOf(jakarta.servlet.ServletException.class)
+                .hasRootCauseInstanceOf(UsuarioSemPermissaoException.class);
+
+        var persistida = reservas.findById(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
+        assertThat(persistida.getCanceladaEm()).isNull();
+    }
+
+    @Test
+    void retorna404AoCancelarReservaInexistente() throws Exception {
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", 999999L)
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Reserva 999999 não encontrada."));
     }
 
     @Test
