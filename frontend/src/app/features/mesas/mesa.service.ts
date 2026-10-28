@@ -7,15 +7,13 @@ import { Mesa } from './mesa';
 export class MesaService {
   private readonly http = inject(HttpClient);
 
-  listarDisponiveis(data: string, token: string) {
+  listarDisponiveis(data: string) {
     return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas/disponiveis`, {
-      params: { data }, headers: { Authorization: `Bearer ${token}` },
+      params: { data },
     });
   }
 
-  listar(token: string) {
-    return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  listar() {
+    return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas`);
   }
 }

@@ -21,7 +21,7 @@ describe('Sessão compartilhada e guards', () => {
     guard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
 
   it('redireciona visitante ao login e permite abrir a tela de login', async () => {
-    expect((await executar(AuthGuard)).toString()).toBe('/login');
+    expect((await executar(AuthGuard)).toString()).toBe('/login?retorno=agendamento');
     expect(await executar(LoginGuard)).toBe(true);
     http.expectNone('/api/auth/perfil');
   });
@@ -44,7 +44,7 @@ describe('Sessão compartilhada e guards', () => {
     localStorage.setItem('agendamento_mesas_token', 'expirado');
     const result = executar(AuthGuard);
     http.expectOne('/api/auth/perfil').flush({}, { status: 401, statusText: 'Unauthorized' });
-    expect((await result).toString()).toBe('/login');
+    expect((await result).toString()).toBe('/login?retorno=agendamento');
     expect(localStorage.getItem('agendamento_mesas_token')).toBeNull();
     expect(await executar(LoginGuard)).toBe(true);
     expect(TestBed.inject(AuthService).usuario()).toBeNull();
@@ -76,5 +76,15 @@ describe('Sessão compartilhada e guards', () => {
     expect(await result).toBe(false);
     expect(auth.usuario()).toBeNull();
     expect(auth.token()).toBe('');
+  });
+
+  it('preserva somente data e mesa ao voltar ao login por sessão expirada', () => {
+    const router = TestBed.inject(Router);
+    Object.defineProperty(router, 'url', { configurable: true, value: '/mapa?data=2026-10-28&mesaId=44' });
+    TestBed.inject(AuthService).logout(true);
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { sessao: 'expirada', retorno: 'mapa', data: '2026-10-28', mesaId: '44' },
+    });
+    expect(router.navigate).not.toHaveBeenCalledWith(['/login'], expect.objectContaining({ queryParams: expect.objectContaining({ token: expect.anything(), senha: expect.anything() }) }));
   });
 });

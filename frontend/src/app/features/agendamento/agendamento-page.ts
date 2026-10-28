@@ -59,7 +59,6 @@ export class AgendamentoPage {
     effect((onCleanup) => {
       // Reage a mudanças de data ou trigger de atualização
       this.reserva.atualizacao();
-      const token = this.token();
       const data = this.dataSelecionada();
       const erroData = this.reserva.erroData();
 
@@ -68,15 +67,16 @@ export class AgendamentoPage {
       this.erroConsulta.set('');
       this.carregandoMesas.set(false);
 
-      if (!token || erroData || !this.usuario()) return;
+      if (!this.token() || erroData || !this.usuario()) return;
 
       this.carregandoMesas.set(true);
-      const sub = this.mesas.listarDisponiveis(data, token)
+      const sub = this.mesas.listarDisponiveis(data)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (mesas) => {
             this.mesasLivres.set(mesas);
             this.reserva.registrarDisponibilidade(data);
+            this.reserva.restaurarSelecao(mesas);
             this.carregandoMesas.set(false);
           },
           error: (e) => {
@@ -86,7 +86,6 @@ export class AgendamentoPage {
                 ? (e.error?.detail ?? 'Escolha uma data válida.')
                 : 'Não foi possível carregar mesas livres. Atualize a disponibilidade.'
             );
-            if (e.status === 401) this.auth.logout(true);
           },
         });
       onCleanup(() => sub.unsubscribe());
@@ -108,7 +107,7 @@ export class AgendamentoPage {
   }
 
   irParaMapa() {
-    void this.router.navigate(['/mapa'], { queryParams: { data: this.dataSelecionada() } });
+    void this.router.navigate(['/mapa'], { queryParams: { data: this.dataSelecionada(), mesaId: this.mesaSelecionada()?.id ?? null } });
   }
 
   formatarDataBR(dataISO: string): string {

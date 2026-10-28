@@ -28,13 +28,12 @@ import {
   styleUrl: "./planta-mesas.css",
 })
 export class PlantaMesas {
-  // Recebido da sessão local pelo componente hospedeiro; nunca persistido pelo catálogo.
-  readonly token = input.required<string>();
   readonly data = input('');
   readonly atualizacao = input(0);
+  readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionada = output<Mesa>();
   readonly disponibilidadeConsultada = output<string>();
-  readonly sessaoExpirada = output<void>();
+  readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly disponiveis = signal<ReadonlySet<number> | null>(null);
   readonly carregando = signal(false);
@@ -113,7 +112,6 @@ export class PlantaMesas {
       }
     });
     effect((onCleanup) => {
-      const token = this.token();
       const data = this.data();
       this.atualizacao();
       this.mesas.set([]);
@@ -121,20 +119,24 @@ export class PlantaMesas {
       this.selecionada.set(null);
       this.erro.set("");
       this.carregando.set(false);
-      if (!token) {
-        this.erro.set("Entre com sua conta para consultar a planta.");
-        return;
-      }
       this.carregando.set(true);
       const consulta = forkJoin({
-        mesas: this.catalogo.listar(token),
-        disponiveis: data ? this.catalogo.listarDisponiveis(data, token) : of(null),
+        mesas: this.catalogo.listar(),
+        disponiveis: data ? this.catalogo.listarDisponiveis(data) : of(null),
       }).subscribe({
         next: ({ mesas, disponiveis }) => {
           this.mesas.set(mesas);
           this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
           this.carregando.set(false);
-          if (data) this.disponibilidadeConsultada.emit(data);
+          if (data) {
+            this.disponibilidadeConsultada.emit(data);
+            const mesaInicialId = this.mesaInicialId();
+            if (mesaInicialId !== null) {
+              const mesaInicial = mesas.find(mesa => mesa.id === mesaInicialId);
+              if (mesaInicial && this.estaDisponivel(mesaInicial)) this.selecionar(mesaInicial);
+              else this.mesaInicialInvalidada.emit();
+            }
+          }
         },
         error: (erro: HttpErrorResponse) => {
           this.carregando.set(false);
@@ -144,7 +146,6 @@ export class PlantaMesas {
               : erro.status === 400 ? (erro.error?.detail ?? 'Escolha uma data válida.')
               : "Não foi possível carregar a disponibilidade. Tente atualizar a consulta.",
           );
-          if (erro.status === 401) this.sessaoExpirada.emit();
         },
       });
       onCleanup(() => consulta.unsubscribe());

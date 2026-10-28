@@ -35,8 +35,16 @@ export class AuthService {
   }
 
   logout(expirada = false) {
+    const currentUrl = this.router.parseUrl(this.router.url || '/');
+    const path = currentUrl.root.children['primary']?.segments.map(segment => segment.path).join('/');
+    const retorno = path === 'mapa' ? 'mapa' : 'agendamento';
+    const data = currentUrl.queryParams['data'];
+    const mesaId = currentUrl.queryParams['mesaId'];
     this.limparSessao();
-    void this.router.navigate(['/login'], { queryParams: expirada ? { sessao: 'expirada' } : {} });
+    const queryParams: Record<string, string> = expirada ? { sessao: 'expirada', retorno } : {};
+    if (expirada && typeof data === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data)) queryParams['data'] = data;
+    if (expirada && typeof mesaId === 'string' && /^\d+$/.test(mesaId)) queryParams['mesaId'] = mesaId;
+    void this.router.navigate(['/login'], { queryParams });
   }
 
   restaurarSessaoSeValida(): Promise<boolean> {
