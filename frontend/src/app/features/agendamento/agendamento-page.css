@@ -316,6 +316,17 @@
   box-shadow: 0 2px 8px rgba(255,83,21,0.1);
 }
 
+/* Mesa indisponível */
+.mesa-item--indisponivel {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--disabled);
+}
+.mesa-item--indisponivel:hover {
+  border-color: var(--border-soft);
+  box-shadow: none;
+  transform: none;
+}
 
 /* Imagem da mesa */
 .mesa-item__imagem {
@@ -355,6 +366,12 @@
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.mesa-item__status--indisponivel {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
 /* Linha de ícones (capacidade, localização, tomadas) */

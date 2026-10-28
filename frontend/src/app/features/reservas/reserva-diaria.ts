@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Mesa } from '../mesas/mesa';
+import { ToastService } from '../../shared/toast/toast';
 import { adicionarDias, formatarData, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
 
 /** Estado por página, compartilhando as regras de confirmação entre lista e planta. */
@@ -15,6 +16,7 @@ export class ReservaDiaria {
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly dataMinima = hojeSaoPaulo();
   readonly dataMaxima = adicionarDias(this.dataMinima, 15);
@@ -90,7 +92,9 @@ export class ReservaDiaria {
         next: reserva => {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
-          this.sucesso.set(`Reserva #${reserva.id} confirmada: mesa ${reserva.mesa.codigo}, dia ${formatarData(reserva.data)}, para ${reserva.solicitante.nome}.`);
+          this.toast.sucesso('Reserva Confirmada');
+          this.data.set(this.dataMinima);
+          this.iniciarConsulta();
           this.sincronizarContexto(null);
           this.atualizarDisponibilidade();
         },
@@ -99,10 +103,14 @@ export class ReservaDiaria {
           if (this.auth.sessao()?.token !== sessao.token) return;
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
           this.sincronizarContexto(null);
-          this.erro.set(erro.status === 409
-            ? (detalhe || 'A mesa ou o seu dia já possui uma reserva. Revise a disponibilidade e selecione novamente.')
-            : erro.status === 400 ? (detalhe || 'Verifique a data e a mesa selecionadas.')
-            : 'Não foi possível confirmar a reserva. Atualize a disponibilidade antes de tentar novamente.');
+          if (erro.status === 409) {
+            this.toast.erro('Você já possui uma reserva nessa data.');
+          } else {
+            this.erro.set(erro.status === 409
+              ? (detalhe || 'A mesa ou o seu dia já possui uma reserva. Revise a disponibilidade e selecione novamente.')
+              : erro.status === 400 ? (detalhe || 'Verifique a data e a mesa selecionadas.')
+              : 'Não foi possível confirmar a reserva. Atualize a disponibilidade antes de tentar novamente.');
+          }
           this.atualizarDisponibilidade();
         },
       });

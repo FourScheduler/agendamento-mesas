@@ -26,8 +26,9 @@ describe('Rotas da develop integradas à issue 7', () => {
   it('mantém a página de minhas reservas e a navegação para agendamento', async () => {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { id: 7, nome: 'Maria', email: '', perfil: 'USUARIO' } });
     const harness = await RouterTestingHarness.create('/minhas-reservas');
-    expect(harness.routeNativeElement?.textContent).toContain('Minhas Reservas');
-    expect(harness.routeNativeElement?.textContent).toContain('Funcionalidade em desenvolvimento');
+    http.expectOne('/api/reservas/minhas').flush([]);
+    expect(harness.routeNativeElement?.textContent).toContain('Minhas reservas');
+    expect(harness.routeNativeElement?.textContent).toContain('Acompanhe as mesas reservadas por você');
   });
 
   it('preserva a data na abertura direta do mapa e consulta disponibilidade diária', async () => {

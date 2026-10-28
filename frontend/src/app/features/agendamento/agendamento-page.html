@@ -88,30 +88,38 @@
     } @else {
     <ul class="mesas-livres__lista" role="listbox" aria-label="Mesas disponíveis">
       @for (mesa of mesasFiltradas(); track mesa.id) {
-      <li class="mesa-item" [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id" role="option" aria-selected="mesaSelecionada()?.id === mesa.id" (click)="selecionarMesa(mesa)">
-         <img class="mesa-item__imagem" src="imgs/mesa.jpg" alt="Mesa {{ mesa.codigo }}" loading="lazy" />
-        <div class="mesa-item__info">
-          <div class="mesa-item__cabecalho">
-            <span class="mesa-item__nome">Mesa {{ mesa.codigo }}</span>
-            <span class="mesa-item__status">Disponível</span>
+        <li class="mesa-item"
+          [class.mesa-item--selecionada]="mesaSelecionada()?.id === mesa.id"
+          [class.mesa-item--indisponivel]="!estaDisponivel(mesa)"
+          role="option"
+          [aria-selected]="mesaSelecionada()?.id === mesa.id"
+          [aria-disabled]="!estaDisponivel(mesa)"
+          (click)="selecionarMesa(mesa)">
+          <img class="mesa-item__imagem" src="imgs/mesa.jpg" alt="Mesa {{ formatarCodigoMesa(mesa.codigo) }}" loading="lazy" />
+          <div class="mesa-item__info">
+            <div class="mesa-item__cabecalho">
+              <span class="mesa-item__nome">Mesa {{ formatarCodigoMesa(mesa.codigo) }}</span>
+              <span class="mesa-item__status" [class.mesa-item__status--indisponivel]="!estaDisponivel(mesa)">
+                {{ estaDisponivel(mesa) ? 'Disponível' : 'Indisponível' }}
+              </span>
+            </div>
+            <div class="mesa-item__detalhes">
+              <span class="mesa-item__icone" title="Capacidade: 1 pessoa">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                1 pessoa
+              </span>
+              <span class="mesa-item__icone" title="Localização: {{ mesa.regiao }}">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {{ mesa.regiao }}
+              </span>
+            </div>
           </div>
-          <div class="mesa-item__detalhes">
-            <span class="mesa-item__icone" title="Capacidade: 1 pessoa">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-              </svg>
-              1 pessoa
-            </span>
-            <span class="mesa-item__icone" title="Localização: {{ mesa.regiao }}">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              {{ mesa.regiao }}
-            </span>
-          </div>
-        </div>
-      </li>
+        </li>
       }
     </ul>
     }
@@ -163,7 +171,7 @@
           </div>
           <div class="resumo__info-text">
             <span class="resumo__info-label">Mesa</span>
-            <span class="resumo__info-value">Mesa {{ mesaSelecionada()!.codigo }} • {{ mesaSelecionada()!.regiao }}</span>
+            <span class="resumo__info-value">Mesa {{ mesaSelecionada()!.codigo }}</span>
           </div>
         </div>
 
