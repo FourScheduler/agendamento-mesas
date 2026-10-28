@@ -309,7 +309,7 @@ Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momen
 | `401` | Sem ou com token inválido. | |
 | `404` | Reserva inexistente. | `Reserva 999 não encontrada.` |
 | `403` | Reserva de outro usuário. | `Reserva não pertence ao usuário autenticado.` |
-| `409` | Reserva já `CANCELADA` (idempotência opcional; escolha documentada: recusar duplicado). | `Reserva 10 já está cancelada.` |
+| `409` | Reserva já `CANCELADA`; repetir o cancelamento é recusado e não altera o registro. | `Reserva 10 já está cancelada.` |
 
 ---
 

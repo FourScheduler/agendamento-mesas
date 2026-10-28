@@ -160,6 +160,32 @@ public class ReservaApiTests {
     }
 
     @Test
+    void recusaCancelamentoRepetidoSemAlterarReservaJaCancelada() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+        var token = "Bearer " + jwt.gerarToken(maria);
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", token))
+                .andExpect(status().isOk());
+
+        var cancelada = reservas.findById(reserva.getId()).orElseThrow();
+        var canceladaEm = cancelada.getCanceladaEm();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(canceladaEm).isNotNull();
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Reserva " + reserva.getId() + " já está cancelada."));
+
+        var persistida = reservas.findById(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(persistida.getCanceladaEm()).isEqualTo(canceladaEm);
+
+        criar(joao, mesa, HOJE).andExpect(status().isCreated());
+    }
+
+    @Test
     void primeiraReservaConcorrenteDaMesmaMesaConfirmaSomenteUma() throws Exception {
         assertThat(reservas.count()).isZero();
         var resultados = disputar(() -> criar(maria, mesa, HOJE).andReturn().getResponse().getStatus(),
