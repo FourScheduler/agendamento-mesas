@@ -166,7 +166,13 @@ public class ReservaApiTests {
 
         mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
                 .header("Authorization", token))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(reserva.getId()))
+                .andExpect(jsonPath("$.status").value("CANCELADA"))
+                .andExpect(jsonPath("$.data").value(HOJE.toString()))
+                .andExpect(jsonPath("$.canceladaEm").isNotEmpty())
+                .andExpect(jsonPath("$.mesa.id").value(mesa.getId()))
+                .andExpect(jsonPath("$.solicitante.id").value(maria.getId()));
 
         var cancelada = reservas.findById(reserva.getId()).orElseThrow();
         var canceladaEm = cancelada.getCanceladaEm();
@@ -183,6 +189,55 @@ public class ReservaApiTests {
         assertThat(persistida.getCanceladaEm()).isEqualTo(canceladaEm);
 
         criar(joao, mesa, HOJE).andExpect(status().isCreated());
+    }
+
+    @Test
+    void cancelaReservaPendenteMesmoAposDataReservada() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE.minusDays(1), StatusReserva.PENDENTE));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(reserva.getId()))
+                .andExpect(jsonPath("$.status").value("CANCELADA"))
+                .andExpect(jsonPath("$.data").value(HOJE.minusDays(1).toString()))
+                .andExpect(jsonPath("$.canceladaEm").isNotEmpty());
+
+        var persistida = reservas.findById(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(persistida.getCanceladaEm()).isNotNull();
+    }
+
+    @Test
+    void exigeAutenticacaoAoCancelarReserva() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId()))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(reservas.findById(reserva.getId()).orElseThrow().getStatus())
+                .isEqualTo(StatusReserva.CONFIRMADA);
+    }
+
+    @Test
+    void recusaCancelarReservaDeOutroUsuarioSemAlterarReserva() throws Exception {
+        var reserva = reservas.saveAndFlush(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+                .andExpect(status().isForbidden());
+
+        var persistida = reservas.findById(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
+        assertThat(persistida.getCanceladaEm()).isNull();
+    }
+
+    @Test
+    void retorna404AoCancelarReservaInexistente() throws Exception {
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", 999999L)
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Reserva 999999 não encontrada."));
     }
 
     @Test
