@@ -9,7 +9,7 @@ import { authInterceptor } from '../../core/auth/auth.interceptor';
 import { ToastService } from '../../shared/toast/toast';
 
 const mesa: Mesa = { id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
-  referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
+  ocupante: 'Teste', referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
 const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUARIO' };
 
 const mockToastService = {
@@ -175,7 +175,7 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.componentInstance.selecionarMesa(mesa);
     fixture.componentInstance.confirmarReserva();
     http.expectNone('/api/reservas');
-    const novaMesa = { ...mesa, id: 53, codigo: '053' };
+    const novaMesa = { ...mesa, id: 53, codigo: '053', ocupante: 'Teste' };
     consulta('2026-10-29').flush([novaMesa]);
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.mesa-item').click();

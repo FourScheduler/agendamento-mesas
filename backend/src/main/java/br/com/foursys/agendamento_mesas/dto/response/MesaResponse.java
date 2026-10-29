@@ -9,6 +9,7 @@ public record MesaResponse(
     String regiao,
     TipoMesa tipo,
     boolean ativa,
+    String ocupante,
     ReferenciaVisual referenciaVisual
 ) {
     public record ReferenciaVisual(String planta, Integer x, Integer y) {}
@@ -20,6 +21,7 @@ public record MesaResponse(
             mesa.getRegiao(),
             mesa.getTipo(),
             mesa.isAtiva(),
+            mesa.getOcupante(),
             new ReferenciaVisual(
                 mesa.getPlanta(),
                 mesa.getPosicaoX(),

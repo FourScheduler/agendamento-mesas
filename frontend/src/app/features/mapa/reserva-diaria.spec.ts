@@ -9,7 +9,7 @@ import { ToastService } from '../../shared/toast/toast';
 
 const mesa: Mesa = {
   id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
-  referenciaVisual: { planta: 'DEMO', x: 24, y: 24 },
+  ocupante: 'Teste', referenciaVisual: { planta: 'DEMO', x: 24, y: 24 },
 };
 const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUARIO' };
 

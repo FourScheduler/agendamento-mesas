@@ -28,6 +28,7 @@ describe("PlantaMesas", () => {
         regiao: "TAMBORÉ",
         tipo: "FIXA",
         ativa: true,
+        ocupante: "Teste",
         referenciaVisual: {
           planta: "TAMBORÉ",
           x: 100 + (i % 10) * 80,
@@ -72,6 +73,7 @@ describe("PlantaMesas", () => {
         regiao: "DEMO",
         tipo: "LIVRE",
         ativa: true,
+        ocupante: "Teste",
         referenciaVisual: { planta: "P", x: 123, y: 87 },
       },
       {
@@ -80,6 +82,7 @@ describe("PlantaMesas", () => {
         regiao: "DEMO",
         tipo: "LIVRE",
         ativa: false,
+        ocupante: "Teste",
         referenciaVisual: { planta: "P", x: 230, y: 87 },
       },
       {
@@ -88,6 +91,7 @@ describe("PlantaMesas", () => {
         regiao: "DEMO",
         tipo: "FIXA",
         ativa: true,
+        ocupante: "Teste",
         referenciaVisual: { planta: "Outra", x: 10, y: 20 },
       },
     ];
@@ -121,6 +125,7 @@ describe("PlantaMesas", () => {
         regiao: "TAMBORÉ",
         tipo: "LIVRE",
         ativa: true,
+        ocupante: "Teste",
         referenciaVisual: { planta: "TAMBORÉ", x: 24, y: 24 },
       },
     ]);
