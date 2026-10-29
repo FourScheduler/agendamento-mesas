@@ -53,12 +53,15 @@ public class UsuarioService {
         if (request == null || request.nome() == null || request.nome().isBlank()) {
             throw new DadosInvalidosException("Campo 'nome' é obrigatório.");
         }
+
         if (request.email() == null || request.email().isBlank()) {
             throw new DadosInvalidosException("Campo 'email' é obrigatório.");
         }
+
         if (request.senha() == null || request.senha().isBlank()) {
             throw new DadosInvalidosException("Campo 'senha' é obrigatório.");
         }
+
         if (request.senha().length() < SENHA_MINIMA) {
             throw new DadosInvalidosException("A senha deve ter pelo menos " + SENHA_MINIMA + " caracteres.");
         }

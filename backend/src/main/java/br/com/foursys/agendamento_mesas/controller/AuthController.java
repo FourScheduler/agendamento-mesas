@@ -13,10 +13,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Rotas de autenticação: login (única rota pública) e perfil do autenticado.
- * A identidade vem sempre do token validado, nunca do request.
- */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -28,12 +24,22 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<LoginResponse> login(
+        @RequestBody LoginRequest request
+    ) {
+        return ResponseEntity
+            .ok(authService.login(request));
     }
 
     @GetMapping("/perfil")
-    public UsuarioResumo perfil(@AuthenticationPrincipal UsuarioAutenticado usuario) {
-        return new UsuarioResumo(usuario.id(), usuario.nome(), usuario.email(), usuario.perfil());
+    public UsuarioResumo perfil(
+        @AuthenticationPrincipal UsuarioAutenticado usuario
+    ) {
+        return new UsuarioResumo(
+            usuario.id(),
+            usuario.nome(),
+            usuario.email(),
+            usuario.perfil()
+        );
     }
 }

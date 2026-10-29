@@ -18,13 +18,20 @@ public class WebConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${app.cors.allowed-origins}") String[] allowedOrigins) {
+            @Value("${app.cors.allowed-origins}") String[] allowedOrigins
+    ) {
         CorsConfiguration config = new CorsConfiguration();
+
         config.setAllowedOrigins(List.of(allowedOrigins));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
         config.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+
         UrlBasedCorsConfigurationSource fonte = new UrlBasedCorsConfigurationSource();
+
         fonte.registerCorsConfiguration("/api/**", config);
+
         return fonte;
     }
 }

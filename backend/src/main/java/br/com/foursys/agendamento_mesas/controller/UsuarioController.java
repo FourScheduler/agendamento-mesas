@@ -25,7 +25,11 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<UsuarioAdminResumo> criar(@RequestBody CriarUsuarioRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.criar(request));
+    public ResponseEntity<UsuarioAdminResumo> criar(
+        @RequestBody CriarUsuarioRequest request
+    ) {
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(usuarioService.criar(request));
     }
 }
