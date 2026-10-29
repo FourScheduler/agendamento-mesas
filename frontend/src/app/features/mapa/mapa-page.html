@@ -53,6 +53,9 @@
         <h3>Mesa {{ mesa.codigo }}</h3>
         <dl>
           <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
+          @if (mesa.ocupante) {
+            <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
+          }
           <dt>Data</dt><dd>{{ formatarData(reserva.data()) }}</dd>
           <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
         </dl>
