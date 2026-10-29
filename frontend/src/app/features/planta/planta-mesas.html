@@ -27,9 +27,9 @@
         <button
           type="button"
           class="botao-icone"
-          (click)="alternarRotulos()"
-          [attr.aria-pressed]="mostrarRotulos()"
-          aria-label="{{ mostrarRotulos() ? 'Ocultar nomes das mesas' : 'Mostrar nomes das mesas' }}"
+          (click)="alternarNomes()"
+          [attr.aria-pressed]="mostrarNomes()"
+          aria-label="{{ mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes' }}"
         >
           <svg
             class="icone-olho"
@@ -134,7 +134,7 @@
             (focus)="onMesaFocus(mesa)"
           >
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
-            @if (mesa.ocupante) {
+            @if (mesa.ocupante && mostrarNomes()) {
               <span class="mesa__ocupante">{{ mesa.ocupante }}</span>
             }
             @if (!mesa.ativa) {
@@ -143,7 +143,7 @@
               <span class="mesa__estado">Ocupada</span>
             } @else if (mesa.tipo === 'LIVRE') {
               <span class="mesa__estado">Livre</span>
-            } @else if (mostrarRotulos()) {
+            } @else if (mostrarNomes()) {
               <span class="mesa__estado">Mesa fixa</span>
             }
             @if (estaDisponivel(mesa)) {
