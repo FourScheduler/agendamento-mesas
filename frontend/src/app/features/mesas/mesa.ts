@@ -11,6 +11,7 @@ export interface Mesa {
   readonly tipo: 'LIVRE' | 'FIXA';
   readonly ativa: boolean;
   readonly responsavel?: UsuarioResumo | null;
+  readonly ocupante: string | null;
   readonly referenciaVisual: {
     readonly planta: string;
     readonly x: number;

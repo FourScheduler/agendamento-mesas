@@ -153,30 +153,71 @@
 
           @if ((acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') && !confirmando()) {
             <div class="modal__campo">
-              <label for="usuario-select" class="campo__rotulo">Usuário ativo <span class="obrigatorio" aria-hidden="true">*</span></label>
-              <select
-                id="usuario-select"
-                class="campo"
-                [(ngModel)]="usuarioSelecionado"
-                [disabled]="carregandoUsuarios() || confirmando()"
-                required
-              >
-                <option value="">Selecione um usuário</option>
-                @if (carregandoUsuarios()) {
-                  <option value="" disabled>Carregando usuários...</option>
-                } @else if (erroUsuarios()) {
-                  <option value="" disabled>Erro ao carregar usuários</option>
-                } @else {
-                  @for (usuario of usuariosAtivos(); track trackByUsuario($index, usuario)) {
-                    <option [value]="usuario.id">{{ usuario.nome }} ({{ usuario.email }})</option>
-                  }
-                  @if (usuariosAtivos().length === 0) {
-                    <option value="" disabled>Nenhum usuário ativo disponível</option>
-                  }
+              <label for="usuario-busca" class="campo__rotulo">Usuário ativo <span class="obrigatorio" aria-hidden="true">*</span></label>
+              <div class="usuario-busca">
+                <input
+                  id="usuario-busca"
+                  type="text"
+                  class="campo"
+                  placeholder="Buscar por nome ou e-mail..."
+                  [(ngModel)]="buscaUsuario"
+                  (input)="buscaUsuario.set($event.target.value)"
+                  (focus)="usuarioFocado.set(true)"
+                  (blur)="usuarioFocado.set(false)"
+                  [disabled]="carregandoUsuarios() || confirmando()"
+                  autocomplete="off"
+                  aria-describedby="usuario-busca-desc"
+                  aria-expanded="mostrarSugestoesUsuario()"
+                  aria-controls="usuario-resultados"
+                />
+                <span id="usuario-busca-desc" class="visually-hidden">Digite o nome ou e-mail do usuário para filtrar</span>
+                @if (mostrarSugestoesUsuario()) {
+                  <div 
+                    id="usuario-resultados"
+                    class="usuario-busca__resultados" 
+                    role="listbox" 
+                    [attr.aria-label]="buscaUsuario() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
+                  >
+                    @if (buscaUsuario() && usuariosFiltrados().length > 0) {
+                      @for (usuario of usuariosFiltrados(); track trackByUsuario($index, usuario)) {
+                        <button
+                          type="button"
+                          class="usuario-busca__opcao"
+                          [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                          (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
+                          role="option"
+                          [aria-selected]="usuarioSelecionado() === usuario.id"
+                        >
+                          <span class="usuario-busca__nome">{{ usuario.nome }}</span>
+                          <span class="usuario-busca__email">{{ usuario.email }}</span>
+                        </button>
+                      }
+                    } @else if (buscaUsuario() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
+                      <div class="usuario-busca__vazio" role="status">Nenhum usuário encontrado</div>
+                    } @else if (!buscaUsuario() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
+                      @for (usuario of usuariosAtivos(); track trackByUsuario($index, usuario)) {
+                        <button
+                          type="button"
+                          class="usuario-busca__opcao"
+                          [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                          (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
+                          role="option"
+                          [aria-selected]="usuarioSelecionado() === usuario.id"
+                        >
+                          <span class="usuario-busca__nome">{{ usuario.nome }}</span>
+                          <span class="usuario-busca__email">{{ usuario.email }}</span>
+                        </button>
+                      }
+                    }
+                  </div>
                 }
-              </select>
-              @if (erroUsuarios()) {
+              </div>
+              @if (carregandoUsuarios()) {
+                <p class="campo__erro" role="status">Carregando usuários...</p>
+              } @if (erroUsuarios()) {
                 <p class="campo__erro" role="alert">{{ erroUsuarios() }} <button type="button" class="botao--link" (click)="carregarUsuariosAtivos()">Tentar novamente</button></p>
+              } @if (!carregandoUsuarios() && !erroUsuarios() && usuariosAtivos().length === 0) {
+                <p class="campo__erro" role="alert">Nenhum usuário ativo disponível</p>
               }
             </div>
           }

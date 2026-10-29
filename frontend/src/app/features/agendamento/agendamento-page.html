@@ -225,18 +225,64 @@
                   <span>Carregando…</span>
                 </div>
               } @else {
-                <select
-                  class="resumo__solicitante-select"
-                  id="solicitante-resumo"
-                  [ngModel]="solicitanteSelecionado()"
-                  (ngModelChange)="solicitanteSelecionado.set($event)"
-                  [disabled]="confirmando() || usuariosAtivos().length === 0"
-                  required
-                >
-                  @for (u of usuariosAtivos(); track u.id) {
-                    <option [value]="u.id">{{ u.nome }} ({{ u.email }})</option>
+                <div class="solicitante-busca">
+                  <input
+                    id="solicitante-busca"
+                    type="text"
+                    class="campo"
+                    placeholder="Buscar por nome ou e-mail..."
+                    [(ngModel)]="buscaSolicitante"
+                    (input)="buscaSolicitante.set($any($event.target).value)"
+                    (focus)="solicitanteFocado.set(true)"
+                    (blur)="solicitanteFocado.set(false)"
+                    [disabled]="confirmando()"
+                    autocomplete="off"
+                    aria-describedby="solicitante-busca-desc"
+                    aria-expanded="mostrarSugestoesSolicitante()"
+                    aria-controls="solicitante-resultados"
+                  />
+                  <span id="solicitante-busca-desc" class="visually-hidden">Digite o nome ou e-mail do solicitante para filtrar</span>
+                  @if (mostrarSugestoesSolicitante()) {
+                    <div 
+                      id="solicitante-resultados"
+                      class="solicitante-busca__resultados" 
+                      role="listbox" 
+                      [attr.aria-label]="buscaSolicitante() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
+                    >
+                      @if (buscaSolicitante() && usuariosFiltrados().length > 0) {
+                        @for (usuario of usuariosFiltrados(); track usuario.id) {
+                          <button
+                            type="button"
+                            class="solicitante-busca__opcao"
+                            [class.solicitante-busca__opcao--selecionado]="solicitanteSelecionado() === usuario.id"
+                            (click)="solicitanteSelecionado.set(usuario.id); solicitanteFocado.set(false); buscaSolicitante.set('')"
+                            role="option"
+                            [aria-selected]="solicitanteSelecionado() === usuario.id"
+                          >
+                            <span class="solicitante-busca__nome">{{ usuario.nome }}</span>
+                            <span class="solicitante-busca__email">{{ usuario.email }}</span>
+                          </button>
+                        }
+                      } @else if (buscaSolicitante() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
+                        <div class="solicitante-busca__vazio" role="status">Nenhum usuário encontrado</div>
+                      } @else if (!buscaSolicitante() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
+                        @for (usuario of usuariosAtivos(); track usuario.id) {
+                          <button
+                            type="button"
+                            class="solicitante-busca__opcao"
+                            [class.solicitante-busca__opcao--selecionado]="solicitanteSelecionado() === usuario.id"
+                            (click)="solicitanteSelecionado.set(usuario.id); solicitanteFocado.set(false); buscaSolicitante.set('')"
+                            role="option"
+                            [aria-selected]="solicitanteSelecionado() === usuario.id"
+                          >
+                            <span class="solicitante-busca__nome">{{ usuario.nome }}</span>
+                            <span class="solicitante-busca__email">{{ usuario.email }}</span>
+                          </button>
+                        }
+                      }
+                    </div>
                   }
-                </select>
+                </div>
               }
             } @else {
               <span class="resumo__info-value">{{ getSolicitanteLabel() }}</span>

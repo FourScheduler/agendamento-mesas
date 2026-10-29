@@ -392,6 +392,77 @@
   border: 0;
 }
 
+.usuario-busca {
+  position: relative;
+}
+
+.usuario-busca__resultados {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 0 0 8px 8px;
+  border-top: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  margin-top: 2px;
+}
+
+.usuario-busca__opcao {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.usuario-busca__opcao:last-child {
+  border-bottom: none;
+}
+
+.usuario-busca__opcao:hover,
+.usuario-busca__opcao:focus {
+  background: #f9fafb;
+  outline: none;
+}
+
+.usuario-busca__opcao--selecionado {
+  background: #fff7ed;
+  border-left: 3px solid var(--orange);
+}
+
+.usuario-busca__nome {
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 0.9375rem;
+}
+
+.usuario-busca__email {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: 0.125rem;
+}
+
+.usuario-busca__opcao--selecionado .usuario-busca__email {
+  color: var(--orange-dark);
+}
+
+.usuario-busca__vazio {
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .admin-mesa-page {
     padding: 1rem;

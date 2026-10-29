@@ -45,6 +45,21 @@ export class AgendamentoPage {
   readonly usuariosAtivos = signal<readonly UsuarioAdminResumo[]>([]);
   readonly carregandoUsuarios = signal(true);
   readonly solicitanteSelecionado = signal<number | null>(null);
+  readonly buscaSolicitante = signal('');
+  readonly solicitanteFocado = signal(false);
+
+  readonly usuariosFiltrados = computed(() => {
+    const termo = this.buscaSolicitante().trim().toLowerCase();
+    if (!termo) return this.usuariosAtivos();
+    return this.usuariosAtivos().filter(u =>
+      u.nome.toLowerCase().includes(termo) ||
+      u.email.toLowerCase().includes(termo)
+    );
+  });
+
+  readonly mostrarSugestoesSolicitante = computed(() => 
+    this.solicitanteFocado() && !this.carregandoUsuarios()
+  );
 
   readonly mesasFiltradas = computed(() => {
     const termo = this.busca().trim().toLowerCase();
@@ -111,6 +126,7 @@ export class AgendamentoPage {
             next: (usuarios) => {
               this.usuariosAtivos.set(usuarios);
               this.carregandoUsuarios.set(false);
+              this.buscaSolicitante.set('');
               // Por padrão, seleciona o próprio usuário
               const eu = this.usuario();
               if (eu) this.solicitanteSelecionado.set(eu.id);

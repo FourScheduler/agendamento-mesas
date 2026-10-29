@@ -12,4 +12,5 @@ public record UsuarioAdminResumo(
     PerfilUsuario perfil,
     boolean ativo
 ) {
+
 }

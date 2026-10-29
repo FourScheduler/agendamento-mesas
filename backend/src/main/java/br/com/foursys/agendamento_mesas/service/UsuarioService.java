@@ -5,7 +5,7 @@ import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
 import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;
 import br.com.foursys.agendamento_mesas.model.Usuario;
-import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,33 +23,42 @@ public class UsuarioService {
 
     private static final int SENHA_MINIMA = 6;
 
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
-        this.usuarioRepository = usuarioRepository;
+    public UsuarioService(UsuarioRepositoryPort usuarioRepositoryPort, PasswordEncoder passwordEncoder) {
+        this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public UsuarioAdminResumo criar(CriarUsuarioRequest request) {
         validarEntrada(request);
-        if (usuarioRepository.existsByEmail(request.email())) {
+
+        if (usuarioRepositoryPort.existePorEmail(request.email())) {
             throw new EmailJaCadastradoException();
         }
+
         PerfilUsuario perfil = request.perfil() != null ? request.perfil() : PerfilUsuario.USUARIO;
-        Usuario usuario = usuarioRepository
-                .save(new Usuario(request.nome(), request.email(), passwordEncoder.encode(request.senha()), perfil,
+        Usuario usuario = usuarioRepositoryPort
+            .salvar(new Usuario(
+                        request.nome(),
+                        request.email(),
+                        passwordEncoder.encode(request.senha()),
+                        perfil,
                         true));
-        return new UsuarioAdminResumo(usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPapel(),
-                usuario.isAtivo());
+
+        return new UsuarioAdminResumo(
+            usuario.getId(),
+            usuario.getNome(),
+            usuario.getEmail(),
+            usuario.getPapel(),
+            usuario.isAtivo());
     }
 
     @Transactional(readOnly = true)
     public List<UsuarioAdminResumo> listarAtivos() {
-        return usuarioRepository.findAllAtivos().stream()
-                .map(u -> new UsuarioAdminResumo(u.getId(), u.getNome(), u.getEmail(), u.getPapel(), u.isAtivo()))
-                .toList();
+        return usuarioRepositoryPort.listarAtivos();
     }
 
     private void validarEntrada(CriarUsuarioRequest request) {

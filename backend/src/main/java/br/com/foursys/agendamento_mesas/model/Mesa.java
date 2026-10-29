@@ -49,4 +49,7 @@ public class Mesa {
 
     @Column(name = "posicao_y", nullable = false)
     private Integer posicaoY;
+
+    @Column(name = "ocupante", length = 120)
+    private String ocupante;
 }

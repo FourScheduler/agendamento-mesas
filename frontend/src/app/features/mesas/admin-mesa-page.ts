@@ -36,6 +36,21 @@ export class AdminMesaPage {
   readonly usuariosAtivos = signal<readonly UsuarioAtivo[]>([]);
   readonly carregandoUsuarios = signal(false);
   readonly erroUsuarios = signal('');
+  readonly buscaUsuario = signal('');
+  readonly usuarioFocado = signal(false);
+
+  readonly usuariosFiltrados = computed(() => {
+    const termo = this.buscaUsuario().trim().toLowerCase();
+    if (!termo) return this.usuariosAtivos();
+    return this.usuariosAtivos().filter(u =>
+      u.nome.toLowerCase().includes(termo) ||
+      u.email.toLowerCase().includes(termo)
+    );
+  });
+
+  readonly mostrarSugestoesUsuario = computed(() => 
+    this.usuarioFocado() && !this.carregandoUsuarios()
+  );
 
   readonly mesaSelecionadaParaAcao = signal<Mesa | null>(null);
   readonly acaoEmAndamento = signal<'fixar' | 'desfixar' | 'alterar-responsavel' | 'ativar' | 'inativar' | null>(null);
@@ -103,6 +118,7 @@ export class AdminMesaPage {
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('fixar');
     this.usuarioSelecionado.set(null);
+    this.buscaUsuario.set('');
     this.erroAcao.set('');
     this.confirmando.set(false);
     this.carregarUsuariosAtivos();
@@ -119,6 +135,7 @@ export class AdminMesaPage {
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('alterar-responsavel');
     this.usuarioSelecionado.set(null);
+    this.buscaUsuario.set('');
     this.erroAcao.set('');
     this.confirmando.set(false);
     this.carregarUsuariosAtivos();

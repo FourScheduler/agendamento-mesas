@@ -559,6 +559,79 @@
   height: 16px;
 }
 
+/* Busca de solicitante (admin) */
+.solicitante-busca {
+  position: relative;
+  width: 100%;
+}
+
+.solicitante-busca__resultados {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  border-top: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  margin-top: 2px;
+}
+
+.solicitante-busca__opcao {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.solicitante-busca__opcao:last-child {
+  border-bottom: none;
+}
+
+.solicitante-busca__opcao:hover,
+.solicitante-busca__opcao:focus {
+  background: var(--bg-soft);
+  outline: none;
+}
+
+.solicitante-busca__opcao--selecionado {
+  background: var(--orange-soft);
+  border-left: 3px solid var(--orange);
+}
+
+.solicitante-busca__nome {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+.solicitante-busca__email {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.125rem;
+}
+
+.solicitante-busca__opcao--selecionado .solicitante-busca__email {
+  color: var(--orange-dark);
+}
+
+.solicitante-busca__vazio {
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 /* Botão de confirmar */
 .botao--confirmar {
   margin-top: 1rem;
