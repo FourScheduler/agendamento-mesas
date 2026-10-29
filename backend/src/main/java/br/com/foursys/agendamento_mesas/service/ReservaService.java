@@ -1,6 +1,9 @@
 package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.exceptions.MesaNaoEncontradaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
@@ -95,8 +98,9 @@ public class ReservaService {
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
     }
 
-    public List<ReservaResponse> minhasReservas(Long usuarioId, LocalDate data, LocalDate dataInicio,
-                                               LocalDate dataFim, StatusReserva status
+    public List<ReservaResponse> minhasReservas(
+        Long usuarioId, LocalDate data, LocalDate dataInicio,
+        LocalDate dataFim, StatusReserva status
     ) {
         if (data != null && (dataInicio != null || dataFim != null)) {
             throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
@@ -122,8 +126,7 @@ public class ReservaService {
         }
 
         if (reserva.getStatus() == StatusReserva.CANCELADA) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Reserva " + idReserva + " já está cancelada.");
+            throw new ReservaJaCanceladaException(idReserva);
         }
 
         reserva.setCanceladaEm(LocalDateTime.now());
@@ -138,11 +141,11 @@ public class ReservaService {
     //Métodos Utilitários
     public Reserva buscarReserva(Long idReserva) {
         return reservaRepositoryPort.buscarPorId(idReserva)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva " + idReserva + " não encontrada."));
+                .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
     }
 
     public Mesa buscarMesa(Long idMesa) {
         return mesaRepositoryPort.buscarPorId(idMesa)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + idMesa + " não encontrada."));
+            .orElseThrow(MesaNaoEncontradaException::new);
     }
 }

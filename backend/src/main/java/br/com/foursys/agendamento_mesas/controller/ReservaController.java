@@ -28,7 +28,7 @@ public class ReservaController {
         @RequestBody CriarReservaRequest request,
         @AuthenticationPrincipal UsuarioAutenticado usuario
     ) {
-        var reserva = reservaService.criar(request, usuario);
+        ReservaResponse reserva = reservaService.criar(request, usuario);
 
         return ResponseEntity
                 .created(URI.create("/api/reservas/" + reserva.id()))
@@ -45,7 +45,13 @@ public class ReservaController {
         ) {
 
         return ResponseEntity
-                .ok(reservaService.minhasReservas(usuario.id(), data, dataInicio, dataFim, status));
+                .ok(reservaService.minhasReservas(
+                    usuario.id(),
+                    data,
+                    dataInicio,
+                    dataFim,
+                    status
+                ));
     }
 
     @PatchMapping("/{id}/cancelamento")
