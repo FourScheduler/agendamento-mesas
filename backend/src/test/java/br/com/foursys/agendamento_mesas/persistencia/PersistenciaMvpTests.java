@@ -81,7 +81,7 @@ class PersistenciaMvpTests {
         Usuario usuario = usuarioRepository.salvar(
                 new Usuario("Maria Souza", "maria@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Mesa mesa = mesaRepository.salvar(
-                new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
+                new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80, null));
 
         Reserva salva = reservaRepository.salvarESincronizar(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
@@ -119,8 +119,8 @@ class PersistenciaMvpTests {
 
     @Test
     void codigoDeMesaDuplicadoERejeitado() {
-        mesaRepository.salvar(new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80));
-        Mesa duplicada = new Mesa(null, "001", "TAMBORÉ", TipoMesa.FIXA, true, "TAMBORÉ", 180, 80);
+        mesaRepository.salvar(new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80, null));
+        Mesa duplicada = new Mesa(null, "001", "TAMBORÉ", TipoMesa.FIXA, true, "TAMBORÉ", 180, 80, null);
 
         assertThatThrownBy(() -> mesaRepository.salvarESincronizar(duplicada))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -128,7 +128,7 @@ class PersistenciaMvpTests {
 
     @Test
     void fkInvalidasSaoRejeitadas() {
-        Mesa mesa = mesaRepository.salvar(new Mesa(null, "002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140));
+Mesa mesa = mesaRepository.salvar(new Mesa(null, "002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140, null));
         Usuario usuario = usuarioRepository.salvar(
                 new Usuario("Joao Pereira", "joao@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
 
@@ -151,7 +151,7 @@ class PersistenciaMvpTests {
         Usuario usuario = usuarioRepository.salvar(
                 new Usuario("Maria Souza", "disponibilidade@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Mesa mesa = mesaRepository.salvar(
-                new Mesa(null, "003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80));
+                new Mesa(null, "003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80, null));
         Reserva reserva = reservaRepository.salvarESincronizar(
                 new Reserva(mesa, usuario, DATA, StatusReserva.PENDENTE));
 
