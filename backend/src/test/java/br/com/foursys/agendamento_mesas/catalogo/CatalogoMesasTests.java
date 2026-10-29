@@ -7,12 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import com.jayway.jsonpath.JsonPath;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
-import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import br.com.foursys.agendamento_mesas.service.MesaService;
 import org.flywaydb.core.Flyway;
@@ -42,13 +42,13 @@ class CatalogoMesasTests {
     @Autowired MockMvc mvc;
     @Autowired MesaRepositoryPort repository;
     @Autowired MesaService service;
-    @Autowired UsuarioRepository usuarios;
+    @Autowired UsuarioRepositoryPort usuarios;
     @Autowired ReservaRepositoryPort reservas;
     @Autowired JwtService jwt;
 
     @Test
     void catalogoAutenticadoIncluiInativaEReferenciaVisualSemDisponibilidadeGlobal() throws Exception {
-        String token = jwt.gerarToken(usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow());
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow());
         String resposta = mvc.perform(get("/api/mesas").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(115))
@@ -80,7 +80,7 @@ class CatalogoMesasTests {
 
     @Test
     void disponibilidadeExigeDataEmFormatoIso() throws Exception {
-        String token = jwt.gerarToken(usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow());
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow());
 
         mvc.perform(get("/api/mesas/disponiveis").header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
@@ -95,7 +95,7 @@ class CatalogoMesasTests {
     void disponibilidadeBloqueiaPendentesEConfirmadasIgnoraCanceladasEMapeiaCatalogo() throws Exception {
         LocalDate data = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"))
                 .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
-        var usuario = usuarios.findByEmail("maria.souza@exemplo.com").orElseThrow();
+var usuario = usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow();
         Mesa pendente = repository.salvar(new Mesa(null, "901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 10, 20, null));
         Mesa confirmada = repository.salvar(new Mesa(null, "902", "DEMO", TipoMesa.LIVRE, true, "DEMO", 30, 40, null));
         Mesa cancelada = repository.salvar(new Mesa(null, "903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 50, 60, null));

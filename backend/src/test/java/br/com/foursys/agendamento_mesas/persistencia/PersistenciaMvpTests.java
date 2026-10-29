@@ -11,7 +11,7 @@ import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
-import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.flywaydb.core.api.output.MigrateResult;
@@ -36,7 +36,7 @@ class PersistenciaMvpTests {
     private static final LocalDate DATA = LocalDate.of(2026, 10, 28);
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private UsuarioRepositoryPort usuarioRepository;
 
     @Autowired
     private MesaRepositoryPort mesaRepository;
@@ -58,18 +58,18 @@ class PersistenciaMvpTests {
         // Ordem respeita as FKs: reservas dependem de mesas e usuarios.
         reservaRepository.deletarTodos();
         mesaRepository.deletarTodos();
-        usuarioRepository.deleteAll();
+        usuarioRepository.deletarTodos();
     }
 
     @Test
     void migracoesAplicamEmBancoVazioENaoReaplicamNemApagamDados() {
-        usuarioRepository.save(new Usuario("Teste", "migracao@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
+        usuarioRepository.salvar(new Usuario("Teste", "migracao@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
 
         MigrateResult resultado = flyway.migrate();
 
         // ReaplicaÃ§Ã£o Ã© no-op: nada Ã© recriado nem apagado.
         assertThat(resultado.migrationsExecuted).isZero();
-        assertThat(usuarioRepository.count()).isEqualTo(1);
+        assertThat(usuarioRepository.contarUsuarios()).isEqualTo(1);
         // Estrutura completa existe (tabelas acessÃ­veis pelos repositories).
         assertThat(mesaRepository.contar()).isZero();
         assertThat(reservaRepository.contar()).isZero();
@@ -78,7 +78,7 @@ class PersistenciaMvpTests {
     @Test
     @Transactional
     void reservaPersisteComVinculoParaUsuarioEMesa() {
-        Usuario usuario = usuarioRepository.save(
+        Usuario usuario = usuarioRepository.salvar(
                 new Usuario("Maria Souza", "maria@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Mesa mesa = mesaRepository.salvar(
                 new Mesa(null, "001", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 80, null));
@@ -100,9 +100,9 @@ class PersistenciaMvpTests {
     void senhaEArmazenadaComoHashBcrypt() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         String hash = encoder.encode("senha1234");
-        usuarioRepository.save(new Usuario("Maria Souza", "bcrypt@exemplo.com", hash, PerfilUsuario.USUARIO, true));
+        usuarioRepository.salvar(new Usuario("Maria Souza", "bcrypt@exemplo.com", hash, PerfilUsuario.USUARIO, true));
 
-        String persistido = usuarioRepository.findByEmail("bcrypt@exemplo.com").orElseThrow().getSenhaHash();
+        String persistido = usuarioRepository.buscarPorEmail("bcrypt@exemplo.com").orElseThrow().getSenhaHash();
 
         assertThat(persistido).isNotEqualTo("senha1234").doesNotContain("senha1234");
         assertThat(encoder.matches("senha1234", persistido)).isTrue();
@@ -110,10 +110,10 @@ class PersistenciaMvpTests {
 
     @Test
     void emailDuplicadoERejeitado() {
-        usuarioRepository.save(new Usuario("A", "duplicado@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
+        usuarioRepository.salvar(new Usuario("A", "duplicado@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Usuario segundo = new Usuario("B", "duplicado@exemplo.com", "hash", PerfilUsuario.USUARIO, true);
 
-        assertThatThrownBy(() -> usuarioRepository.saveAndFlush(segundo))
+        assertThatThrownBy(() -> usuarioRepository.salvarESincronizar(segundo))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -128,8 +128,8 @@ class PersistenciaMvpTests {
 
     @Test
     void fkInvalidasSaoRejeitadas() {
-        Mesa mesa = mesaRepository.salvar(new Mesa(null, "002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140, null));
-        Usuario usuario = usuarioRepository.save(
+Mesa mesa = mesaRepository.salvar(new Mesa(null, "002", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 100, 140, null));
+        Usuario usuario = usuarioRepository.salvar(
                 new Usuario("Joao Pereira", "joao@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
 
         // usuario_id inexistente
@@ -148,7 +148,7 @@ class PersistenciaMvpTests {
     @Test
     @Transactional
     void disponibilidadeTrataStatusCorretamente() {
-        Usuario usuario = usuarioRepository.save(
+        Usuario usuario = usuarioRepository.salvar(
                 new Usuario("Maria Souza", "disponibilidade@exemplo.com", "hash", PerfilUsuario.USUARIO, true));
         Mesa mesa = mesaRepository.salvar(
                 new Mesa(null, "003", "TAMBORÉ", TipoMesa.LIVRE, true, "TAMBORÉ", 260, 80, null));
