@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.repository;
 
 import br.com.foursys.agendamento_mesas.model.Usuario;
+import java.util.List;
 import java.util.Optional;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +18,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    @Query("select u from Usuario u where u.ativo = true order by u.nome")
+    List<Usuario> findAllAtivos();
 }

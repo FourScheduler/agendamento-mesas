@@ -264,3 +264,43 @@
     font-size: 0.75rem;
   }
 }
+
+.topbar__admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.125rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: none;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.topbar__admin:hover {
+  color: var(--orange);
+}
+
+.topbar__admin--ativo {
+  color: var(--orange);
+}
+
+.topbar__menu-perfil-admin {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.topbar__menu-perfil-admin:hover {
+  color: var(--orange);
+}

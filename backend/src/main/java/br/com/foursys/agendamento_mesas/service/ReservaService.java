@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
+import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
@@ -61,9 +62,19 @@ public class ReservaService {
 
         datas.validar(request.data());
 
-        Usuario usuario = usuarios.buscarParaReserva(autenticado.id())
+        Usuario usuarioAutenticado = usuarios.buscarParaReserva(autenticado.id())
                 .filter(Usuario::isAtivo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
+
+        // Determina o solicitante da reserva
+        // Se for ADMIN e informou solicitanteId, usa esse usuário
+        // Caso contrário, usa o próprio usuário autenticado
+        Usuario solicitante = usuarioAutenticado;
+        if (usuarioAutenticado.getPapel() == PerfilUsuario.ADMIN && request.solicitanteId() != null) {
+            solicitante = usuarios.buscarParaReserva(request.solicitanteId())
+                    .filter(Usuario::isAtivo)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitante não encontrado ou inativo."));
+        }
 
         Mesa mesa = mesaRepositoryPort.buscarParaReserva(request.mesaId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));
@@ -83,13 +94,13 @@ public class ReservaService {
                     "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
         }
 
-        if (reservaRepositoryPort.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
+        if (reservaRepositoryPort.usuarioTemReservaNaData(solicitante.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Você já possui uma reserva em " + request.data().format(DATA_BR)
+                    "O solicitante já possui uma reserva em " + request.data().format(DATA_BR)
                             + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
 
-        Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
+        Reserva reserva = new Reserva(mesa, solicitante, request.data(), StatusReserva.CONFIRMADA);
         reserva.setConfirmadaEm(LocalDateTime.now(relogio));
         return ReservaResponse.toResponse(reservaRepositoryPort.salvarESincronizar(reserva));
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.

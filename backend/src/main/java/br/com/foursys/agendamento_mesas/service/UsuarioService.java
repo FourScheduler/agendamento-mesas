@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * Provisionamento de usuários fictícios para demonstração. Cadastro público
  * não existe; somente administradores criam usuário pela API. A senha é
@@ -41,6 +43,13 @@ public class UsuarioService {
                         true));
         return new UsuarioAdminResumo(usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getPapel(),
                 usuario.isAtivo());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioAdminResumo> listarAtivos() {
+        return usuarioRepository.findAllAtivos().stream()
+                .map(u -> new UsuarioAdminResumo(u.getId(), u.getNome(), u.getEmail(), u.getPapel(), u.isAtivo()))
+                .toList();
     }
 
     private void validarEntrada(CriarUsuarioRequest request) {

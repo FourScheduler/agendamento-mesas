@@ -345,7 +345,7 @@ public class ReservaApiTests {
     @Test
     void falhaDesfazReservaELiberaLocksParaNovaTentativa() throws Exception {
         assertThatThrownBy(() -> transacao().executeWithoutResult(tx -> {
-            service.criar(new CriarReservaRequest(mesa.getId(), HOJE), identidade(maria));
+            service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria));
             throw new IllegalStateException("Falha posterior à escrita");
         })).isInstanceOf(IllegalStateException.class);
         assertThat(reservas.contar()).isZero();
