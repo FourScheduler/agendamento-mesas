@@ -129,11 +129,14 @@
             [style.height.px]="planta.tamanhoMesa.altura"
             [disabled]="!estaDisponivel(mesa)"
             [attr.aria-pressed]="selecionada() === mesa.id"
-            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data')"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data') + (mesa.ocupante ? ', ' + mesa.ocupante : '')"
             (click)="selecionar(mesa)"
             (focus)="onMesaFocus(mesa)"
           >
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
+            @if (mesa.ocupante) {
+              <span class="mesa__ocupante">{{ mesa.ocupante }}</span>
+            }
             @if (!mesa.ativa) {
               <span class="mesa__estado">Inativa</span>
             } @else if (estaOcupada(mesa)) {

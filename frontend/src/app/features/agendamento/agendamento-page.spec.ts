@@ -161,8 +161,8 @@ describe('Agendamento integrado à reserva diária', () => {
   it('identifica o próprio administrador sem oferecer reserva em nome de terceiros', () => {
     const fixture = abrir('ADMIN');
     const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
-    // O 5º item é o Solicitante (Data, Mesa, Capacidade, Recursos, Solicitante)
-    expect(valores[4].textContent).toContain('Maria');
+    // O 6º item é o Solicitante (Data, Mesa, Ocupante, Capacidade, Recursos, Solicitante)
+    expect(valores[5].textContent).toContain('Maria');
     expect(fixture.nativeElement.textContent).not.toContain('reservar para outros');
   });
 

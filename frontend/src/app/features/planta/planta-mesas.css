@@ -139,6 +139,21 @@
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+.mesa__ocupante {
+  position: absolute;
+  top: 42px;
+  left: 16px;
+  right: 16px;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
 .mesa__estado {
   position: absolute;
   top: 60%;
@@ -283,6 +298,13 @@
   left: 4px;
   font-size: 12px;
   line-height: 16px;
+}
+.planta--legado .mesa__ocupante {
+  top: 16px;
+  left: 4px;
+  right: 4px;
+  font-size: 9px;
+  line-height: 12px;
 }
 .planta--legado .mesa__estado {
   top: 50%;
