@@ -65,6 +65,16 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public boolean mesaTemReservasDesde(Long mesaId, LocalDate data, Collection<StatusReserva> bloqueios) {
+        return reservaJpaRepository.mesaTemReservasDesde(mesaId, data, bloqueios);
+    }
+
+    @Override
+    public boolean usuarioTemReservasDesde(Long usuarioId, LocalDate data, Collection<StatusReserva> bloqueios) {
+        return reservaJpaRepository.usuarioTemReservasDesde(usuarioId, data, bloqueios);
+    }
+
+    @Override
     public long contar() {
         return reservaJpaRepository.count();
     }

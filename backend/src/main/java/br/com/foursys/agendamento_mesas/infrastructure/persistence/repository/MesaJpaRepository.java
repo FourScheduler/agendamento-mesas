@@ -25,6 +25,14 @@ public interface MesaJpaRepository extends JpaRepository<Mesa, Long> {
 
     boolean existsByCodigo(String codigo);
 
+    @Query("select u.id from Mesa m left join m.responsavel u where m.id = :id")
+    Optional<Long> buscarResponsavelId(@Param("id") Long id);
+
+    Optional<Mesa> findByResponsavelId(Long usuarioId);
+
+    @Query("select m from Mesa m left join fetch m.responsavel order by m.codigo")
+    List<Mesa> buscarTodosComResponsavelPorCodigoAsc();
+
     @Query("""
     SELECT m
     FROM Mesa m

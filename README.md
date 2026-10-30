@@ -91,7 +91,7 @@ As portas 8081 e 4201 permitem executar este projeto junto do agendamento-salas,
 
 `POST /api/reservas` recebe `{ "mesaId": 44, "data": "2026-10-28" }` com Bearer token e retorna `201` com a reserva `CONFIRMADA`, mesa, data e solicitante. Não envie usuário no request. Mesas fixas/inativas ou ocupadas e usuário com outra reserva no dia retornam `409`. A reserva vale somente na data escolhida; o dia seguinte é independente. São permitidos dias úteis, de hoje até hoje + 15 dias corridos, no fuso de São Paulo.
 
-Os testes comuns usam H2. Para repetir o contrato e os testes concorrentes no MySQL, configure um **schema exclusivo cujo nome termine em `_test`**; a suíte apaga seus registros entre os testes. Exemplo no PowerShell, dentro de `backend/`:
+Os testes comuns usam H2. Para repetir os contratos e os testes concorrentes de reservas e administração no MySQL, configure um **schema exclusivo cujo nome termine em `_test`**; as suítes apagam seus registros entre os testes. Exemplo no PowerShell, dentro de `backend/`:
 
 ```powershell
 $env:TEST_MYSQL_URL = "jdbc:mysql://127.0.0.1:3306/agendamento_mesas_test?serverTimezone=America/Sao_Paulo"
@@ -100,7 +100,20 @@ $env:TEST_MYSQL_PASSWORD = "senha-local-de-testes"
 .\mvnw.cmd -s .mvn/settings-public.xml -gs .mvn/settings-public.xml verify
 ```
 
-Crie esse schema e conceda acesso antes de executar. Sem `TEST_MYSQL_URL`, somente `ReservaMySqlTests` é ignorada. O CI sempre fornece MySQL e executa essa suíte. As migrations aplicadas continuam intactas; não houve mudança de estrutura na entrega diária.
+Crie esse schema e conceda acesso antes de executar. Sem `TEST_MYSQL_URL`, as suítes `ReservaMySqlTests` e `MesaAdminMySqlTests` são ignoradas. O CI sempre fornece MySQL e executa ambas.
+
+## Administração de mesas — backend (#37)
+
+O perfil `ADMIN` pode listar usuários ativos e mesas, atribuir/trocar responsável fixo,
+desfixar e ativar/inativar mesas. Os contratos estão em [contratos da API](docs/contratos-api-mvp.md).
+Usuário só pode ter uma mesa fixa e não cria novas reservas enquanto estiver atribuído.
+Mesa inativa não recebe responsável; mesa atribuída precisa ser desfixada antes da inativação.
+Reservas de hoje em diante são revalidadas sem cancelamento automático.
+
+A migration V5 acrescenta `mesas.responsavel_id`, preservando os dados anteriores e as
+mesas fixas legadas sem responsável. Não altere nem reaplique manualmente a V1.
+`GET /api/mesas/minha-fixa` permite ao usuário autenticado consultar sua própria atribuição.
+A tela administrativa será entregue separadamente (#38).
 
 ## Documentação
 

@@ -2,6 +2,9 @@ package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.service.MesaService;
+import br.com.foursys.agendamento_mesas.dto.response.MinhaMesaFixaResponse;
+import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,6 +26,11 @@ public class MesaController {
     @GetMapping
     public List<MesaResponse> listar() {
         return mesasService.listar();
+    }
+
+    @GetMapping("/minha-fixa")
+    public MinhaMesaFixaResponse minhaMesaFixa(@AuthenticationPrincipal UsuarioAutenticado usuario) {
+        return mesasService.minhaMesaFixa(usuario.id());
     }
 
     @GetMapping("/disponiveis")

@@ -28,7 +28,9 @@ Todas as rotas, inclusive a consulta, exigem token de autenticação. Sem token 
 | Estado ativo | Mesa inativa aparece identificada na planta e não pode ser reservada. |
 | Referência visual | Posição aproximada na planta, usada apenas para desenho no frontend. Não define regra de negócio. |
 
-Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /api/admin/mesas/{id}/tipo`).
+Somente o **administrador** fixa ou desfixa uma mesa pelas operações de responsável
+em `/api/admin/mesas/{id}/responsavel`. Ativação é independente e usa
+`PATCH /api/admin/mesas/{id}/estado`.
 
 ## Regras de negócio confirmadas
 
@@ -76,13 +78,28 @@ Registradas para validação com o negócio. **Nenhuma restrição foi inventada
 | Interpretação da janela de 15 dias | Adotado "15 dias corridos". Se o negócio quiser "15 dias úteis", ajustar a regra. |
 | Horário de expediente de referência | Sem validação de expediente no MVP (regra aprovada). Exibição de expediente futuro fica pendente. |
 | Feriados e recesso | Não tratados. Reserva em feriado local é aceita se cair em dia útil. |
-| Tornar `FIXA` uma mesa com reservas futuras | Efeito sobre reservas existentes não definido; a implementação deve validar com o produto antes de alterar dados reais. |
 | Papel de administrador além dos endpoints do MVP | Gestão de usuários (criar/desativar) fora do MVP; seed no banco. |
 | Cancelamento por administrador de reserva com dia já passado | Permitido pela regra "a qualquer momento"; se o negócio quiser restrição, registrar decisão. |
 
 ## Confirmação concorrente
 
 `ReservaService.criar` usa uma transação `READ_COMMITTED`, bloqueando primeiro a linha do usuário e depois a linha da mesa (`PESSIMISTIC_WRITE` / `SELECT ... FOR UPDATE`). A mesa já existe mesmo quando não há reservas; o bloqueio protege a primeira inserção. Após esperar, as consultas de mesa/data e usuário/data enxergam o commit anterior. Canceladas são ignoradas pelo status. Todos os caminhos futuros de escrita devem respeitar essa ordem de locks e revalidar conflitos dentro da transação. Falhas desfazem a escrita e liberam os locks.
+
+## Gerenciamento administrativo de mesas (#37)
+
+- Apenas `ADMIN` consulta usuários ativos e altera mesas. A listagem de usuários retorna somente ID, nome e e-mail, ordenados por nome e ID.
+- Cada mesa tem no máximo um responsável, e cada usuário pode ter no máximo uma mesa fixa.
+- Atribuição e troca exigem usuário ativo e mesa ativa, revalidados sob lock. Mesas fixas legadas sem responsável permanecem não atribuídas até regularização explícita.
+- Fixação ou troca não podem afetar mesa nem novo responsável com reservas `PENDENTE`/`CONFIRMADA` de hoje em diante, em São Paulo (`409`). Reservas passadas/canceladas não impedem a atribuição.
+- Qualquer vínculo fixo impede novas reservas de mesas compartilhadas (`409`), inclusive para perfil `ADMIN`. Após desfixação ou troca, o antigo responsável pode reservar conforme as demais regras.
+- Mesa atribuída não pode ser inativada, mesmo com responsável inativo. É necessário desfixar primeiro. Inativação também é recusada se houver reserva bloqueante da mesa de hoje em diante.
+- Desfixar remove o vínculo e muda o tipo para `LIVRE`, sem mudar `ativa`. Ativar/inativar só muda `ativa`; ativar não cria vínculo ou reserva.
+- Cancelar reserva altera apenas a reserva e seu timestamp. Nunca reativa, desfixa nem troca responsável da mesa.
+- O vínculo no banco é opcional e único por usuário. Uma restrição impede responsável em mesa inativa ou `LIVRE`, preservando a compatibilidade com fixas legadas sem vínculo.
+- Atribuição e desfixação bloqueiam usuários envolvidos em ordem crescente de ID e depois a mesa. Se o responsável mudou enquanto a operação esperava, retornam `409` para atualização e nova tentativa. A reserva comum bloqueia o mesmo usuário antes de verificar sua atribuição. Ativação bloqueia a mesa e não adquire locks de usuários.
+- O contrato autenticado `/api/mesas/minha-fixa` permite consultar somente a própria atribuição; os dados dos responsáveis não são expostos no catálogo comum.
+
+Nenhuma operação administrativa cria, transfere ou cancela reservas automaticamente.
 
 ## Fora do escopo do MVP
 

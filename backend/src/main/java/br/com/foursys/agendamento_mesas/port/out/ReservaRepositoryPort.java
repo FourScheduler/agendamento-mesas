@@ -45,5 +45,9 @@ public interface ReservaRepositoryPort {
 
     void sincronizar();
 
+    boolean mesaTemReservasDesde(Long mesaId, LocalDate data, Collection<StatusReserva> bloqueios);
+
+    boolean usuarioTemReservasDesde(Long usuarioId, LocalDate data, Collection<StatusReserva> bloqueios);
+
     long contar();
 }

@@ -26,6 +26,15 @@ Profiles Spring: `dev` por padrão, `prod` para logs e erros de produção e `te
 
 Na evolução, organizar o backend por responsabilidades e o frontend em `core/`, `shared/` e `features/`. As regras diárias estão documentadas em `fluxo-mvp.md`.
 
+O backend oferece administração de mesas em `/api/admin/mesas`, restrita a `ADMIN`,
+e listagem de usuários ativos em `/api/admin/usuarios`. `MesaAdminService` implementa
+atribuição, troca, desfixação e ativação com transações e locks compatíveis com a reserva comum.
+A persistência de mesas e reservas passa por portas em `port/out` e adaptadores JPA em
+`infrastructure/persistence`. A migration V5 adiciona responsável opcional com FK, unicidade
+e verificação de mesa ativa/fixa. O catálogo comum mantém seu contrato; o DTO administrativo
+inclui o responsável e `/api/mesas/minha-fixa` devolve apenas a própria atribuição.
+Usuário atribuído não cria reservas e o cancelamento preserva o cadastro da mesa.
+
 ## Integração contínua
 
 GitHub Actions executa dois jobs independentes em pushes e pull requests para `main` e `develop`:

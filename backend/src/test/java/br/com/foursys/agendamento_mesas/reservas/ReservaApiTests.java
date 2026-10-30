@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.*;
-import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.model.*;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
@@ -220,10 +219,9 @@ reservas.deletarTodos();
     void recusaCancelarReservaDeOutroUsuarioSemAlterarReserva() throws Exception {
         var reserva = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
 
-        assertThatThrownBy(() -> mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
-                .header("Authorization", "Bearer " + jwt.gerarToken(joao))))
-                .isInstanceOf(jakarta.servlet.ServletException.class)
-                .hasRootCauseInstanceOf(UsuarioSemPermissaoException.class);
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+                .andExpect(status().isForbidden());
 
         var persistida = reservas.buscarPorId(reserva.getId()).orElseThrow();
         assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);

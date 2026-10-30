@@ -22,6 +22,12 @@ public interface MesaRepositoryPort {
 
     Optional<Mesa> buscarParaReserva(Long id);
 
+    Optional<Long> buscarResponsavelId(Long mesaId);
+
+    Optional<Mesa> buscarPorResponsavelId(Long usuarioId);
+
+    List<Mesa> buscarTodosComResponsavelPorCodigoAsc();
+
     List<Mesa> buscarTodosPorCodigoAsc();
 
     List<Mesa> buscarMesasDisponiveis(

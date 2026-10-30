@@ -61,4 +61,9 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     public List<UsuarioAdminResumo> listarAtivos() {
         return  usuarioJpaRepository.findAllAtivos().stream().map(u -> new UsuarioAdminResumo(u.getId(), u.getNome(), u.getEmail(), u.getPapel(), u.isAtivo())).toList();
     }
+
+    @Override
+    public List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc() {
+        return usuarioJpaRepository.findByAtivoTrueOrderByNomeAscIdAsc();
+    }
 }

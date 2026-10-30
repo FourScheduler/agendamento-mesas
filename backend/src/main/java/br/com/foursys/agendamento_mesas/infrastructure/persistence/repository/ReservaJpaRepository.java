@@ -11,6 +11,13 @@ import java.util.Collection;
 import java.util.List;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
+    @Query("select count(r) > 0 from Reserva r where r.mesa.id = :mesaId and r.data >= :data and r.status in :bloqueios")
+    boolean mesaTemReservasDesde(@Param("mesaId") Long mesaId, @Param("data") LocalDate data,
+                                @Param("bloqueios") Collection<StatusReserva> bloqueios);
+
+    @Query("select count(r) > 0 from Reserva r where r.usuario.id = :usuarioId and r.data >= :data and r.status in :bloqueios")
+    boolean usuarioTemReservasDesde(@Param("usuarioId") Long usuarioId, @Param("data") LocalDate data,
+                                   @Param("bloqueios") Collection<StatusReserva> bloqueios);
     @Query("""
             select count(r) > 0
             from Reserva r

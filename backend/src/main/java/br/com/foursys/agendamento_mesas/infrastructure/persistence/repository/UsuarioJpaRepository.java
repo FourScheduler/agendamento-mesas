@@ -10,8 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 @Repository
 public interface UsuarioJpaRepository extends JpaRepository<Usuario, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -24,4 +22,6 @@ public interface UsuarioJpaRepository extends JpaRepository<Usuario, Long> {
 
     @Query("select u from Usuario u where u.ativo = true order by u.nome")
     List<Usuario> findAllAtivos();
+
+    List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc();
 }

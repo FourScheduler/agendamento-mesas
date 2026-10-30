@@ -2,7 +2,28 @@
 
 Cenários que o backend deve cobrir com testes automatizados. Cada cenário referencia a regra em [fluxo-mvp](fluxo-mvp.md) e o contrato em [contratos-api-mvp](contratos-api-mvp.md).
 
-A issue #7 implementa criação diária com confirmação direta, autoria e serialização. A listagem própria possui filtros e ordenação estável cobertos por testes. Cancelamento e gestão administrativa de reservas abaixo descrevem cenários previstos no contrato.
+A issue #7 implementa criação diária com confirmação direta, autoria e serialização. A listagem própria possui filtros e ordenação estável cobertos por testes. Cancelamento próprio e gestão de mesas estão implementados; gestão administrativa de reservas continua planejada.
+
+## Administração de mesas (#37)
+
+`MesaAdminApiTests` cobre as rotas com commits reais em H2. `MesaAdminMySqlTests`
+repete a mesma suíte em MySQL quando `TEST_MYSQL_URL` aponta um schema exclusivo `_test`.
+O CI configura esse banco; sem a variável, somente as suítes MySQL são ignoradas.
+
+- `401` sem token ou com token expirado e `403` para usuário comum em todas as rotas administrativas.
+- Usuários ativos por nome/ID, respostas mínimas e lista vazia no serviço.
+- Mesas por código, inclusive inativas e fixas legadas sem responsável; dados do responsável somente no DTO administrativo.
+- Fixação/troca/desfixação, rejeição de usuário inativo/inexistente, segunda mesa por usuário e atribuição em mesa inativa.
+- Inativação exige desfixar, inclusive com responsável inativo; ativação preserva o tipo e não atribui automaticamente.
+- Reservas `PENDENTE`/`CONFIRMADA` de hoje em diante impedem fixar a mesa, atribuir o usuário ou inativar a mesa. Passadas e canceladas não impedem.
+- Usuário com atribuição fixa recebe `409` ao reservar; após desfixação ou troca pode reservar novamente.
+- `/api/mesas/minha-fixa` identifica apenas o usuário do token, ignorando tentativa de escolher outro usuário.
+- Cancelamento preserva tipo, ativação, atribuição e autoria; timestamp usa o relógio do sistema no fuso do projeto.
+- Rollback não deixa vínculo parcial; o banco rejeita vínculo duplicado, mesa atribuída inativa ou `LIVRE`.
+- Disputas: duas mesas para o mesmo usuário, dois responsáveis para a mesma mesa, fixação/inativação, fixação/reserva por mesa ou usuário e inativação/reserva.
+
+`MigracaoResponsavelTests` migra V1–V4 com seed e reserva existente para V5,
+confere preservação dos registros e reaplicação sem alterações.
 
 ## Datas inválidas (`400`)
 

@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.MinhaMesaFixaResponse;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
@@ -30,6 +31,11 @@ public class MesaService {
             .buscarTodosPorCodigoAsc()
             .stream().map(MesaResponse::de)
             .toList();
+    }
+
+    public MinhaMesaFixaResponse minhaMesaFixa(Long usuarioId) {
+        return new MinhaMesaFixaResponse(mesaRepositoryPort.buscarPorResponsavelId(usuarioId)
+                .map(MesaResponse::de).orElse(null));
     }
 
     /**

@@ -5,13 +5,20 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 
+/**
+ * Mesa é uma estação individual de trabalho. {@code planta}, {@code posicaoX} e {@code posicaoY}
+ * são apenas referência visual para o desenho da planta no frontend; não participam de regra de negócio.
+ */
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,6 +44,10 @@ public class Mesa {
     @Column(name = "ativa", nullable = false)
     private boolean ativa;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_id", unique = true)
+    private Usuario responsavel;
+
     @Column(name = "planta", nullable = false, length = 20)
     private String planta;
 
@@ -48,4 +59,16 @@ public class Mesa {
 
     @Column(name = "ocupante", length = 120)
     private String ocupante;
+
+    // Construtor de compatibilidade para testes e catálogo legado (sem responsável, com ocupante).
+    public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
+                String planta, Integer posicaoX, Integer posicaoY, String ocupante) {
+        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY, ocupante);
+    }
+
+    // Mantém a construção do catálogo e dos dados legados sem responsável e sem ocupante.
+    public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
+                String planta, Integer posicaoX, Integer posicaoY) {
+        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY, null);
+    }
 }

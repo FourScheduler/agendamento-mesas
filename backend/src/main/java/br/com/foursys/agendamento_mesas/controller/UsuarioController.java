@@ -2,6 +2,7 @@ package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.dto.request.CriarUsuarioRequest;
 import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
+import br.com.foursys.agendamento_mesas.dto.UsuarioResponsavelResumo;
 import br.com.foursys.agendamento_mesas.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,12 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.util.List;
 
 /**
- * Provisionamento de usuário fictício para demonstração. Rota administrativa:
+ * Provisionamento de usuário fictício e consulta de usuários ativos. Rota administrativa:
  * exige perfil ADMIN (regra aplicada na SecurityConfig).
  */
 @RestController
@@ -36,8 +38,14 @@ public class UsuarioController {
             .body(usuarioService.criar(request));
     }
 
+    @GetMapping("/admin")
+    public ResponseEntity<List<UsuarioAdminResumo>> listarAtivosAdmin() {
+        return ResponseEntity.ok(usuarioService.listarAtivosAdmin());
+    }
+
     @GetMapping
-    public ResponseEntity<List<UsuarioAdminResumo>> listarAtivos() {
-        return ResponseEntity.ok(usuarioService.listarAtivos());
+    public List<UsuarioResponsavelResumo> listarAtivos(@RequestParam(defaultValue = "true") boolean ativo) {
+        if (!ativo) throw new DadosInvalidosException("Esta consulta disponibiliza somente usuários ativos.");
+        return usuarioService.listarAtivos();
     }
 }

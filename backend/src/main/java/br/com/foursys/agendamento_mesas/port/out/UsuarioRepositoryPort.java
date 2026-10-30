@@ -27,4 +27,6 @@ public interface UsuarioRepositoryPort {
     long contarUsuarios();
 
     List<UsuarioAdminResumo> listarAtivos();
+
+    List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc();
 }

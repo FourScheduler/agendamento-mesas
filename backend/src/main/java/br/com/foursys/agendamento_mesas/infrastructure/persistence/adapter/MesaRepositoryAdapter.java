@@ -41,6 +41,21 @@ public class MesaRepositoryAdapter implements MesaRepositoryPort {
     }
 
     @Override
+    public Optional<Long> buscarResponsavelId(Long id) {
+        return mesaRepository.buscarResponsavelId(id);
+    }
+
+    @Override
+    public Optional<Mesa> buscarPorResponsavelId(Long usuarioId) {
+        return mesaRepository.findByResponsavelId(usuarioId);
+    }
+
+    @Override
+    public List<Mesa> buscarTodosComResponsavelPorCodigoAsc() {
+        return mesaRepository.buscarTodosComResponsavelPorCodigoAsc();
+    }
+
+    @Override
     public List<Mesa> buscarTodosPorCodigoAsc() {
         return mesaRepository.findAllByOrderByCodigoAsc();
     }
