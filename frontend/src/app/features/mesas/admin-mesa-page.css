@@ -19,6 +19,12 @@
   color: var(--navy);
 }
 
+.admin-mesa-page__navegacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .admin-mesa-page__subtitulo {
   margin: 0;
   font-size: 0.9375rem;

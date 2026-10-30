@@ -65,6 +65,10 @@ export class AdminMesaPage {
     void this.router.navigate(['/agendamento']);
   }
 
+  irParaMapa() {
+    void this.router.navigate(['/mapa']);
+  }
+
   readonly mesasFiltradas = computed(() => {
     return this.mesas();
   });
