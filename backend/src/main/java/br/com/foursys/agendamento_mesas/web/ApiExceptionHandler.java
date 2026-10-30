@@ -4,6 +4,8 @@ import br.com.foursys.agendamento_mesas.exceptions.CredenciaisInvalidasException
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioInativoException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -73,6 +75,16 @@ public class ApiExceptionHandler {
     @ExceptionHandler(EmailJaCadastradoException.class)
     public ProblemDetail emailJaCadastrado(EmailJaCadastradoException e, HttpServletRequest request) {
         return problema(HttpStatus.CONFLICT, "E-mail já cadastrado", e.getMessage(), request);
+    }
+
+    @ExceptionHandler(ReservaJaCanceladaException.class)
+    public ProblemDetail reservaJaCancelada(ReservaJaCanceladaException e, HttpServletRequest request) {
+        return problema(HttpStatus.CONFLICT, "Conflito de reserva", e.getMessage(), request);
+    }
+
+    @ExceptionHandler(ReservaNaoEncontradaException.class)
+    public ProblemDetail reservaNaoEncontrada(ReservaNaoEncontradaException e, HttpServletRequest request) {
+        return problema(HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND.getReasonPhrase(), e.getMessage(), request);
     }
 
     private ProblemDetail problema(HttpStatus status, String title, String detail, HttpServletRequest request) {

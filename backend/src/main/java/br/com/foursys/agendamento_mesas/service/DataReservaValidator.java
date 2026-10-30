@@ -18,13 +18,17 @@ public class DataReservaValidator {
         if (data == null) {
             throw new DadosInvalidosException("Campo 'data' é obrigatório.");
         }
+
         LocalDate hoje = LocalDate.now(relogio);
+
         if (data.isBefore(hoje)) {
             throw new DadosInvalidosException("Data deve ser hoje ou futura.");
         }
+
         if (data.isAfter(hoje.plusDays(15))) {
             throw new DadosInvalidosException("Data deve estar em até 15 dias a partir de hoje.");
         }
+
         if (data.getDayOfWeek() == DayOfWeek.SATURDAY || data.getDayOfWeek() == DayOfWeek.SUNDAY) {
             throw new DadosInvalidosException("Reservas são permitidas apenas de segunda a sexta.");
         }

@@ -1,17 +1,20 @@
 package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.exceptions.MesaNaoEncontradaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import org.springframework.stereotype.Service;
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
-import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
@@ -28,16 +31,16 @@ import java.util.List;
 @Service
 public class ReservaService {
     private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private final UsuarioRepository usuarios;
+    private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final MesaRepositoryPort mesaRepositoryPort;
     private final ReservaRepositoryPort reservaRepositoryPort;
     private final DataReservaValidator datas;
     private final Clock relogio;
 
-    public ReservaService(UsuarioRepository usuarios, MesaRepositoryPort mesaRepositoryPort,
+    public ReservaService(UsuarioRepositoryPort usuarioRepositoryPort, MesaRepositoryPort mesaRepositoryPort,
                           ReservaRepositoryPort reservaRepositoryPort, DataReservaValidator datas, Clock relogio
     ) {
-        this.usuarios = usuarios;
+        this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.mesaRepositoryPort = mesaRepositoryPort;
         this.reservaRepositoryPort = reservaRepositoryPort;
         this.datas = datas;
@@ -61,7 +64,7 @@ public class ReservaService {
 
         datas.validar(request.data());
 
-        Usuario usuario = usuarios.buscarParaReserva(autenticado.id())
+        Usuario usuario = usuarioRepositoryPort.buscarParaReserva(autenticado.id())
                 .filter(Usuario::isAtivo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
 
@@ -101,8 +104,9 @@ public class ReservaService {
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
     }
 
-    public List<ReservaResponse> minhasReservas(Long usuarioId, LocalDate data, LocalDate dataInicio,
-                                               LocalDate dataFim, StatusReserva status
+    public List<ReservaResponse> minhasReservas(
+        Long usuarioId, LocalDate data, LocalDate dataInicio,
+        LocalDate dataFim, StatusReserva status
     ) {
         if (data != null && (dataInicio != null || dataFim != null)) {
             throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
@@ -133,8 +137,7 @@ public class ReservaService {
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa não encontrada."));
 
         if (reserva.getStatus() == StatusReserva.CANCELADA) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Reserva " + idReserva + " já está cancelada.");
+            throw new ReservaJaCanceladaException(idReserva);
         }
 
         reserva.setCanceladaEm(LocalDateTime.now(relogio));
@@ -146,11 +149,11 @@ public class ReservaService {
     //Métodos Utilitários
     public Reserva buscarReserva(Long idReserva) {
         return reservaRepositoryPort.buscarPorId(idReserva)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva " + idReserva + " não encontrada."));
+                .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
     }
 
     public Mesa buscarMesa(Long idMesa) {
         return mesaRepositoryPort.buscarPorId(idMesa)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + idMesa + " não encontrada."));
+            .orElseThrow(MesaNaoEncontradaException::new);
     }
 }

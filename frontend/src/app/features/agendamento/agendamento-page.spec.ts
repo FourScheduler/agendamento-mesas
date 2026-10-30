@@ -9,7 +9,7 @@ import { authInterceptor } from '../../core/auth/auth.interceptor';
 import { ToastService } from '../../shared/toast/toast';
 
 const mesa: Mesa = { id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
-  referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
+  ocupante: 'Teste', referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
 const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUARIO' };
 
 const mockToastService = {
@@ -161,8 +161,8 @@ describe('Agendamento integrado à reserva diária', () => {
   it('identifica o próprio administrador sem oferecer reserva em nome de terceiros', () => {
     const fixture = abrir('ADMIN');
     const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
-    // O 5º item é o Solicitante (Data, Mesa, Capacidade, Recursos, Solicitante)
-    expect(valores[4].textContent).toContain('Maria');
+    // O 6º item é o Solicitante (Data, Mesa, Ocupante, Capacidade, Recursos, Solicitante)
+    expect(valores[5].textContent).toContain('Maria');
     expect(fixture.nativeElement.textContent).not.toContain('reservar para outros');
   });
 
@@ -175,7 +175,7 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.componentInstance.selecionarMesa(mesa);
     fixture.componentInstance.confirmarReserva();
     http.expectNone('/api/reservas');
-    const novaMesa = { ...mesa, id: 53, codigo: '053' };
+    const novaMesa = { ...mesa, id: 53, codigo: '053', ocupante: 'Teste' };
     consulta('2026-10-29').flush([novaMesa]);
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.mesa-item').click();

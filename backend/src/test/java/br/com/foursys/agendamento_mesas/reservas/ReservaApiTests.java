@@ -9,7 +9,7 @@ import br.com.foursys.agendamento_mesas.enums.*;
 import br.com.foursys.agendamento_mesas.model.*;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
-import br.com.foursys.agendamento_mesas.repository.*;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import br.com.foursys.agendamento_mesas.security.*;
 import br.com.foursys.agendamento_mesas.service.ReservaService;
 import java.time.*;
@@ -41,7 +41,7 @@ public class ReservaApiTests {
     static final LocalDate HOJE = LocalDate.of(2026, 10, 26);
     @Autowired MockMvc mvc;
     @Autowired MesaRepositoryPort mesas;
-    @Autowired UsuarioRepository usuarios;
+    @Autowired UsuarioRepositoryPort usuarios;
     @Autowired ReservaRepositoryPort reservas;
     @Autowired JwtService jwt;
     @Autowired ReservaService service;
@@ -63,11 +63,13 @@ public class ReservaApiTests {
     void prepararBanco() {
         reservas.deletarTodos();
         mesas.deletarTodos();
-        usuarios.deleteAll();
-        maria = usuarios.save(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
-        joao = usuarios.save(new Usuario("João", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
-        mesa = mesas.salvar(new Mesa(null, "044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0));
-        outraMesa = mesas.salvar(new Mesa(null, "053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0));
+reservas.deletarTodos();
+        mesas.deletarTodos();
+        usuarios.deletarTodos();
+        maria = usuarios.salvar(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        joao = usuarios.salvar(new Usuario("João", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        mesa = mesas.salvar(new Mesa(null, "044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0, null));
+        outraMesa = mesas.salvar(new Mesa(null, "053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0, null));
     }
 
     @Test
@@ -131,8 +133,8 @@ public class ReservaApiTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"mesaId\":9999999,\"data\":\"2026-10-26\"}"))
                 .andExpect(status().isNotFound());
-        var fixa = mesas.salvar(new Mesa(null, "018", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 100));
-        var inativa = mesas.salvar(new Mesa(null, "005", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 200));
+        var fixa = mesas.salvar(new Mesa(null, "018", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 100, null));
+        var inativa = mesas.salvar(new Mesa(null, "005", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 200, null));
         criar(maria, fixa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("fixa")));
         criar(maria, inativa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("inativa")));
         assertThat(reservas.contar()).isZero();

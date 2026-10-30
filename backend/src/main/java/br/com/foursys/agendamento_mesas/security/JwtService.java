@@ -28,11 +28,16 @@ public class JwtService {
     private final NimbusJwtDecoder decoder;
     private final Duration expiracaoPadrao;
 
-    public JwtService(@Value("${app.jwt.secret}") String segredo,
-            @Value("${app.jwt.expiracao-horas}") long horasExpiracao) {
+    public JwtService(
+        @Value("${app.jwt.secret}") String segredo,
+        @Value("${app.jwt.expiracao-horas}") long horasExpiracao
+    ) {
         SecretKeySpec chave = new SecretKeySpec(segredo.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+
         this.encoder = new NimbusJwtEncoder(new ImmutableSecret<>(chave));
+
         this.decoder = NimbusJwtDecoder.withSecretKey(chave).macAlgorithm(MacAlgorithm.HS256).build();
+
         this.expiracaoPadrao = Duration.ofHours(horasExpiracao);
     }
 
@@ -53,7 +58,10 @@ public class JwtService {
                 .expiresAt(expiracao)
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-        return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+
+        return encoder
+            .encode(JwtEncoderParameters.from(header, claims))
+            .getTokenValue();
     }
 
     /**

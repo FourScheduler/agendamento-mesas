@@ -17,11 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Segurança da API: estado único (JWT), única rota pública é o login e
- * /api/admin/** exige perfil ADMIN. O filtro JWT consulta o banco a cada
- * request, então desativação de usuário tem efeito imediato.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -39,8 +34,7 @@ public class SecurityConfig {
         JwtAuthenticationFilter filtroJwt = new JwtAuthenticationFilter(jwtService, usuarioPorTokenService);
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> {
-            })
+            .cors(cors -> {})
             .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(requisicoes -> requisicoes
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()

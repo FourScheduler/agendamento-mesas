@@ -374,6 +374,14 @@
   border: 1px solid #fecaca;
 }
 
+/* Ocupante da mesa */
+.mesa-item__ocupante {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+
 /* Linha de ícones (capacidade, localização, tomadas) */
 .mesa-item__detalhes {
   display: flex;

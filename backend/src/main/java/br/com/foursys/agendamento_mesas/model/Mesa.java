@@ -5,14 +5,14 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 
 /**
@@ -57,9 +57,12 @@ public class Mesa {
     @Column(name = "posicao_y", nullable = false)
     private Integer posicaoY;
 
-    // Mantém a construção do catálogo e dos dados legados sem responsável.
+    @Column(name = "ocupante", length = 120)
+    private String ocupante;
+
+    // Mantém a construção do catálogo e dos dados legados sem responsável e sem ocupante.
     public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
                 String planta, Integer posicaoX, Integer posicaoY) {
-        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY);
+        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY, null);
     }
 }

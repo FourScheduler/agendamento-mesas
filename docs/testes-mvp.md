@@ -103,8 +103,8 @@ Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 | 25 | Cancelar `PENDENTE` própria | `200`, `CANCELADA`, `canceladaEm` preenchido |
 | 26 | Cancelar `CONFIRMADA` própria | `200` |
 | 27 | Cancelar após o dia da reserva | `200` (regra "a qualquer momento") |
-| 28 | Cancelar já cancelada | `409` |
-| 29 | Cancelar inexistente | `404` |
+| 28 | Cancelar já cancelada | `409` com `detail` identificando a reserva; status e `canceladaEm` permanecem inalterados |
+| 29 | Cancelar inexistente | `404` com `detail` identificando a reserva inexistente |
 
 ## Acesso indevido
 

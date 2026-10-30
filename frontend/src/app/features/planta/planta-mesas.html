@@ -27,9 +27,10 @@
         <button
           type="button"
           class="botao-icone"
-          (click)="alternarRotulos()"
-          [attr.aria-pressed]="mostrarRotulos()"
-          aria-label="{{ mostrarRotulos() ? 'Ocultar nomes das mesas' : 'Mostrar nomes das mesas' }}"
+          (click)="alternarNomes()"
+          [attr.aria-pressed]="mostrarNomes()"
+          aria-label="{{ mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes' }}"
+          title="{{ mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes' }}"
         >
           <svg
             class="icone-olho"
@@ -129,18 +130,21 @@
             [style.height.px]="planta.tamanhoMesa.altura"
             [disabled]="!estaDisponivel(mesa)"
             [attr.aria-pressed]="selecionada() === mesa.id"
-            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data')"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data') + (mesa.ocupante ? ', ' + mesa.ocupante : '')"
             (click)="selecionar(mesa)"
             (focus)="onMesaFocus(mesa)"
           >
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
+            @if (mesa.ocupante && mostrarNomes()) {
+              <span class="mesa__ocupante">{{ mesa.ocupante }}</span>
+            }
             @if (!mesa.ativa) {
               <span class="mesa__estado">Inativa</span>
             } @else if (estaOcupada(mesa)) {
               <span class="mesa__estado">Ocupada</span>
             } @else if (mesa.tipo === 'LIVRE') {
               <span class="mesa__estado">Livre</span>
-            } @else if (mostrarRotulos()) {
+            } @else {
               <span class="mesa__estado">Mesa fixa</span>
             }
             @if (estaDisponivel(mesa)) {
