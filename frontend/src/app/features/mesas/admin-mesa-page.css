@@ -32,12 +32,23 @@
 }
 
 .admin-mesa-page__busca {
+  position: relative;
+  max-width: 400px;
   margin-bottom: 1rem;
+}
+
+.admin-mesa-page__busca-icone {
+  position: absolute;
+  top: 50%;
+  left: 0.875rem;
+  transform: translateY(-50%);
+  color: var(--muted-soft);
+  pointer-events: none;
 }
 
 .admin-mesa-page__busca .campo {
   width: 100%;
-  max-width: 400px;
+  padding-left: 2.75rem;
 }
 
 .admin-mesa-page__tabela-container {
@@ -75,6 +86,11 @@
 
 .admin-mesa-page__tabela tbody tr:hover {
   background: #fafafa;
+}
+
+.admin-mesa-page__tabela th:first-child,
+.admin-mesa-page__tabela td.admin-mesa-page__codigo {
+  text-align: center;
 }
 
 .admin-mesa-page__codigo {

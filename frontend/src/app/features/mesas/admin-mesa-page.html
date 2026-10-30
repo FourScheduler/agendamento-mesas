@@ -33,11 +33,15 @@
     <div class="admin-mesa-page__conteudo">
       <div class="admin-mesa-page__busca">
         <label for="busca" class="visually-hidden">Buscar mesa por número</label>
+        <svg class="admin-mesa-page__busca-icone" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
         <input
           id="busca"
           type="text"
           class="campo"
-          placeholder="Buscar por código (ex.: mesa 10)..."
+          placeholder="Buscar por número da mesa (ex.: mesa 10)..."
           [(ngModel)]="busca"
           (input)="onBuscaChange($event)"
           aria-describedby="busca-desc"
@@ -55,7 +59,7 @@
           <table class="admin-mesa-page__tabela" role="grid" aria-label="Lista de mesas para administração">
             <thead>
               <tr>
-                <th scope="col">Código</th>
+                <th scope="col">Número da mesa</th>
                 <th scope="col">Localização</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Ativação</th>
@@ -187,10 +191,10 @@
                 />
                 <span id="usuario-busca-desc" class="visually-hidden">Digite o nome ou e-mail do usuário para filtrar</span>
                 @if (mostrarSugestoesUsuario()) {
-                  <div 
+                  <div
                     id="usuario-resultados"
-                    class="usuario-busca__resultados" 
-                    role="listbox" 
+                    class="usuario-busca__resultados"
+                    role="listbox"
                     [attr.aria-label]="buscaUsuario() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
                   >
                     @if (buscaUsuario() && usuariosFiltrados().length > 0) {
