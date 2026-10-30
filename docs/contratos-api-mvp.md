@@ -8,7 +8,7 @@ Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil,
 - Datas no formato ISO `yyyy-MM-dd`; data/hora local sem offset no formato `yyyy-MM-dd'T'HH:mm:ss`; fuso único `America/Sao_Paulo` (ver [fluxo-mvp](fluxo-mvp.md)).
 - Todas as rotas exigem autenticação: header `Authorization: Bearer <token>`. Exceção: `POST /api/auth/login`. Sem token ou com token inválido: `401`.
 - O token JWT expira em 8 horas (`JWT_EXPIRACAO_HORAS` em dev). Token expirado responde `401`; o cliente deve autenticar de novo. Não há refresh token no MVP.
-- O solicitante é sempre o usuário do token. Nenhum request aceita `usuarioId`/`solicitante` editável.
+- O solicitante padrão é o usuário do token. Administradores podem informar `solicitanteId` para criar a reserva em nome de um usuário ativo; usuários comuns não podem escolher terceiros.
 - Campos `id` são numéricos inteiros gerados pelo banco.
 
 ### Formato padrão de erro
@@ -93,6 +93,29 @@ Retorna o perfil do usuário autenticado (id e nome inclusos), identificado pelo
 | Status | Situação |
 | --- | --- |
 | `401` | Sem token, token expirado/inválido ou usuário inativo/desativado após o login. |
+
+---
+
+## GET /api/admin/usuarios/busca
+
+Busca usuários ativos por trecho do nome ou e-mail, sem diferenciar maiúsculas de minúsculas. Exige perfil `ADMIN`. `termo` deve conter ao menos dois caracteres na interface; a resposta limita-se aos 20 primeiros resultados ordenados por nome.
+
+### Query params
+
+| Campo | Obrigatório | Formato |
+| --- | --- | --- |
+| `termo` | Sim | Trecho do nome ou e-mail |
+
+### Response `200`
+
+Lista de `UsuarioAdminResumo` (`id`, `nome`, `email`, `perfil`, `ativo`). Usuários inativos não são retornados.
+
+### Erros
+
+| Status | Situação |
+| --- | --- |
+| `401` | Sem ou com token inválido. |
+| `403` | Usuário sem perfil `ADMIN`. |
 
 ---
 
@@ -188,14 +211,15 @@ Mesmo formato de `/api/mesas`, apenas as mesas disponíveis:
 
 ## POST /api/reservas
 
-Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escolhida. O solicitante vem do token. Campos extras como `usuarioId` e `solicitante` são ignorados e nunca definem a autoria. A resposta só é emitida após commit da transação; não há uma segunda chamada de confirmação.
+Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escolhida. Sem `solicitanteId`, o solicitante vem do token. Administradores podem informar `solicitanteId` para escolher um usuário ativo; usuários comuns não podem escolher terceiros. Campos extras como `usuarioId` e `solicitante` são ignorados. A resposta só é emitida após commit da transação; não há uma segunda chamada de confirmação.
 
 ### Request
 
 ```json
 {
   "mesaId": 44,
-  "data": "2026-10-28"
+  "data": "2026-10-28",
+  "solicitanteId": 7
 }
 ```
 
@@ -227,7 +251,9 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | --- | --- | --- |
 | `400` | `mesaId` ou `data` ausentes/inválidos; data fim de semana, passada ou além de 15 dias. | `Campo 'data' inválido.` |
 | `401` | Sem ou com token inválido. | |
+| `403` | Usuário comum envia `solicitanteId`. | `Somente administradores podem escolher o solicitante.` |
 | `404` | `mesaId` inexistente. | `Mesa 999 não encontrada.` |
+| `404` | `solicitanteId` inexistente ou inativo. | `Solicitante inativo ou inexistente.` |
 | `409` | Mesa `FIXA`. | `Mesa 018 é fixa e não pode ser reservada.` |
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
@@ -428,6 +454,7 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | --- | --- | --- | --- |
 | POST | `/api/auth/login` | Não | — |
 | GET | `/api/auth/perfil` | Sim | Qualquer |
+| GET | `/api/admin/usuarios/busca?termo=...` | Sim | ADMIN |
 | GET | `/api/mesas` | Sim | Qualquer |
 | GET | `/api/mesas/disponiveis` | Sim | Qualquer |
 | POST | `/api/reservas` | Sim | Qualquer |

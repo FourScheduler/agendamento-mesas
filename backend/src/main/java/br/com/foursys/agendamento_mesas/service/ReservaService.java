@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
+import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
@@ -58,15 +59,21 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticação obrigatória.");
         }
 
+        if (request != null && request.solicitanteId() != null
+            && autenticado.perfil() != PerfilUsuario.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Somente administradores podem escolher o solicitante.");
+        }
+
         if (request == null || request.mesaId() == null || request.mesaId() <= 0) {
             throw new DadosInvalidosException("Campo 'mesaId' deve ser um inteiro positivo.");
         }
 
         datas.validar(request.data());
 
-        Usuario usuario = usuarioRepositoryPort.buscarParaReserva(autenticado.id())
+        Long solicitanteId = request.solicitanteId() != null ? request.solicitanteId() : autenticado.id();
+        Usuario usuario = usuarioRepositoryPort.buscarParaReserva(solicitanteId)
             .filter(Usuario::isAtivo)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitante inativo ou inexistente."));
 
         Mesa mesa = mesaRepositoryPort.buscarParaReserva(request.mesaId()).orElseThrow(() ->
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));

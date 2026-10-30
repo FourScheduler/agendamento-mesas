@@ -61,6 +61,12 @@ public class UsuarioService {
         return usuarioRepositoryPort.listarAtivos();
     }
 
+    @Transactional(readOnly = true)
+    public List<UsuarioAdminResumo> buscarAtivos(String termo) {
+        if (termo == null || termo.isBlank()) return List.of();
+        return usuarioRepositoryPort.buscarAtivosPorTermo(termo.trim());
+    }
+
     private void validarEntrada(CriarUsuarioRequest request) {
         if (request == null || request.nome() == null || request.nome().isBlank()) {
             throw new DadosInvalidosException("Campo 'nome' é obrigatório.");

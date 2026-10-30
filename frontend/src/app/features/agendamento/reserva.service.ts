@@ -24,8 +24,10 @@ export class ReservaService {
   }
 
   /** Lista usuários ativos (rota administrativa). */
-  listarUsuariosAtivos() {
-    return this.http.get<readonly UsuarioAdminResumo[]>(`${environment.apiUrl}/admin/usuarios`);
+  buscarUsuariosAtivos(termo: string) {
+    return this.http.get<readonly UsuarioAdminResumo[]>(`${environment.apiUrl}/admin/usuarios/busca`, {
+      params: { termo },
+    });
   }
 
   criar(mesaId: number, data: string, solicitanteId?: number) {

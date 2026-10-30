@@ -49,6 +49,7 @@ public class ReservaApiTests {
     @Autowired PlatformTransactionManager transactionManager;
     Usuario maria;
     Usuario joao;
+    Usuario admin;
     Mesa mesa;
     Mesa outraMesa;
 
@@ -69,6 +70,7 @@ reservas.deletarTodos();
         usuarios.deletarTodos();
         maria = usuarios.salvar(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
         joao = usuarios.salvar(new Usuario("João", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        admin = usuarios.salvar(new Usuario("Admin", "admin@teste.com", "hash", PerfilUsuario.ADMIN, true));
         mesa = mesas.salvar(new Mesa(null, "044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0, null));
         outraMesa = mesas.salvar(new Mesa(null, "053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0, null));
     }
@@ -97,6 +99,61 @@ reservas.deletarTodos();
             assertThat(salva.getMesa().getId()).isEqualTo(mesa.getId());
             assertThat(salva.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
         });
+    }
+
+    @Test
+    void administradorPodeCriarReservaParaSolicitanteAtivoSelecionado() throws Exception {
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(admin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"2026-10-26\",\"solicitanteId\":" + joao.getId() + "}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.solicitante.id").value(joao.getId()))
+            .andExpect(jsonPath("$.solicitante.nome").value("João"));
+
+        assertThat(reservas.buscarTodos()).singleElement()
+            .extracting(reserva -> reserva.getUsuario().getId())
+            .isEqualTo(joao.getId());
+    }
+
+    @Test
+    void usuarioComumNaoPodeEscolherSolicitanteAoCriarReserva() throws Exception {
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"2026-10-26\",\"solicitanteId\":" + joao.getId() + "}"))
+            .andExpect(status().isForbidden());
+
+        assertThat(reservas.contar()).isZero();
+    }
+
+    @Test
+    void administradorBuscaUsuariosAtivosPorNomeOuEmail() throws Exception {
+        var inativo = usuarios.salvar(new Usuario("Mariana Inativa", "mariana@teste.com", "hash", PerfilUsuario.USUARIO, false));
+        var token = "Bearer " + jwt.gerarToken(admin);
+
+        mvc.perform(get("/api/admin/usuarios/busca").param("termo", "mArI")
+                .header("Authorization", token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(maria.getId().intValue())))
+            .andExpect(jsonPath("$[0].email").value("maria@teste.com"));
+
+        mvc.perform(get("/api/admin/usuarios/busca").param("termo", "JOAO@")
+                .header("Authorization", token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.contains(joao.getId().intValue())));
+
+        mvc.perform(get("/api/admin/usuarios/busca").param("termo", "mariana")
+                .header("Authorization", token))
+            .andExpect(status().isOk())
+            .andExpect(content().json("[]"));
+
+        assertThat(inativo.isAtivo()).isFalse();
+    }
+
+    @Test
+    void buscaDeUsuariosExigePerfilAdministrador() throws Exception {
+        mvc.perform(get("/api/admin/usuarios/busca").param("termo", "maria")
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+            .andExpect(status().isForbidden());
     }
 
     @Test

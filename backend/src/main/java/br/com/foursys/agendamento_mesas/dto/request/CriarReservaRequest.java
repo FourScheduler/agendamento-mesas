@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 public record CriarReservaRequest(
     Long mesaId,
-    LocalDate data
+    LocalDate data,
+    Long solicitanteId
 ) {
 }

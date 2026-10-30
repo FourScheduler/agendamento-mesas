@@ -47,6 +47,9 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | --- | --- |
 | POST autenticado com mesa/data válidas | `201`, `CONFIRMADA`, timestamps e solicitante do token; dados visíveis em outra transação após a resposta |
 | Request com `usuarioId` e `solicitante` de terceiro | Campos ignorados; reserva pertence ao usuário do token |
+| Admin busca solicitante por nome ou e-mail | `GET /api/admin/usuarios/busca?termo=...` retorna usuários ativos correspondentes, até 20 resultados |
+| Admin cria reserva para solicitante ativo escolhido | `201`; reserva pertence ao ID enviado em `solicitanteId` |
+| Usuário comum envia `solicitanteId` | `403`; nenhuma reserva criada |
 | Duas requisições, usuários diferentes, mesma mesa/data, reservas inicialmente vazias | Um `201`, um `409`, uma reserva persistida |
 | Mesmo usuário, mesas diferentes, mesma data | Um `201`, um `409`, uma reserva persistida |
 | Usuários e mesas diferentes | Ambas confirmam |
@@ -104,7 +107,7 @@ Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 | 46 | Login com credenciais válidas | `200` com `token`, `tipo: Bearer` e `usuario` (id, nome, email, perfil) |
 | 47 | `GET /api/auth/perfil` com token válido | `200` com id e nome do usuário do token |
 | 48 | Usuário desativado após o login usa o token | `401` (checagem por request) |
-| 49 | Campos `usuarioId`/`solicitante` manipulados no body | ignorados; identidade vem do token |
+| 49 | Campos `usuarioId`/`solicitante` manipulados no body | ignorados; solicitante padrão continua sendo o usuário do token |
 | 50 | Credenciais e token não aparecem nos logs | ausentes do output de log |
 | 51 | Admin cria usuário via `POST /api/admin/usuarios` | `201` com id gerado; senha gravada como hash |
 | 52 | Criação com e-mail já cadastrado | `409` |
@@ -115,6 +118,9 @@ Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 
 | # | Cenário | Esperado |
 | --- | --- | --- |
+| 55 | Buscar usuários ativos por nome/e-mail | `GET /api/admin/usuarios/busca?termo=...` retorna no máximo 20 correspondências |
+| 56 | Admin cria reserva com `solicitanteId` ativo | `201`; resposta e registro identificam o usuário selecionado |
+| 57 | Usuário comum chama busca ou envia `solicitanteId` | `403`; sem dados retornados ou reserva criada |
 | 37 | Listar reservas com filtros (`data`, `usuarioId`, `status`) | `200` com `solicitante` em cada item |
 | 38 | Admin cancela reserva de terceiro | `200`, `CANCELADA` |
 | 39 | Alternar mesa `LIVRE` → `FIXA` | `200`; sai de `/disponiveis` |

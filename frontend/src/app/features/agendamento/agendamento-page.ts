@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, of, timer } from 'rxjs';
+import { catchError, distinctUntilChanged, switchMap, tap } from 'rxjs/operators';
 import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
 import { MesaService } from '../mesas/mesa.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
@@ -43,22 +45,20 @@ export class AgendamentoPage {
 
   // Usuários ativos (para admin escolher solicitante)
   readonly usuariosAtivos = signal<readonly UsuarioAdminResumo[]>([]);
-  readonly carregandoUsuarios = signal(true);
+  readonly carregandoUsuarios = signal(false);
+  readonly erroBuscaSolicitante = signal('');
   readonly solicitanteSelecionado = signal<number | null>(null);
+  readonly solicitanteEscolhido = signal<UsuarioAdminResumo | null>(null);
   readonly buscaSolicitante = signal('');
   readonly solicitanteFocado = signal(false);
-
-  readonly usuariosFiltrados = computed(() => {
-    const termo = this.buscaSolicitante().trim().toLowerCase();
-    if (!termo) return this.usuariosAtivos();
-    return this.usuariosAtivos().filter(u =>
-      u.nome.toLowerCase().includes(termo) ||
-      u.email.toLowerCase().includes(termo)
-    );
-  });
+  private readonly termosBuscaSolicitante = new Subject<string>();
 
   readonly mostrarSugestoesSolicitante = computed(() => 
-    this.solicitanteFocado() && !this.carregandoUsuarios()
+    this.solicitanteFocado() && (
+      this.buscaSolicitante().trim().length > 0 ||
+      this.carregandoUsuarios() ||
+      !!this.erroBuscaSolicitante()
+    )
   );
 
   readonly mesasFiltradas = computed(() => {
@@ -109,6 +109,30 @@ export class AgendamentoPage {
   readonly stepAtual = signal(1);
 
   constructor() {
+    this.termosBuscaSolicitante.pipe(
+      distinctUntilChanged(),
+      tap(termo => {
+        this.erroBuscaSolicitante.set('');
+        this.usuariosAtivos.set([]);
+        this.carregandoUsuarios.set(termo.length >= 2);
+      }),
+      switchMap(termo => termo.length >= 2
+        ? timer(250).pipe(
+            switchMap(() => this.reservas.buscarUsuariosAtivos(termo).pipe(
+              catchError(() => {
+                this.erroBuscaSolicitante.set('Não foi possível buscar usuários. Tente novamente.');
+                return of([]);
+              }),
+            )),
+          )
+        : of([]),
+      ),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(usuarios => {
+      this.usuariosAtivos.set(usuarios);
+      this.carregandoUsuarios.set(false);
+    });
+
     // Carrega catálogo completo uma vez
     this.mesas.listar()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -117,28 +141,13 @@ export class AgendamentoPage {
         error: () => this.todasMesas.set([]),
       });
 
-    // Carrega usuários ativos se for admin
-    effect((onCleanup) => {
-      if (this.isAdmin()) {
-        this.reservas.listarUsuariosAtivos()
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            next: (usuarios) => {
-              this.usuariosAtivos.set(usuarios);
-              this.carregandoUsuarios.set(false);
-              this.buscaSolicitante.set('');
-              // Por padrão, seleciona o próprio usuário
-              const eu = this.usuario();
-              if (eu) this.solicitanteSelecionado.set(eu.id);
-            },
-            error: () => {
-              this.usuariosAtivos.set([]);
-              this.carregandoUsuarios.set(false);
-            },
-          });
+    if (this.isAdmin()) {
+      const eu = this.usuario();
+      if (eu) {
+        this.solicitanteSelecionado.set(eu.id);
+        this.solicitanteEscolhido.set({ ...eu, ativo: true });
       }
-      onCleanup(() => {});
-    });
+    }
 
     effect((onCleanup) => {
       // Reage a mudanças de data ou trigger de atualização
@@ -188,7 +197,35 @@ export class AgendamentoPage {
 
   confirmarReserva() {
     const solicitanteId = this.isAdmin() ? this.solicitanteSelecionado() : null;
+    if (this.isAdmin() && solicitanteId === null) return;
     this.reserva.confirmarComSolicitante(solicitanteId);
+  }
+
+  buscarSolicitantes(termo: string) {
+    const busca = termo.trim();
+    this.buscaSolicitante.set(termo);
+    this.solicitanteSelecionado.set(null);
+    this.solicitanteEscolhido.set(null);
+    this.usuariosAtivos.set([]);
+    this.erroBuscaSolicitante.set('');
+    this.termosBuscaSolicitante.next(busca);
+  }
+
+  selecionarSolicitante(usuario: UsuarioAdminResumo) {
+    this.solicitanteSelecionado.set(usuario.id);
+    this.solicitanteEscolhido.set(usuario);
+    this.buscaSolicitante.set('');
+    this.usuariosAtivos.set([]);
+    this.solicitanteFocado.set(false);
+    this.termosBuscaSolicitante.next('');
+  }
+
+  fecharSugestoesSeFora(event: FocusEvent) {
+    const container = event.currentTarget;
+    const proximoFoco = event.relatedTarget;
+    if (!(container instanceof HTMLElement) || !(proximoFoco instanceof Node) || !container.contains(proximoFoco)) {
+      this.solicitanteFocado.set(false);
+    }
   }
 
   irParaMapa() {
@@ -213,6 +250,9 @@ export class AgendamentoPage {
     }
     if (!this.solicitanteSelecionado()) {
       return this.usuario()?.nome ?? '';
+    }
+    if (this.solicitanteEscolhido()?.id === this.solicitanteSelecionado()) {
+      return this.solicitanteEscolhido()?.nome ?? '';
     }
     const solicitante = this.usuariosAtivos().find(u => u.id === this.solicitanteSelecionado());
     return solicitante?.nome ?? this.usuario()?.nome ?? '';

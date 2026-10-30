@@ -4,6 +4,7 @@ import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
 import br.com.foursys.agendamento_mesas.infrastructure.persistence.repository.UsuarioJpaRepository;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -60,5 +61,12 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     @Override
     public List<UsuarioAdminResumo> listarAtivos() {
         return  usuarioJpaRepository.findAllAtivos().stream().map(u -> new UsuarioAdminResumo(u.getId(), u.getNome(), u.getEmail(), u.getPapel(), u.isAtivo())).toList();
+    }
+
+    @Override
+    public List<UsuarioAdminResumo> buscarAtivosPorTermo(String termo) {
+        return usuarioJpaRepository.buscarAtivosPorTermo(termo, PageRequest.of(0, 20)).stream()
+            .map(u -> new UsuarioAdminResumo(u.getId(), u.getNome(), u.getEmail(), u.getPapel(), u.isAtivo()))
+            .toList();
     }
 }

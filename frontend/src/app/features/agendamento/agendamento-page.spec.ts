@@ -28,7 +28,7 @@ describe('Agendamento integrado à reserva diária', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     vi.setSystemTime(new Date('2026-10-27T12:00:00Z'));
     TestBed.configureTestingModule({ 
       providers: [
@@ -158,12 +158,54 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/mapa'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
-  it('identifica o próprio administrador sem oferecer reserva em nome de terceiros', () => {
+  it('usa o administrador autenticado como solicitante inicial', () => {
     const fixture = abrir('ADMIN');
-    const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
-    // O 6º item é o Solicitante (Data, Mesa, Ocupante, Capacidade, Recursos, Solicitante)
-    expect(valores[5].textContent).toContain('Maria');
-    expect(fixture.nativeElement.textContent).not.toContain('reservar para outros');
+    expect(fixture.nativeElement.querySelector('.solicitante-busca__selecionado').textContent).toContain('Maria');
+  });
+
+  it('busca solicitantes no backend, permite selecionar e envia o ID na reserva administrativa', async () => {
+    const fixture = abrir('ADMIN');
+    const campo = fixture.nativeElement.querySelector('#solicitante-busca') as HTMLInputElement;
+    campo.value = 'joao@';
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.solicitanteSelecionado()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.botao--confirmar').disabled).toBe(true);
+    await vi.advanceTimersByTimeAsync(250);
+    const busca = http.expectOne(request =>
+      request.url === '/api/admin/usuarios/busca' && request.params.get('termo') === 'joao@'
+    );
+    busca.flush([{ id: 8, nome: 'João Pereira', email: 'joao@teste.com', perfil: 'USUARIO', ativo: true }]);
+    fixture.detectChanges();
+
+    const opcao = fixture.nativeElement.querySelector('.solicitante-busca__opcao') as HTMLButtonElement;
+    expect(opcao.textContent).toContain('João Pereira');
+    opcao.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.solicitanteSelecionado()).toBe(8);
+
+    campo.value = 'joao@';
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    await vi.advanceTimersByTimeAsync(250);
+    http.expectOne(request =>
+      request.url === '/api/admin/usuarios/busca' && request.params.get('termo') === 'joao@'
+    ).flush([{ id: 8, nome: 'João Pereira', email: 'joao@teste.com', perfil: 'USUARIO', ativo: true }]);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.solicitante-busca__opcao') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.solicitanteSelecionado()).toBe(8);
+    expect(fixture.nativeElement.querySelector('.botao--confirmar').disabled).toBe(false);
+    expect(fixture.nativeElement.querySelector('.solicitante-busca__selecionado').textContent).toContain('João Pereira');
+
+    fixture.nativeElement.querySelector('.botao--confirmar').click();
+    const confirmacao = http.expectOne('/api/reservas');
+    expect(confirmacao.request.body).toEqual({ mesaId: 44, data: '2026-10-28', solicitanteId: 8 });
+    confirmacao.flush({ id: 9, status: 'CONFIRMADA', data: '2026-10-28', mesa, solicitante: { id: 8 } });
+    fixture.detectChanges();
+    http.expectOne(request => request.url === '/api/mesas/disponiveis' && request.params.get('data') === '2026-10-27').flush([]);
   });
 
   it('usa a data digitada no campo na consulta, no resumo e na confirmação diária', () => {
