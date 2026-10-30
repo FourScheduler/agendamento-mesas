@@ -20,5 +20,8 @@ public interface UsuarioJpaRepository extends JpaRepository<Usuario, Long> {
 
     boolean existsByEmail(String email);
 
+    @Query("select u from Usuario u where u.ativo = true order by u.nome")
+    List<Usuario> findAllAtivos();
+
     List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc();
 }

@@ -13,6 +13,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+/**
+ * Provisionamento de usuários fictícios para demonstração. Cadastro público
+ * não existe; somente administradores criam usuário pela API. A senha é
+ * gravada apenas como hash BCrypt.
+ */
 @Service
 public class UsuarioService {
 
@@ -49,6 +56,11 @@ public class UsuarioService {
             usuario.getEmail(),
             usuario.getPapel(),
             usuario.isAtivo());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioAdminResumo> listarAtivosAdmin() {
+        return usuarioRepositoryPort.listarAtivos();
     }
 
     @Transactional(readOnly = true)

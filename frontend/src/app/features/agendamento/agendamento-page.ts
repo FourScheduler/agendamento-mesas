@@ -3,11 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
 import { MesaService } from '../mesas/mesa.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { Mesa } from '../mesas/mesa';
 import { Notificacao } from '../../shared/notificacao/notificacao';
+import { ReservaService } from './reserva.service';
 
 @Component({
   selector: 'app-agendamento-page',
@@ -20,6 +21,7 @@ import { Notificacao } from '../../shared/notificacao/notificacao';
 export class AgendamentoPage {
   private readonly auth = inject(AuthService);
   private readonly mesas = inject(MesaService);
+  private readonly reservas = inject(ReservaService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -28,6 +30,7 @@ export class AgendamentoPage {
   readonly usuario = this.auth.usuario;
   readonly token = this.auth.token;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
+  readonly isAdmin = computed(() => this.perfil() === 'ADMIN');
 
   // Catálogo completo de mesas (para busca)
   readonly todasMesas = signal<readonly Mesa[]>([]);
@@ -37,6 +40,26 @@ export class AgendamentoPage {
   readonly busca = signal('');
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
+
+  // Usuários ativos (para admin escolher solicitante)
+  readonly usuariosAtivos = signal<readonly UsuarioAdminResumo[]>([]);
+  readonly carregandoUsuarios = signal(true);
+  readonly solicitanteSelecionado = signal<number | null>(null);
+  readonly buscaSolicitante = signal('');
+  readonly solicitanteFocado = signal(false);
+
+  readonly usuariosFiltrados = computed(() => {
+    const termo = this.buscaSolicitante().trim().toLowerCase();
+    if (!termo) return this.usuariosAtivos();
+    return this.usuariosAtivos().filter(u =>
+      u.nome.toLowerCase().includes(termo) ||
+      u.email.toLowerCase().includes(termo)
+    );
+  });
+
+  readonly mostrarSugestoesSolicitante = computed(() => 
+    this.solicitanteFocado() && !this.carregandoUsuarios()
+  );
 
   readonly mesasFiltradas = computed(() => {
     const termo = this.busca().trim().toLowerCase();
@@ -94,6 +117,29 @@ export class AgendamentoPage {
         error: () => this.todasMesas.set([]),
       });
 
+    // Carrega usuários ativos se for admin
+    effect((onCleanup) => {
+      if (this.isAdmin()) {
+        this.reservas.listarUsuariosAtivos()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (usuarios) => {
+              this.usuariosAtivos.set(usuarios);
+              this.carregandoUsuarios.set(false);
+              this.buscaSolicitante.set('');
+              // Por padrão, seleciona o próprio usuário
+              const eu = this.usuario();
+              if (eu) this.solicitanteSelecionado.set(eu.id);
+            },
+            error: () => {
+              this.usuariosAtivos.set([]);
+              this.carregandoUsuarios.set(false);
+            },
+          });
+      }
+      onCleanup(() => {});
+    });
+
     effect((onCleanup) => {
       // Reage a mudanças de data ou trigger de atualização
       this.reserva.atualizacao();
@@ -141,7 +187,8 @@ export class AgendamentoPage {
   }
 
   confirmarReserva() {
-    this.reserva.confirmar();
+    const solicitanteId = this.isAdmin() ? this.solicitanteSelecionado() : null;
+    this.reserva.confirmarComSolicitante(solicitanteId);
   }
 
   irParaMapa() {
@@ -161,7 +208,14 @@ export class AgendamentoPage {
   }
 
   getSolicitanteLabel(): string {
-    return this.usuario()?.nome ?? '';
+    if (!this.isAdmin()) {
+      return this.usuario()?.nome ?? '';
+    }
+    if (!this.solicitanteSelecionado()) {
+      return this.usuario()?.nome ?? '';
+    }
+    const solicitante = this.usuariosAtivos().find(u => u.id === this.solicitanteSelecionado());
+    return solicitante?.nome ?? this.usuario()?.nome ?? '';
   }
 
   /** Remove zeros à esquerda do código da mesa (ex: "053" → "53", "005" → "5"). */

@@ -2,16 +2,16 @@ package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.dto.request.CriarUsuarioRequest;
 import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
+import br.com.foursys.agendamento_mesas.dto.UsuarioResponsavelResumo;
 import br.com.foursys.agendamento_mesas.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import br.com.foursys.agendamento_mesas.dto.UsuarioResponsavelResumo;
+import org.springframework.web.bind.annotation.RestController;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.util.List;
 
@@ -36,6 +36,11 @@ public class UsuarioController {
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(usuarioService.criar(request));
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<List<UsuarioAdminResumo>> listarAtivosAdmin() {
+        return ResponseEntity.ok(usuarioService.listarAtivosAdmin());
     }
 
     @GetMapping
