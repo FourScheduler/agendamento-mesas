@@ -58,6 +58,10 @@ export class AdminMesaPage {
   readonly confirmando = signal(false);
   readonly erroAcao = signal('');
 
+  voltarParaAgendamento() {
+    void this.router.navigate(['/agendamento']);
+  }
+
   readonly mesasFiltradas = computed(() => {
     const termo = this.busca().trim().toLowerCase();
     if (!termo) return this.mesas();

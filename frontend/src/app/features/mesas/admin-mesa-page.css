@@ -5,6 +5,10 @@
 }
 
 .admin-mesa-page__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
@@ -466,6 +470,11 @@
 @media (max-width: 768px) {
   .admin-mesa-page {
     padding: 1rem;
+  }
+
+  .admin-mesa-page__cabecalho {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .admin-mesa-page__tabela th,
