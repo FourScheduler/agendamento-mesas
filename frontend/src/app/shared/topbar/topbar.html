@@ -35,6 +35,25 @@
           </svg>
           <span>Minhas reservas</span>
         </a>
+
+        @if (ehAdmin() && !rotaAdmin()) {
+          <a class="topbar__admin" routerLink="/admin/mesas" routerLinkActive="topbar__admin--ativo">
+            <svg
+              class="topbar__menuIcone"
+              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+            >
+              <path d="M8 2v12M2 8h12" stroke-linecap="round" />
+              <circle cx="8" cy="8" r="6" stroke-linecap="round" />
+            </svg>
+            <span>Admin</span>
+          </a>
+        }
       }
 
       @if (usuario()) {
@@ -58,6 +77,15 @@
                   <span class="topbar__menu-perfil-avatar" aria-hidden="true">{{ iniciais() }}</span>
                   <p class="topbar__menu-perfil-nome">{{ usuario() }}</p>
                 </div>
+                @if (ehAdmin() && !rotaAdmin()) {
+                  <a class="topbar__menu-perfil-admin" routerLink="/admin/mesas" (click)="menuAberto.set(false)">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                      <path d="M8 2v12M2 8h12" stroke-linecap="round" />
+                      <circle cx="8" cy="8" r="6" stroke-linecap="round" />
+                    </svg>
+                    <span>Administração de mesas</span>
+                  </a>
+                }
                 <button class="topbar__menu-perfil-sair" type="button" (click)="encerrarSessao()">Sair</button>
               </div>
             }

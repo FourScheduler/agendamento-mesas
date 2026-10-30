@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Reserva, ReservaConfirmada } from './reserva';
 import { Mesa } from '../mesas/mesa';
+import { UsuarioAdminResumo } from '../../core/auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReservaService {
@@ -22,8 +23,15 @@ export class ReservaService {
     });
   }
 
-  criar(mesaId: number, data: string) {
-    return this.http.post<ReservaConfirmada>(`${environment.apiUrl}/reservas`, { mesaId, data });
+  /** Lista usuários ativos (rota administrativa). */
+  listarUsuariosAtivos() {
+    return this.http.get<readonly UsuarioAdminResumo[]>(`${environment.apiUrl}/admin/usuarios`);
+  }
+
+  criar(mesaId: number, data: string, solicitanteId?: number) {
+    const body: { mesaId: number; data: string; solicitanteId?: number } = { mesaId, data };
+    if (solicitanteId != null) body.solicitanteId = solicitanteId;
+    return this.http.post<ReservaConfirmada>(`${environment.apiUrl}/reservas`, body);
   }
 
   cancelar(id: number) {

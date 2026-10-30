@@ -1,0 +1,267 @@
+<div class="admin-mesa-page">
+  <header class="admin-mesa-page__cabecalho">
+    <div class="admin-mesa-page__titulo-grupo">
+      <h1 class="admin-mesa-page__titulo">Administração de Mesas</h1>
+      <p class="admin-mesa-page__subtitulo">Gerencie mesas, responsáveis e ativação</p>
+    </div>
+  </header>
+
+  @if (carregando()) {
+    <app-carregando texto="Carregando mesas..." />
+  } @else if (erroConsulta()) {
+    <app-erro
+      [titulo]="'Erro ao carregar mesas'"
+      [mensagem]="erroConsulta()"
+      (tentarNovamente)="carregarMesas()"
+    />
+  } @else {
+    <div class="admin-mesa-page__conteudo">
+      <div class="admin-mesa-page__busca">
+        <label for="busca" class="visually-hidden">Buscar mesa por código</label>
+        <input
+          id="busca"
+          type="text"
+          class="campo"
+          placeholder="Buscar por código da mesa..."
+          [(ngModel)]="busca"
+          (input)="busca.set($event.target.value)"
+          aria-describedby="busca-desc"
+        />
+        <span id="busca-desc" class="visually-hidden">Digite o código da mesa para filtrar a lista</span>
+      </div>
+
+      @if (mesasFiltradas().length === 0) {
+        <app-vazio
+          titulo="Nenhuma mesa encontrada"
+          [mensagem]="busca() ? 'Nenhuma mesa corresponde à busca.' : 'Nenhuma mesa cadastrada.'"
+        />
+      } @else {
+        <div class="admin-mesa-page__tabela-container">
+          <table class="admin-mesa-page__tabela" role="grid" aria-label="Lista de mesas para administração">
+            <thead>
+              <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Localização</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Ativação</th>
+                <th scope="col">Responsável Fixo</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (mesa of mesasFiltradas(); track trackByMesa($index, mesa)) {
+                <tr>
+                  <td class="admin-mesa-page__codigo">{{ mesa.codigo }}</td>
+                  <td>{{ mesa.regiao }}</td>
+                  <td>
+                    <span class="badge" [class.badge--livre]="mesa.tipo === 'LIVRE'" [class.badge--fixa]="mesa.tipo === 'FIXA'">
+                      {{ getTipoLabel(mesa.tipo) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [class.badge--ativa]="mesa.ativa" [class.badge--inativa]="!mesa.ativa">
+                      {{ getAtivacaoLabel(mesa.ativa) }}
+                    </span>
+                  </td>
+                  <td class="admin-mesa-page__responsavel">
+                    @if (mesa.responsavel) {
+                      <span>{{ mesa.responsavel.nome }} ({{ mesa.responsavel.email }})</span>
+                    } @else {
+                      <span class="admin-mesa-page__sem-responsavel">Não atribuída</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="admin-mesa-page__acoes">
+                      @if (podeFixar(mesa)) {
+                        <button
+                          type="button"
+                          class="botao botao--secundario botao--pequeno"
+                          (click)="abrirModalFixar(mesa)"
+                          [disabled]="confirmando()"
+                          aria-label="Fixar mesa {{ mesa.codigo }}"
+                        >
+                          Fixar
+                        </button>
+                      }
+                      @if (podeDesfixar(mesa)) {
+                        <button
+                          type="button"
+                          class="botao botao--secundario botao--pequeno"
+                          (click)="abrirModalDesfixar(mesa)"
+                          [disabled]="confirmando()"
+                          aria-label="Desfixar mesa {{ mesa.codigo }}"
+                        >
+                          Desfixar
+                        </button>
+                      }
+                      @if (podeAlterarResponsavel(mesa)) {
+                        <button
+                          type="button"
+                          class="botao botao--secundario botao--pequeno"
+                          (click)="abrirModalAlterarResponsavel(mesa)"
+                          [disabled]="confirmando()"
+                          aria-label="Alterar responsável da mesa {{ mesa.codigo }}"
+                        >
+                          Alterar responsável
+                        </button>
+                      }
+                      @if (mesa.ativa) {
+                        <button
+                          type="button"
+                          class="botao botao--perigo botao--pequeno"
+                          (click)="abrirModalInativar(mesa)"
+                          [disabled]="confirmando()"
+                          aria-label="Inativar mesa {{ mesa.codigo }}"
+                        >
+                          Inativar
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          class="botao botao--primario botao--pequeno"
+                          (click)="abrirModalAtivar(mesa)"
+                          [disabled]="confirmando()"
+                          aria-label="Ativar mesa {{ mesa.codigo }}"
+                        >
+                          Ativar
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  @if (mesaSelecionadaParaAcao() && acaoEmAndamento()) {
+    <div class="modal-overlay" (click)="!confirmando() && fecharModal()" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <header class="modal__cabecalho">
+          <h2 id="modal-titulo" class="modal__titulo">{{ getTituloModal() }}</h2>
+          <button type="button" class="modal__fechar" (click)="!confirmando() && fecharModal()" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </header>
+        <div class="modal__conteudo">
+          <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
+
+          @if ((acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') && !confirmando()) {
+            <div class="modal__campo">
+              <label for="usuario-busca" class="campo__rotulo">Usuário ativo <span class="obrigatorio" aria-hidden="true">*</span></label>
+              <div class="usuario-busca">
+                <input
+                  id="usuario-busca"
+                  type="text"
+                  class="campo"
+                  placeholder="Buscar por nome ou e-mail..."
+                  [(ngModel)]="buscaUsuario"
+                  (input)="buscaUsuario.set($event.target.value)"
+                  (focus)="usuarioFocado.set(true)"
+                  (blur)="usuarioFocado.set(false)"
+                  [disabled]="carregandoUsuarios() || confirmando()"
+                  autocomplete="off"
+                  aria-describedby="usuario-busca-desc"
+                  aria-expanded="mostrarSugestoesUsuario()"
+                  aria-controls="usuario-resultados"
+                />
+                <span id="usuario-busca-desc" class="visually-hidden">Digite o nome ou e-mail do usuário para filtrar</span>
+                @if (mostrarSugestoesUsuario()) {
+                  <div 
+                    id="usuario-resultados"
+                    class="usuario-busca__resultados" 
+                    role="listbox" 
+                    [attr.aria-label]="buscaUsuario() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
+                  >
+                    @if (buscaUsuario() && usuariosFiltrados().length > 0) {
+                      @for (usuario of usuariosFiltrados(); track trackByUsuario($index, usuario)) {
+                        <button
+                          type="button"
+                          class="usuario-busca__opcao"
+                          [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                          (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
+                          role="option"
+                          [aria-selected]="usuarioSelecionado() === usuario.id"
+                        >
+                          <span class="usuario-busca__nome">{{ usuario.nome }}</span>
+                          <span class="usuario-busca__email">{{ usuario.email }}</span>
+                        </button>
+                      }
+                    } @else if (buscaUsuario() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
+                      <div class="usuario-busca__vazio" role="status">Nenhum usuário encontrado</div>
+                    } @else if (!buscaUsuario() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
+                      @for (usuario of usuariosAtivos(); track trackByUsuario($index, usuario)) {
+                        <button
+                          type="button"
+                          class="usuario-busca__opcao"
+                          [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                          (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
+                          role="option"
+                          [aria-selected]="usuarioSelecionado() === usuario.id"
+                        >
+                          <span class="usuario-busca__nome">{{ usuario.nome }}</span>
+                          <span class="usuario-busca__email">{{ usuario.email }}</span>
+                        </button>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+              @if (carregandoUsuarios()) {
+                <p class="campo__erro" role="status">Carregando usuários...</p>
+              } @if (erroUsuarios()) {
+                <p class="campo__erro" role="alert">{{ erroUsuarios() }} <button type="button" class="botao--link" (click)="carregarUsuariosAtivos()">Tentar novamente</button></p>
+              } @if (!carregandoUsuarios() && !erroUsuarios() && usuariosAtivos().length === 0) {
+                <p class="campo__erro" role="alert">Nenhum usuário ativo disponível</p>
+              }
+            </div>
+          }
+
+          @if (acaoEmAndamento() === 'alterar-responsavel' && !confirmando()) {
+            <div class="modal__info">
+              <strong>Responsável atual:</strong> {{ getResponsavelAtual() }}
+            </div>
+          }
+
+          @if (erroAcao()) {
+            <div class="modal__erro" role="alert">{{ erroAcao() }}</div>
+          }
+        </div>
+        <footer class="modal__rodape">
+          <button
+            type="button"
+            class="botao botao--contorno"
+            (click)="!confirmando() && fecharModal()"
+            [disabled]="confirmando()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="botao"
+            [class.botao--primario]="acaoEmAndamento() === 'ativar' || acaoEmAndamento() === 'fixar'"
+            [class.botao--perigo]="acaoEmAndamento() === 'inativar' || acaoEmAndamento() === 'desfixar'"
+            [class.botao--secundario]="acaoEmAndamento() === 'alterar-responsavel'"
+            (click)="confirmarAcao()"
+            [disabled]="confirmando() || (acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') && !usuarioSelecionado()"
+          >
+            @if (confirmando()) {
+              <span class="botao__spinner" aria-hidden="true"></span>
+              Processando...
+            } @else {
+              {{ acaoEmAndamento() === 'fixar' ? 'Fixar' :
+                 acaoEmAndamento() === 'desfixar' ? 'Desfixar' :
+                 acaoEmAndamento() === 'alterar-responsavel' ? 'Alterar' :
+                 acaoEmAndamento() === 'ativar' ? 'Ativar' : 'Inativar' }}
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

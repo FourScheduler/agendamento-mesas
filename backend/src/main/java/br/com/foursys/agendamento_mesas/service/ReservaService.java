@@ -65,11 +65,11 @@ public class ReservaService {
         datas.validar(request.data());
 
         Usuario usuario = usuarioRepositoryPort.buscarParaReserva(autenticado.id())
-                .filter(Usuario::isAtivo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
+            .filter(Usuario::isAtivo)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
 
         Mesa mesa = mesaRepositoryPort.buscarParaReserva(request.mesaId()).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));
 
         // Revalida também a data: o request pode ter aguardado a liberação dos locks.
         datas.validar(request.data());
@@ -83,13 +83,13 @@ public class ReservaService {
 
         if (reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
+                "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
         }
 
         if (reservaRepositoryPort.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Você já possui uma reserva em " + request.data().format(DATA_BR)
-                            + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
+                "Você já possui uma reserva em " + request.data().format(DATA_BR)
+                    + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
 
         Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
