@@ -125,7 +125,7 @@ public class ReservaService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancelar(Long idReserva, UsuarioAutenticado usuarioAutenticado) {
-        usuarios.buscarParaReserva(usuarioAutenticado.id()).orElseThrow(() ->
+        usuarioRepositoryPort.buscarParaReserva(usuarioAutenticado.id()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inexistente."));
         Reserva reserva = buscarReserva(idReserva);
 
