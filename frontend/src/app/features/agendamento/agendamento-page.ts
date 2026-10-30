@@ -220,6 +220,10 @@ export class AgendamentoPage {
     this.termosBuscaSolicitante.next('');
   }
 
+  iniciaisSolicitante(nome: string): string {
+    return nome.trim().split(/\s+/).slice(0, 2).map(parte => parte[0]).join('').toLocaleUpperCase('pt-BR');
+  }
+
   fecharSugestoesSeFora(event: FocusEvent) {
     const container = event.currentTarget;
     const proximoFoco = event.relatedTarget;

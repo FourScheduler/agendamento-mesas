@@ -160,7 +160,7 @@ describe('Agendamento integrado à reserva diária', () => {
 
   it('usa o administrador autenticado como solicitante inicial', () => {
     const fixture = abrir('ADMIN');
-    expect(fixture.nativeElement.querySelector('.solicitante-busca__selecionado').textContent).toContain('Maria');
+    expect(fixture.nativeElement.querySelector('.solicitante-selecionado__nome').textContent).toContain('Maria');
   });
 
   it('busca solicitantes no backend, permite selecionar e envia o ID na reserva administrativa', async () => {
@@ -198,7 +198,7 @@ describe('Agendamento integrado à reserva diária', () => {
 
     expect(fixture.componentInstance.solicitanteSelecionado()).toBe(8);
     expect(fixture.nativeElement.querySelector('.botao--confirmar').disabled).toBe(false);
-    expect(fixture.nativeElement.querySelector('.solicitante-busca__selecionado').textContent).toContain('João Pereira');
+    expect(fixture.nativeElement.querySelector('.solicitante-selecionado__nome').textContent).toContain('João Pereira');
 
     fixture.nativeElement.querySelector('.botao--confirmar').click();
     const confirmacao = http.expectOne('/api/reservas');
