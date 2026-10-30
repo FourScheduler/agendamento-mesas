@@ -5,6 +5,7 @@ import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -53,5 +54,10 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     @Override
     public long contarUsuarios() {
         return usuarioJpaRepository.count();
+    }
+
+    @Override
+    public List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc() {
+        return usuarioJpaRepository.findByAtivoTrueOrderByNomeAscIdAsc();
     }
 }

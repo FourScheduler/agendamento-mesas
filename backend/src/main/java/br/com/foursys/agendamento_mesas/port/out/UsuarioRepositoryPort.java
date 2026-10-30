@@ -4,6 +4,7 @@ import br.com.foursys.agendamento_mesas.model.Usuario;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -23,4 +24,6 @@ public interface UsuarioRepositoryPort {
     Optional<Usuario> buscarParaReserva(@Param("id") Long id);
 
     long contarUsuarios();
+
+    List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc();
 }

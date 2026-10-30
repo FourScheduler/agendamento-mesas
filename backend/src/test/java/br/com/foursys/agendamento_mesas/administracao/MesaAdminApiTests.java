@@ -8,7 +8,7 @@ import br.com.foursys.agendamento_mesas.dto.request.AtribuirResponsavelRequest;
 import br.com.foursys.agendamento_mesas.enums.*;
 import br.com.foursys.agendamento_mesas.model.*;
 import br.com.foursys.agendamento_mesas.port.out.*;
-import br.com.foursys.agendamento_mesas.repository.UsuarioRepository;
+import br.com.foursys.agendamento_mesas.infrastructure.persistence.repository.UsuarioJpaRepository;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import br.com.foursys.agendamento_mesas.service.MesaAdminService;
 import br.com.foursys.agendamento_mesas.service.UsuarioService;
@@ -43,7 +43,9 @@ import static org.mockito.Mockito.*;
 public class MesaAdminApiTests {
     static final LocalDate HOJE = LocalDate.of(2026, 10, 26);
     @Autowired MockMvc mvc;
-    @Autowired UsuarioRepository usuarios;
+    @Autowired UsuarioJpaRepository usuariosPort;
+
+    @Autowired UsuarioRepositoryPort usuarios;
     @Autowired MesaRepositoryPort mesas;
     @Autowired ReservaRepositoryPort reservas;
     @Autowired MesaAdminService service;
@@ -65,11 +67,11 @@ public class MesaAdminApiTests {
     void preparar() {
         reservas.deletarTodos();
         mesas.deletarTodos();
-        usuarios.deleteAll();
-        admin = usuarios.save(new Usuario("Administrador", "admin@teste.com", "hash", PerfilUsuario.ADMIN, true));
-        maria = usuarios.save(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
-        joao = usuarios.save(new Usuario("Joao", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
-        inativo = usuarios.save(new Usuario("Inativo", "inativo@teste.com", "hash", PerfilUsuario.USUARIO, false));
+        usuariosPort.deleteAll();
+        admin = usuariosPort.save(new Usuario("Administrador", "admin@teste.com", "hash", PerfilUsuario.ADMIN, true));
+        maria = usuariosPort.save(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        joao = usuariosPort.save(new Usuario("Joao", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        inativo = usuariosPort.save(new Usuario("Inativo", "inativo@teste.com", "hash", PerfilUsuario.USUARIO, false));
         mesa = mesas.salvar(new Mesa(null, "044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0));
         outraMesa = mesas.salvar(new Mesa(null, "053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0));
     }
@@ -110,7 +112,7 @@ public class MesaAdminApiTests {
                 .andExpect(jsonPath("$[2].token").doesNotExist());
         mvc.perform(get("/api/admin/usuarios").param("ativo", "false").header("Authorization", token(admin)))
                 .andExpect(status().isBadRequest());
-        var repositorio = mock(UsuarioRepository.class);
+        var repositorio = mock(UsuarioRepositoryPort.class);
         when(repositorio.findByAtivoTrueOrderByNomeAscIdAsc()).thenReturn(List.of());
         assertThat(new UsuarioService(repositorio, mock(PasswordEncoder.class)).listarAtivos()).isEmpty();
     }

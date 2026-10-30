@@ -53,7 +53,7 @@ public class UsuarioService {
 
     @Transactional(readOnly = true)
     public List<UsuarioResponsavelResumo> listarAtivos() {
-        return usuarioRepository.findByAtivoTrueOrderByNomeAscIdAsc().stream()
+        return usuarioRepositoryPort.findByAtivoTrueOrderByNomeAscIdAsc().stream()
                 .map(UsuarioResponsavelResumo::de).toList();
     }
 

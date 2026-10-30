@@ -60,6 +60,12 @@ public class Mesa {
     @Column(name = "ocupante", length = 120)
     private String ocupante;
 
+    // Construtor de compatibilidade para testes e catálogo legado (sem responsável, com ocupante).
+    public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
+                String planta, Integer posicaoX, Integer posicaoY, String ocupante) {
+        this(id, codigo, regiao, tipo, ativa, null, planta, posicaoX, posicaoY, ocupante);
+    }
+
     // Mantém a construção do catálogo e dos dados legados sem responsável e sem ocupante.
     public Mesa(Long id, String codigo, String regiao, TipoMesa tipo, boolean ativa,
                 String planta, Integer posicaoX, Integer posicaoY) {
