@@ -96,6 +96,20 @@ Retorna o perfil do usuário autenticado (id e nome inclusos), identificado pelo
 
 ---
 
+## GET /api/mesas
+
+Lista o catálogo completo quando `termo` não contém números ou não é informado. Quando houver números, ignora os demais caracteres e busca no banco por trecho do código (por exemplo, `Mesa 10` e `abc 10` equivalem a `10`). Exige autenticação.
+
+### Query params
+
+| Campo | Obrigatório | Formato |
+| --- | --- | --- |
+| `termo` | Não | Texto livre; somente os dígitos são usados para filtrar pelo código |
+
+### Response `200`
+
+Lista de `MesaResponse` em ordem crescente de código.
+
 ## GET /api/admin/usuarios/busca
 
 Busca usuários ativos por trecho do nome ou e-mail, sem diferenciar maiúsculas de minúsculas. Exige perfil `ADMIN`. `termo` deve conter ao menos dois caracteres na interface; a resposta limita-se aos 20 primeiros resultados ordenados por nome.

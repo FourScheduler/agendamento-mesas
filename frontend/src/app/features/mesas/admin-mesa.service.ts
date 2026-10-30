@@ -30,8 +30,12 @@ export class AdminMesaService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/admin/mesas`;
 
-  listarTodas() {
-    return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas`);
+  listarTodas(termo?: string) {
+    let params = new HttpParams();
+    if (termo?.trim()) {
+      params = params.set('termo', termo.trim());
+    }
+    return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas`, { params });
   }
 
   listarUsuariosAtivos() {

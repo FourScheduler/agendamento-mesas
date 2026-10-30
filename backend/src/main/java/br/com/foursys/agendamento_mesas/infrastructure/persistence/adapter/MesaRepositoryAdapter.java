@@ -46,6 +46,16 @@ public class MesaRepositoryAdapter implements MesaRepositoryPort {
     }
 
     @Override
+    public List<Mesa> buscarPorTrechoCodigoAsc(String termo) {
+        return mesaRepository.findAllByCodigoContainingOrderByCodigoAsc(termo);
+    }
+
+    @Override
+    public List<Mesa> buscarPorTrechoCodigoOuRegiaoAsc(String termo) {
+        return mesaRepository.findAllByCodigoContainingIgnoreCaseOrRegiaoContainingIgnoreCaseOrderByCodigoAsc(termo, termo);
+    }
+
+    @Override
     public Optional<Mesa> buscarPorCodigo(String codigo) {
         return mesaRepository.findByCodigo(codigo);
     }

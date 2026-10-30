@@ -1,8 +1,10 @@
-import { Component, inject, signal, computed, effect, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, of } from 'rxjs';
+import { catchError, debounceTime, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { AdminMesaService, UsuarioAtivo } from './admin-mesa.service';
 import { Mesa } from './mesa';
@@ -24,6 +26,7 @@ export class AdminMesaPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
+  private readonly buscaMesas$ = new Subject<string>();
 
   readonly usuario = this.auth.usuario;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
@@ -63,36 +66,42 @@ export class AdminMesaPage {
   }
 
   readonly mesasFiltradas = computed(() => {
-    const termo = this.busca().trim().toLowerCase();
-    if (!termo) return this.mesas();
-    return this.mesas().filter(m =>
-      m.codigo.toLowerCase().includes(termo) ||
-      m.regiao.toLowerCase().includes(termo)
-    );
+    return this.mesas();
   });
 
   constructor() {
-    effect((onCleanup) => {
-      this.carregarMesas();
-      onCleanup(() => {});
+    this.buscaMesas$.pipe(
+      debounceTime(250),
+      switchMap(termo => {
+        return this.adminMesa.listarTodas(termo).pipe(
+          catchError(e => {
+            this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
+            return of([] as readonly Mesa[]);
+          }),
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(mesas => {
+      this.mesas.set(mesas);
+      this.carregando.set(false);
     });
+
+    this.carregarMesas();
   }
 
   carregarMesas() {
     this.carregando.set(true);
     this.erroConsulta.set('');
-    this.adminMesa.listarTodas()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (mesas) => {
-          this.mesas.set(mesas);
-          this.carregando.set(false);
-        },
-        error: (e) => {
-          this.carregando.set(false);
-          this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
-        },
-      });
+    this.buscaMesas$.next(this.busca());
+  }
+
+  onBuscaChange(event: Event) {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+
+    const valor = target.value;
+    this.busca.set(valor);
+    this.buscaMesas$.next(valor);
   }
 
   carregarUsuariosAtivos() {

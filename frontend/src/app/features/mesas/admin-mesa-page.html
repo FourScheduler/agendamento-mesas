@@ -23,17 +23,17 @@
   } @else {
     <div class="admin-mesa-page__conteudo">
       <div class="admin-mesa-page__busca">
-        <label for="busca" class="visually-hidden">Buscar mesa por código</label>
+        <label for="busca" class="visually-hidden">Buscar mesa por número</label>
         <input
           id="busca"
           type="text"
           class="campo"
-          placeholder="Buscar por código da mesa..."
+          placeholder="Buscar por código (ex.: mesa 10)..."
           [(ngModel)]="busca"
-          (input)="busca.set($event.target.value)"
+          (input)="onBuscaChange($event)"
           aria-describedby="busca-desc"
         />
-        <span id="busca-desc" class="visually-hidden">Digite o código da mesa para filtrar a lista</span>
+        <span id="busca-desc" class="visually-hidden">Digite um número, por exemplo mesa 10, para filtrar a lista. Sem números, todas as mesas são exibidas.</span>
       </div>
 
       @if (mesasFiltradas().length === 0) {

@@ -21,8 +21,8 @@ public class MesaController {
     }
 
     @GetMapping
-    public List<MesaResponse> listar() {
-        return mesasService.listar();
+    public List<MesaResponse> listar(@RequestParam(required = false) String termo) {
+        return mesasService.listar(termo);
     }
 
     @GetMapping("/disponiveis")

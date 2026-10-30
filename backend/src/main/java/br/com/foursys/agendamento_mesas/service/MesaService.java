@@ -32,6 +32,20 @@ public class MesaService {
             .toList();
     }
 
+    public List<MesaResponse> listar(String termo) {
+        if (termo == null || termo.isBlank()) {
+            return listar();
+        }
+
+        String termoNormalizado = termo.replaceAll("\\D", "");
+        if (termoNormalizado.isEmpty()) {
+            return listar();
+        }
+
+        return mesaRepositoryPort.buscarPorTrechoCodigoAsc(termoNormalizado)
+            .stream().map(MesaResponse::de).toList();
+    }
+
     /**
      * Elegibilidade do catálogo. O fluxo de reserva deve ainda validar o período e conflitos.
      */

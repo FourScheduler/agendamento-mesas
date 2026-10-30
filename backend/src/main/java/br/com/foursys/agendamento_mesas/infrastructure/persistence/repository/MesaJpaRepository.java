@@ -21,6 +21,13 @@ public interface MesaJpaRepository extends JpaRepository<Mesa, Long> {
 
     List<Mesa> findAllByOrderByCodigoAsc();
 
+    List<Mesa> findAllByCodigoContainingOrderByCodigoAsc(String codigo);
+
+    List<Mesa> findAllByCodigoContainingIgnoreCaseOrRegiaoContainingIgnoreCaseOrderByCodigoAsc(
+        String codigo,
+        String regiao
+    );
+
     Optional<Mesa> findByCodigo(String codigo);
 
     boolean existsByCodigo(String codigo);

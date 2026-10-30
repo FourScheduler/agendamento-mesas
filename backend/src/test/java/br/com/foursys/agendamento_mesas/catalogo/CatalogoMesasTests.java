@@ -73,6 +73,39 @@ class CatalogoMesasTests {
     }
 
     @Test
+    void buscaPorCodigoNoBancoAceitaNumeroOuPrefixoMesa() throws Exception {
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow());
+
+        for (String termo : List.of("m", "me", "mesa", "abc", "TAMBORÉ", "  ")) {
+            mvc.perform(get("/api/mesas")
+                            .param("termo", termo)
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(115));
+        }
+
+        String buscaNumerica = mvc.perform(get("/api/mesas")
+                        .param("termo", "10")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(12))
+                .andExpect(jsonPath("$[0].codigo").value("010"))
+                .andExpect(jsonPath("$[1].codigo").value("100"))
+                .andExpect(jsonPath("$[11].codigo").value("110"))
+                .andReturn().getResponse().getContentAsString();
+
+        for (String termo : List.of("Mesa 10", "abc 10", "  MESA 10  ")) {
+            String buscaComTexto = mvc.perform(get("/api/mesas")
+                            .param("termo", termo)
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            assertThat(buscaComTexto).isEqualTo(buscaNumerica);
+        }
+    }
+
+    @Test
     void disponibilidadeExigeAutenticacao() throws Exception {
         mvc.perform(get("/api/mesas/disponiveis").param("data", LocalDate.now().plusDays(1).toString()))
                 .andExpect(status().isUnauthorized());
