@@ -48,7 +48,7 @@ class CatalogoMesasTests {
 
     @Test
     void catalogoAutenticadoIncluiInativaEReferenciaVisualSemDisponibilidadeGlobal() throws Exception {
-        String token = jwt.gerarToken(usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow());
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow());
         String resposta = mvc.perform(get("/api/mesas").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(115))
@@ -80,7 +80,7 @@ class CatalogoMesasTests {
 
     @Test
     void disponibilidadeExigeDataEmFormatoIso() throws Exception {
-        String token = jwt.gerarToken(usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow());
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow());
 
         mvc.perform(get("/api/mesas/disponiveis").header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
@@ -95,7 +95,7 @@ class CatalogoMesasTests {
     void disponibilidadeBloqueiaPendentesEConfirmadasIgnoraCanceladasEMapeiaCatalogo() throws Exception {
         LocalDate data = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"))
                 .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
-        var usuario = usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow();
+        var usuario = usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow();
         Mesa pendente = repository.salvar(new Mesa(null, "901", "DEMO", TipoMesa.LIVRE, true, null, "DEMO", 10, 20, null));
         Mesa confirmada = repository.salvar(new Mesa(null, "902", "DEMO", TipoMesa.LIVRE, true, null, "DEMO", 30, 40, null));
         Mesa cancelada = repository.salvar(new Mesa(null, "903", "DEMO", TipoMesa.LIVRE, true, null, "DEMO", 50, 60, null));
