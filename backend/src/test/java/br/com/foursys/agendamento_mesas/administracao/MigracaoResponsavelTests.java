@@ -21,7 +21,7 @@ class MigracaoResponsavelTests {
         var reservas = jdbc.queryForList("select * from reservas order by id");
         var flyway = Flyway.configure().dataSource(url, "sa", "")
                 .locations("classpath:db/migration", "classpath:db/seed").load();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(3);
         assertThat(jdbc.queryForList("select id, codigo, tipo, ativa, planta, posicao_x, posicao_y from mesas order by id")).isEqualTo(mesas);
         assertThat(jdbc.queryForList("select * from usuarios order by id")).isEqualTo(usuarios);
         assertThat(jdbc.queryForList("select * from reservas order by id")).isEqualTo(reservas);
