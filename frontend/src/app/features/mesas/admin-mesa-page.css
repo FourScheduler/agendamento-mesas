@@ -4,17 +4,31 @@
   padding: 1.5rem;
 }
 
+.admin-mesa-page__titulo-grupo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-mesa-page__titulo-icone {
+  flex: none;
+  color: var(--navy);
+}
+
 .admin-mesa-page__cabecalho {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px 14px 0 0;
+  background: var(--card-bg);
 }
 
 .admin-mesa-page__titulo {
   margin: 0 0 0.25rem;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--navy);
 }
@@ -33,8 +47,41 @@
 
 .admin-mesa-page__busca {
   position: relative;
-  max-width: 400px;
-  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 440px;
+}
+
+.admin-mesa-page__conteudo {
+  padding: 1.5rem;
+  border: 1px solid var(--border-soft);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: var(--card-bg);
+  box-shadow: 0 8px 24px rgb(34 34 57 / 5%);
+}
+
+.admin-mesa-page__filtros {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-mesa-page__contagem {
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: #f5f6f9;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.admin-mesa-page__contagem strong {
+  display: block;
+  color: var(--navy);
+  font-size: 1.125rem;
 }
 
 .admin-mesa-page__busca-icone {
@@ -49,13 +96,15 @@
 .admin-mesa-page__busca .campo {
   width: 100%;
   padding-left: 2.75rem;
+  background: var(--card-bg);
+  min-height: 44px;
 }
 
 .admin-mesa-page__tabela-container {
   overflow-x: auto;
   border: 1px solid var(--border-soft);
   border-radius: 10px;
-  background: var(--surface);
+  background: var(--card-bg);
 }
 
 .admin-mesa-page__tabela {
@@ -66,29 +115,36 @@
 
 .admin-mesa-page__tabela th,
 .admin-mesa-page__tabela td {
-  padding: 0.875rem 1rem;
+  padding: 0.625rem 1rem;
   text-align: left;
+  vertical-align: middle;
   border-bottom: 1px solid var(--border-soft);
 }
 
 .admin-mesa-page__tabela th {
-  background: #fafafa;
+  background: #f0f2f6;
   font-weight: 700;
   color: var(--navy);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 1rem;
+  white-space: nowrap;
 }
 
 .admin-mesa-page__tabela tbody tr:last-child td {
   border-bottom: none;
 }
 
-.admin-mesa-page__tabela tbody tr:hover {
-  background: #fafafa;
+.admin-mesa-page__tabela tbody tr:hover,
+.admin-mesa-page__tabela tbody tr:focus-within {
+  background: #f8faff;
+}
+
+.admin-mesa-page__tabela tbody tr.admin-mesa-page__linha--inativa {
+  background: #fff3f3;
 }
 
 .admin-mesa-page__tabela th:first-child,
+.admin-mesa-page__tabela th:nth-child(5),
+.admin-mesa-page__tabela th:last-child,
 .admin-mesa-page__tabela td.admin-mesa-page__codigo {
   text-align: center;
 }
@@ -99,22 +155,78 @@
   color: var(--navy);
 }
 
+.admin-mesa-page__numero {
+  display: inline-grid;
+  place-items: center;
+  min-width: 4rem;
+  min-height: 38px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: #f0f2f6;
+  font-size: 1rem;
+}
+
 .admin-mesa-page__responsavel {
   max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 180px;
+  overflow-wrap: anywhere;
+}
+
+.admin-mesa-page__email {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .admin-mesa-page__sem-responsavel {
+  display: block;
+  text-align: center;
   color: var(--muted);
   font-style: italic;
 }
 
 .admin-mesa-page__acoes {
   display: flex;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 0.375rem;
+}
+
+.admin-mesa-page__acoes .botao {
+  min-height: 44px;
+  border: 1px solid var(--border-soft);
+  background: #ffffff;
+  color: var(--navy);
+}
+
+.admin-mesa-page__acoes .botao--secundario:hover:not(:disabled) {
+  background: #eef2ff;
+}
+
+.admin-mesa-page__acoes .botao--perigo {
+  border-color: #fecaca;
+  background: #fff7f7;
+  color: #b91c1c;
+}
+
+.admin-mesa-page__acoes .botao--perigo:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.admin-mesa-page__acoes .botao--primario {
+  border-color: var(--green-text);
+  background: var(--green-soft);
+  color: var(--green-text);
+}
+
+.admin-mesa-page__acoes .botao--primario:hover:not(:disabled) {
+  background: #d1fae5;
+}
+
+.admin-mesa-page__acoes .botao:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
 }
 
 .badge {
@@ -124,8 +236,6 @@
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
 }
 
 .badge--livre {
@@ -134,8 +244,18 @@
 }
 
 .badge--fixa {
-  background: #f3f4f6;
-  color: #374151;
+  background: #e8eeff;
+  color: #3730a3;
+}
+
+.badge--ativa::before,
+.badge--inativa::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .badge--ativa {
@@ -151,7 +271,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(34 34 57 / 50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,13 +286,24 @@
 }
 
 .modal {
+  --modal-acento: var(--navy);
   width: 100%;
-  max-width: 480px;
-  background: var(--surface);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  max-width: 540px;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgb(34 34 57 / 25%);
   animation: modal-entrar 0.2s ease-out;
-  overflow: hidden;
+}
+
+.modal--ativar {
+  --modal-acento: var(--green-text);
+}
+
+.modal--perigo {
+  --modal-acento: #b91c1c;
 }
 
 @keyframes modal-entrar {
@@ -184,8 +315,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 4px solid var(--modal-acento);
   border-bottom: 1px solid var(--border-soft);
+}
+
+.modal__categoria {
+  margin: 0 0 0.375rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .modal__titulo {
@@ -199,8 +339,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  flex: none;
   border: none;
   background: transparent;
   color: var(--muted);
@@ -215,7 +356,50 @@
 }
 
 .modal__conteudo {
-  padding: 1.25rem;
+  padding: 1.5rem;
+}
+
+.modal__resumo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: #f7f8fa;
+  color: var(--navy);
+}
+
+.modal__resumo .badge {
+  margin-left: auto;
+}
+
+.modal__localizacao {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.modal .campo {
+  background: var(--card-bg);
+}
+
+.modal .botao:focus-visible,
+.modal__fechar:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
+}
+
+.modal--ativar .botao--primario {
+  background: var(--green-text);
+  color: #ffffff;
+}
+
+.modal--ativar .botao--primario:hover:not(:disabled) {
+  background: #065f46;
 }
 
 .modal__mensagem {
@@ -234,6 +418,7 @@
   border-radius: 8px;
   font-size: 0.875rem;
   color: var(--muted);
+  border: 1px solid var(--border-soft);
 }
 
 .modal__info strong {
@@ -253,10 +438,10 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   border-top: 1px solid var(--border-soft);
-  background: #fafafa;
-  border-radius: 0 0 12px 12px;
+  background: #f7f8fa;
+  flex-wrap: wrap;
 }
 
 .campo__rotulo {
@@ -502,6 +687,9 @@
   .admin-mesa-page__tabela th,
   .admin-mesa-page__tabela td {
     padding: 0.625rem 0.75rem;
+  }
+
+  .admin-mesa-page__tabela td {
     font-size: 0.8125rem;
   }
 

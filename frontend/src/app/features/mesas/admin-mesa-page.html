@@ -1,8 +1,13 @@
 <div class="admin-mesa-page">
   <header class="admin-mesa-page__cabecalho">
     <div class="admin-mesa-page__titulo-grupo">
-      <h1 class="admin-mesa-page__titulo">Administração de Mesas</h1>
-      <p class="admin-mesa-page__subtitulo">Gerencie mesas, responsáveis e ativação</p>
+      <svg class="admin-mesa-page__titulo-icone" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 10V4h16v6M3 10h18v7H3zM5 17v4M19 17v4M7 10V7h10v3" />
+      </svg>
+      <div>
+        <h1 class="admin-mesa-page__titulo">Gerenciamento de mesas</h1>
+        <p class="admin-mesa-page__subtitulo">Visualize e gerencie as mesas da unidade.</p>
+      </div>
     </div>
     <div class="admin-mesa-page__navegacao">
       <button class="botao" type="button" (click)="irParaMapa()">
@@ -31,6 +36,7 @@
     />
   } @else {
     <div class="admin-mesa-page__conteudo">
+      <div class="admin-mesa-page__filtros">
       <div class="admin-mesa-page__busca">
         <label for="busca" class="visually-hidden">Buscar mesa por número</label>
         <svg class="admin-mesa-page__busca-icone" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -48,6 +54,11 @@
         />
         <span id="busca-desc" class="visually-hidden">Digite um número, por exemplo mesa 10, para filtrar a lista. Sem números, todas as mesas são exibidas.</span>
       </div>
+      <span class="admin-mesa-page__contagem" role="status">
+        <strong>{{ mesasFiltradas().length }}</strong>
+        {{ mesasFiltradas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
+      </span>
+      </div>
 
       @if (mesasFiltradas().length === 0) {
         <app-vazio
@@ -56,21 +67,21 @@
         />
       } @else {
         <div class="admin-mesa-page__tabela-container">
-          <table class="admin-mesa-page__tabela" role="grid" aria-label="Lista de mesas para administração">
+          <table class="admin-mesa-page__tabela" aria-label="Lista de mesas para administração">
             <thead>
               <tr>
                 <th scope="col">Número da mesa</th>
                 <th scope="col">Localização</th>
                 <th scope="col">Tipo</th>
-                <th scope="col">Ativação</th>
+                <th scope="col">Status</th>
                 <th scope="col">Responsável Fixo</th>
                 <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>
               @for (mesa of mesasFiltradas(); track trackByMesa($index, mesa)) {
-                <tr>
-                  <td class="admin-mesa-page__codigo">{{ mesa.codigo }}</td>
+                <tr [class.admin-mesa-page__linha--inativa]="!mesa.ativa">
+                  <td class="admin-mesa-page__codigo"><span class="admin-mesa-page__numero">{{ mesa.codigo }}</span></td>
                   <td>{{ mesa.regiao }}</td>
                   <td>
                     <span class="badge" [class.badge--livre]="mesa.tipo === 'LIVRE'" [class.badge--fixa]="mesa.tipo === 'FIXA'">
@@ -84,7 +95,8 @@
                   </td>
                   <td class="admin-mesa-page__responsavel">
                     @if (mesa.responsavel) {
-                      <span>{{ mesa.responsavel.nome }} ({{ mesa.responsavel.email }})</span>
+                      <strong>{{ mesa.responsavel.nome }}</strong>
+                      <span class="admin-mesa-page__email">{{ mesa.responsavel.email }}</span>
                     } @else {
                       <span class="admin-mesa-page__sem-responsavel">Não atribuída</span>
                     }
@@ -120,8 +132,11 @@
                           (click)="abrirModalAlterarResponsavel(mesa)"
                           [disabled]="confirmando()"
                           aria-label="Alterar responsável da mesa {{ mesa.codigo }}"
+                          title="Alterar responsável"
                         >
-                          Alterar responsável
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m16 3 5 5-12 12H4v-5ZM14 5l5 5M3 22h18" />
+                          </svg>
                         </button>
                       }
                       @if (mesa.ativa) {
@@ -132,6 +147,10 @@
                           [disabled]="confirmando()"
                           aria-label="Inativar mesa {{ mesa.codigo }}"
                         >
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="m6 18 12-12" />
+                          </svg>
                           Inativar
                         </button>
                       } @else {
@@ -142,6 +161,9 @@
                           [disabled]="confirmando()"
                           aria-label="Ativar mesa {{ mesa.codigo }}"
                         >
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="m5 12 4 4L19 6" />
+                          </svg>
                           Ativar
                         </button>
                       }
@@ -158,16 +180,33 @@
 
   @if (mesaSelecionadaParaAcao() && acaoEmAndamento()) {
     <div class="modal-overlay" (click)="!confirmando() && fecharModal()" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
-      <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal" (click)="$event.stopPropagation()"
+        [class.modal--ativar]="acaoEmAndamento() === 'ativar'"
+        [class.modal--perigo]="acaoEmAndamento() === 'inativar' || acaoEmAndamento() === 'desfixar'">
         <header class="modal__cabecalho">
-          <h2 id="modal-titulo" class="modal__titulo">{{ getTituloModal() }}</h2>
-          <button type="button" class="modal__fechar" (click)="!confirmando() && fecharModal()" aria-label="Fechar">
+          <div>
+            <p class="modal__categoria">Gestão de mesas</p>
+            <h2 id="modal-titulo" class="modal__titulo">{{ getTituloModal() }}</h2>
+          </div>
+          <button type="button" class="modal__fechar" (click)="!confirmando() && fecharModal()" [disabled]="confirmando()" aria-label="Fechar">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </header>
         <div class="modal__conteudo">
+          @if (mesaSelecionadaParaAcao(); as mesa) {
+            <div class="modal__resumo">
+              <span class="admin-mesa-page__numero">{{ mesa.codigo }}</span>
+              <div>
+                <strong>Mesa {{ mesa.codigo }}</strong>
+                <span class="modal__localizacao">{{ mesa.regiao }}</span>
+              </div>
+              <span class="badge" [class.badge--ativa]="mesa.ativa" [class.badge--inativa]="!mesa.ativa">
+                {{ getAtivacaoLabel(mesa.ativa) }}
+              </span>
+            </div>
+          }
           <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
 
           @if ((acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') && !confirmando()) {
