@@ -8,7 +8,7 @@ import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
-import br.com.foursys.agendamento_mesas.infrastructure.persistence.repository.UsuarioJpaRepository;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -29,11 +29,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class MesaAdminService {
     private final MesaRepositoryPort mesas;
     private final ReservaRepositoryPort reservas;
-    private final UsuarioJpaRepository usuarios;
+    private final UsuarioRepositoryPort usuarios;
     private final Clock relogio;
 
     public MesaAdminService(MesaRepositoryPort mesas, ReservaRepositoryPort reservas,
-                            UsuarioRepository usuarios, Clock relogio) {
+                            UsuarioRepositoryPort usuarios, Clock relogio) {
         this.mesas = mesas;
         this.reservas = reservas;
         this.usuarios = usuarios;
