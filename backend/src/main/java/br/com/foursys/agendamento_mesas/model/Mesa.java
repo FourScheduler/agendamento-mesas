@@ -12,10 +12,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 
-/**
- * Mesa é uma estação individual de trabalho. {@code planta}, {@code posicaoX} e {@code posicaoY}
- * são apenas referência visual para o desenho da planta no frontend; não participam de regra de negócio.
- */
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

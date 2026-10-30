@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/mesas")
 public class MesaController {
+
     private final MesaService mesasService;
 
     public MesaController(MesaService mesas) {
@@ -35,6 +36,5 @@ public class MesaController {
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(listaMesasDisponiveis);
-
     }
 }

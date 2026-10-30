@@ -2,9 +2,6 @@ package br.com.foursys.agendamento_mesas.dto.response;
 
 import br.com.foursys.agendamento_mesas.dto.UsuarioResumo;
 
-/**
- * Contrato da resposta de POST /api/auth/login.
- */
 public record LoginResponse(
     String token,
     String tipo,

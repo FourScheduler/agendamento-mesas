@@ -13,9 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Autenticação local: e-mail + senha verificada por hash BCrypt, emitindo JWT.
- */
 @Service
 public class AuthService {
 

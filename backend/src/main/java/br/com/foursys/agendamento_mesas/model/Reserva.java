@@ -13,12 +13,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-
 @Entity
+@Getter
+@Setter
 @Table(name = "reservas")
 public class Reserva {
 
@@ -65,49 +69,5 @@ public class Reserva {
         if (criadaEm == null) {
             criadaEm = confirmadaEm != null ? confirmadaEm : LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         }
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Mesa getMesa() {
-        return mesa;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public LocalDate getData() {
-        return data;
-    }
-
-    public StatusReserva getStatus() {
-        return status;
-    }
-
-    public void setStatus(StatusReserva status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCriadaEm() {
-        return criadaEm;
-    }
-
-    public LocalDateTime getConfirmadaEm() {
-        return confirmadaEm;
-    }
-
-    public void setConfirmadaEm(LocalDateTime confirmadaEm) {
-        this.confirmadaEm = confirmadaEm;
-    }
-
-    public LocalDateTime getCanceladaEm() {
-        return canceladaEm;
-    }
-
-    public void setCanceladaEm(LocalDateTime canceladaEm) {
-        this.canceladaEm = canceladaEm;
     }
 }

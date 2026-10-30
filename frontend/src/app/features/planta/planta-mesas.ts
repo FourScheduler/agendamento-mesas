@@ -40,7 +40,7 @@ export class PlantaMesas {
   readonly carregando = signal(false);
   readonly erro = signal("");
   readonly selecionada = signal<number | null>(null);
-  readonly mostrarRotulos = signal(false);
+  readonly mostrarNomes = signal(false);
   readonly layoutTambore = PLANTA_TAMBORE;
   private readonly larguraViewport = signal(0);
   private readonly viewport =
@@ -185,8 +185,8 @@ export class PlantaMesas {
       && this.disponiveis() !== null && !this.disponiveis()!.has(mesa.id);
   }
 
-  alternarRotulos() {
-    this.mostrarRotulos.update((v) => !v);
+  alternarNomes() {
+    this.mostrarNomes.update((v) => !v);
   }
 
   codigoExibido(codigo: string) {

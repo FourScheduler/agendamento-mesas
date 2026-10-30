@@ -1,6 +1,9 @@
 package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.exceptions.MesaNaoEncontradaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
@@ -12,15 +15,12 @@ import org.springframework.stereotype.Service;
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
-import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
-
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,13 +86,11 @@ public class ReservaService {
                 "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
         }
 
-
         if (reservaRepositoryPort.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Você já possui uma reserva em " + request.data().format(DATA_BR)
                     + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
-
 
         Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
         reserva.setConfirmadaEm(LocalDateTime.now(relogio));
@@ -100,8 +98,9 @@ public class ReservaService {
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
     }
 
-    public List<ReservaResponse> minhasReservas(Long usuarioId, LocalDate data, LocalDate dataInicio,
-                                                LocalDate dataFim, StatusReserva status
+    public List<ReservaResponse> minhasReservas(
+        Long usuarioId, LocalDate data, LocalDate dataInicio,
+        LocalDate dataFim, StatusReserva status
     ) {
         if (data != null && (dataInicio != null || dataFim != null)) {
             throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
@@ -127,8 +126,7 @@ public class ReservaService {
         }
 
         if (reserva.getStatus() == StatusReserva.CANCELADA) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Reserva " + idReserva + " já está cancelada.");
+            throw new ReservaJaCanceladaException(idReserva);
         }
 
         reserva.setCanceladaEm(LocalDateTime.now());
@@ -143,11 +141,11 @@ public class ReservaService {
     //Métodos Utilitários
     public Reserva buscarReserva(Long idReserva) {
         return reservaRepositoryPort.buscarPorId(idReserva)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva " + idReserva + " não encontrada."));
+                .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
     }
 
     public Mesa buscarMesa(Long idMesa) {
         return mesaRepositoryPort.buscarPorId(idMesa)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + idMesa + " não encontrada."));
+            .orElseThrow(MesaNaoEncontradaException::new);
     }
 }
