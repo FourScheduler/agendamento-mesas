@@ -43,7 +43,8 @@ visual e a marca, com componentes próprios para seus contratos de API.
   janelas laterais, superiores e inferiores e mesas de tampo claro com cadeiras escuras,
   sem jardineiras laterais.
   Janelas do topo e da base usam o mesmo vidro azulado e moldura da lateral,
-  com divisórias horizontais equivalentes e sem rótulos de texto.
+  com divisórias horizontais equivalentes e sem rótulos de texto. A janela superior
+  mantém espaço visual em relação às cadeiras da primeira fileira.
   Decorações em CSS não representam novos dados do catálogo.
   Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
   visualização. Os controles e as instruções ficam abaixo da área rolável,
@@ -51,8 +52,8 @@ visual e a marca, com componentes próprios para seus contratos de API.
   O nível exibido como 100% corresponde a 80% da escala proporcional original,
   inclusive ao abrir o mapa ou restaurar a visualização.
   Arrastar o fundo com mouse move o mapa; no toque, usar a rolagem
-  nativa. Arrastar não interfere nos botões de mesa. Os modos 2D e Relevo
-  alternam sombras de profundidade em CSS, sem motor 3D ou dependências externas.
+  nativa. Arrastar não interfere nos botões de mesa. A planta permanece em vista
+  superior 2D, com sombras CSS de relevo sempre ativas e sem controles de modo.
 - A paleta do mapa usa estruturas azul-acinzentadas.
   Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
   sobre fundo vermelho suave e inativa tracejada.

@@ -133,7 +133,7 @@
 }
 .planta__janelas {
   position: absolute;
-  top: -32px;
+  top: -56px;
   left: 10px;
   right: 10px;
   height: 18px;
@@ -368,16 +368,6 @@
   text-align: center;
   font-size: 0.875rem;
   color: #596174;
-}
-.mapa__controles .mapa__modo {
-  padding: 0 12px;
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-.mapa__modo[aria-pressed="true"] {
-  color: #fff;
-  border-color: #ff5315;
-  background: #ff5315;
 }
 .bancada__relevo {
   position: absolute;

@@ -339,23 +339,28 @@ describe("PlantaMesas", () => {
     viewport.appendChild(botao);
     botao.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse', button: 0, pointerId: 2 }));
     expect(componente.arrastando()).toBe(false);
+    const mesaFixa = document.createElement('button');
+    mesaFixa.className = 'mesa fixa';
+    mesaFixa.disabled = true;
+    viewport.appendChild(mesaFixa);
+    viewport.scrollLeft = 100;
+    viewport.scrollTop = 200;
+    mesaFixa.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse', button: 0, pointerId: 3, clientX: 50, clientY: 60 }));
+    expect(componente.arrastando()).toBe(true);
+    viewport.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX: 30, clientY: 20 }));
+    expect(viewport.scrollLeft).toBe(120);
+    expect(viewport.scrollTop).toBe(240);
+    viewport.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3 }));
+    expect(componente.arrastando()).toBe(false);
   });
 
-  it("alterna o relevo sem mudar a geometria ou a seleção das mesas", () => {
+  it("mantém o relevo ativo sem exibir controles para alternar o modo do mapa", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
     fixture.detectChanges();
     http.expectOne('/api/mesas').flush([]);
     fixture.detectChanges();
     const mapa = fixture.nativeElement.querySelector('.mapa') as HTMLElement;
-    const modos = fixture.nativeElement.querySelectorAll('.mapa__modo') as NodeListOf<HTMLButtonElement>;
     expect(mapa.classList.contains('mapa--relevo')).toBe(true);
-    modos[0].click();
-    fixture.detectChanges();
-    expect(mapa.classList.contains('mapa--relevo')).toBe(false);
-    expect(modos[0].getAttribute('aria-pressed')).toBe('true');
-    modos[1].click();
-    fixture.detectChanges();
-    expect(mapa.classList.contains('mapa--relevo')).toBe(true);
-    expect(fixture.componentInstance.selecionada()).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.mapa__modo').length).toBe(0);
   });
 });

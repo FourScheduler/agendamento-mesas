@@ -1,4 +1,4 @@
-<section class="mapa cartao" [class.mapa--relevo]="relevo()" aria-label="Mapa interativo de mesas">
+<section class="mapa cartao" [class.mapa--relevo]="relevo" aria-label="Mapa interativo de mesas">
   <header class="mapa__cabecalho">
     <div>
       <p class="eyebrow">{{ mesas()[0]?.regiao ?? 'Catálogo' }}</p>
@@ -183,8 +183,6 @@
       <button type="button" (click)="ajustarZoom(-0.1)" [disabled]="zoom() <= 0.5" aria-label="Diminuir zoom">−</button>
       <button type="button" (click)="centralizarMapa()" aria-label="Restaurar visualização do mapa">↺</button>
       <span>{{ (zoom() * 100).toFixed(0) }}%</span>
-      <button type="button" class="mapa__modo" (click)="relevo.set(false)" [attr.aria-pressed]="!relevo()">2D</button>
-      <button type="button" class="mapa__modo" (click)="relevo.set(true)" [attr.aria-pressed]="relevo()" aria-label="Visualização com relevo">Relevo</button>
     </div>
     <p>
       Arraste o fundo para navegar e use + e − para ajustar o zoom.

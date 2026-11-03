@@ -44,7 +44,7 @@ export class PlantaMesas {
   readonly selecionada = signal<number | null>(null);
   readonly mostrarNomes = signal(false);
   readonly zoom = signal(1);
-  readonly relevo = signal(true);
+  readonly relevo = true;
   readonly layoutTambore = PLANTA_TAMBORE_EXIBICAO;
   private readonly larguraViewport = signal(0);
   private readonly viewport =
@@ -132,7 +132,7 @@ export class PlantaMesas {
 
   iniciarArraste(event: PointerEvent) {
     if (event.pointerType === 'touch' || this.arraste || event.button !== 0 || !(event.target instanceof HTMLElement)
-      || event.target.closest('button')) return;
+      || event.target.closest('button:not(.mesa.fixa)')) return;
     const viewport = this.viewport().nativeElement;
     this.arraste = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft,
       top: viewport.scrollTop, pointerId: event.pointerId };
