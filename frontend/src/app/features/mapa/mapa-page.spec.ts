@@ -69,8 +69,8 @@ describe("Barra de reserva do mapa", () => {
       ".detalhes",
     ) as HTMLElement;
     expect(resumo.textContent).toContain("Mesa 044");
-    expect(resumo.textContent).toContain("Disponível em");
-    expect(resumo.querySelector("details")?.textContent).toContain(
+    expect(resumo.textContent).toContain("Data");
+    expect(resumo.querySelector("dl")?.textContent).toContain(
       "Pessoa Teste",
     );
     const confirmar = resumo.querySelector(".confirmar") as HTMLButtonElement;
