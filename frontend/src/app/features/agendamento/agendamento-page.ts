@@ -108,6 +108,9 @@ export class AgendamentoPage {
   // UI extras
   readonly stepAtual = signal(1);
 
+  // Indica se há mesa selecionada (para controlar layout responsivo)
+  readonly temMesaSelecionada = computed(() => !!this.mesaSelecionada());
+
   constructor() {
     this.termosBuscaSolicitante.pipe(
       distinctUntilChanged(),
