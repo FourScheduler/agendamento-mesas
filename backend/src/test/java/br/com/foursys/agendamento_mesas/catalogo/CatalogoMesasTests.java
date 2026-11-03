@@ -74,7 +74,7 @@ class CatalogoMesasTests {
 
     @Test
     void buscaPorCodigoNoBancoAceitaNumeroOuPrefixoMesa() throws Exception {
-        String token = jwt.gerarToken(usuarios.buscarPorEmail("maria.souza@exemplo.com").orElseThrow());
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow());
 
         for (String termo : List.of("m", "me", "mesa", "abc", "TAMBORÉ", "  ")) {
             mvc.perform(get("/api/mesas")

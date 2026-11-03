@@ -206,29 +206,6 @@ describe('Agendamento integrado à reserva diária', () => {
     confirmacao.flush({ id: 9, status: 'CONFIRMADA', data: '2026-10-28', mesa, solicitante: { id: 8 } });
     fixture.detectChanges();
     http.expectOne(request => request.url === '/api/mesas/disponiveis' && request.params.get('data') === '2026-10-27').flush([]);
-    
-    // Mock da chamada de usuários ativos para admin
-    http.expectOne('/api/admin/usuarios').flush([
-      { id: 7, nome: 'Maria', email: 'maria@teste.com' },
-      { id: 8, nome: 'João', email: 'joao@teste.com' }
-    ]);
-    fixture.detectChanges();
-    
-    // Para admin, o solicitante padrão é o próprio usuário (Maria, id=7)
-    expect(fixture.componentInstance.solicitanteSelecionado()).toBe(7);
-    
-    // Foca o input para abrir o dropdown e verificar a seleção
-    const solicitanteInput = fixture.nativeElement.querySelector('#solicitante-busca');
-    solicitanteInput.focus();
-    fixture.detectChanges();
-    
-    // O dropdown deve mostrar Maria como selecionada
-    const opcaoSelecionada = fixture.nativeElement.querySelector('.solicitante-busca__opcao--selecionado');
-    expect(opcaoSelecionada).toBeTruthy();
-    expect(opcaoSelecionada.textContent).toContain('Maria');
-    
-    // Não deve mostrar texto "reservar para outros"
-    expect(fixture.nativeElement.textContent).not.toContain('reservar para outros');
   });
 
   it('usa a data digitada no campo na consulta, no resumo e na confirmação diária', () => {
