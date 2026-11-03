@@ -62,6 +62,12 @@ visual e a marca, com componentes próprios para seus contratos de API.
 - Os dados e posições continuam vindo exclusivamente da API de mesas. Nenhum
   catálogo, fluxo de salas ou autenticação mockada foi copiado.
 
+Na gestão de mesas, usar cartão branco com cabeçalho integrado, contagem de
+resultados e tabela com títulos em fundo cinza-claro. Números ficam centralizados
+em etiquetas, status têm texto e indicador colorido e linhas inativas usam fundo
+vermelho suave. Ações usam botões de contorno com foco visível. Preservar os
+atalhos Ver mapa e Voltar ao agendamento e a rolagem horizontal em telas menores.
+
 Tokens adicionais ficam em `styles.css`: `--orange-dark`, `--orange-soft`,
 `--border-soft`, `--surface`, `--disabled`, `--selection-bg` e `--error` (`#dc2626`).
 Na planta: `--mesa-livre` (`#10b981`), `--mesa-livre-texto` (`#047857`),

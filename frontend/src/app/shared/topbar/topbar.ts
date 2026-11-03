@@ -45,31 +45,18 @@ export class Topbar {
 
   readonly ehAdmin = computed(() => this.perfil() === 'ADMIN');
 
-  readonly rotaAdmin = toSignal(
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      map(
-        (event) =>
-          /^\/admin(?:\/|[?#]|$)/.test(event.urlAfterRedirects),
-      ),
-    ),
-    {
-      initialValue: /^\/admin(?:\/|[?#]|$)/.test(this.router.url),
-    },
-  );
-
   readonly exibirLocalizacao = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       map(
         (event) =>
-          /^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
+          /^\/(?:agendamento|minhas-reservas|mapa|admin\/mesas)(?:\/|[?#]|$)/.test(
             event.urlAfterRedirects,
           ),
       ),
     ),
     {
-      initialValue: /^\/(?:agendamento|minhas-reservas|mapa)(?:\/|[?#]|$)/.test(
+      initialValue: /^\/(?:agendamento|minhas-reservas|mapa|admin\/mesas)(?:\/|[?#]|$)/.test(
         this.router.url,
       ),
     },

@@ -42,7 +42,7 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 | 6 | Reservas do mesmo usuário | O usuário não pode ter duas reservas não canceladas na mesma data (`409`). Pode ter reservas em datas diferentes, inclusive na mesma mesa. |
 | 7 | Dias consecutivos | Períodos consecutivos são permitidos (dois dias seguidos na mesma mesa ou pelo usuário). |
 | 8 | Cancelamento | O dono pode cancelar a qualquer momento, mesmo depois do início do dia reservado. Cancelamento libera a mesa. |
-| 9 | Solicitante | Vem do contexto autenticado (token). Não é campo editável do request. |
+| 9 | Solicitante | Por padrão vem do contexto autenticado. Administradores podem escolher um usuário ativo pela busca de nome/e-mail; usuários comuns não podem escolher terceiros. |
 | 10 | Autenticação | Login local com e-mail e senha (hash BCrypt). Token JWT em `Authorization: Bearer`. |
 | 11 | Estados da reserva | Novas reservas são `CONFIRMADA`. `PENDENTE` permanece compatível com dados legados; `CANCELADA` libera a data. |
 | 12 | Confirmação | Após revisar, o usuário envia um único POST. A API responde `201` somente após commit da reserva `CONFIRMADA`. |

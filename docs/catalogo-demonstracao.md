@@ -61,7 +61,7 @@ Reservas são de **dia inteiro**. A planta combina `GET /api/mesas` com `GET /ap
 
 O login fica em `/login`, com sessão compartilhada por `AuthService`. O token é mantido em `localStorage`; os guards recuperam a identidade real em `GET /api/auth/perfil` antes de abrir as rotas protegidas após recarregar. Sair ou receber `401` limpa o token e volta ao login. A barra de navegação e a página preparatória `/minhas-reservas` da develop foram preservadas.
 
-Após selecionar uma mesa disponível, o usuário revisa mesa, dia inteiro e solicitante e envia `POST /api/reservas` com `mesaId` e `data`. O botão e a data ficam bloqueados durante o envio. A API deriva a autoria do token. Sucesso só é exibido após a resposta de confirmação, com identificação da reserva.
+Após selecionar uma mesa disponível, o usuário revisa mesa, dia inteiro e solicitante e envia `POST /api/reservas` com `mesaId` e `data`. Administradores podem pesquisar usuários ativos por nome ou e-mail e informar `solicitanteId`; usuários comuns sempre reservam para si. O botão e a data ficam bloqueados durante o envio. Sucesso só é exibido após a resposta de confirmação, com identificação da reserva.
 
 Em `409`, a seleção é limpa e a disponibilidade é atualizada; `400` mostra a validação e `401` exige novo login. Falhas de rede/servidor não exibem sucesso e provocam nova consulta. O catálogo e os estados de ocupação vêm exclusivamente da API, sem fallback fictício.
 

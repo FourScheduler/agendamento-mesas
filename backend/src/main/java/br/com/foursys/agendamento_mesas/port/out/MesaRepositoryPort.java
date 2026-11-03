@@ -24,6 +24,10 @@ public interface MesaRepositoryPort {
 
     List<Mesa> buscarTodosPorCodigoAsc();
 
+    List<Mesa> buscarPorTrechoCodigoAsc(String termo);
+
+    List<Mesa> buscarPorTrechoCodigoOuRegiaoAsc(String termo);
+
     List<Mesa> buscarMesasDisponiveis(
         LocalDate data,
         TipoMesa tipo,
