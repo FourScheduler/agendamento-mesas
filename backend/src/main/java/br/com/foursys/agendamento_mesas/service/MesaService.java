@@ -1,5 +1,6 @@
 package br.com.foursys.agendamento_mesas.service;
 
+import br.com.foursys.agendamento_mesas.dto.response.MesaComOcupacaoResponse;
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
@@ -19,10 +20,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class MesaService {
     private final DataReservaValidator datas;
     private final MesaRepositoryPort mesaRepositoryPort;
+    private final ReservaRepositoryPort reservaRepositoryPort;
 
-    public MesaService(DataReservaValidator datas, MesaRepositoryPort mesaRepositoryPort) {
+    public MesaService(DataReservaValidator datas, MesaRepositoryPort mesaRepositoryPort, ReservaRepositoryPort reservaRepositoryPort) {
         this.datas = datas;
         this.mesaRepositoryPort = mesaRepositoryPort;
+        this.reservaRepositoryPort = reservaRepositoryPort;
     }
 
     public List<MesaResponse> listar() {
@@ -73,6 +76,35 @@ public class MesaService {
             .buscarMesasDisponiveis(data, TipoMesa.LIVRE, ReservaRepositoryPort.BLOQUEIA_MESA)
             .stream()
             .map(MesaResponse::de)
+            .toList();
+    }
+
+    public List<MesaComOcupacaoResponse> listarComOcupacao(LocalDate data) {
+        return listarComOcupacao(data, null);
+    }
+
+    public List<MesaComOcupacaoResponse> listarComOcupacao(LocalDate data, String termo) {
+        datas.validar(data);
+
+        List<Mesa> todas;
+        if (termo != null && !termo.isBlank()) {
+            String termoNormalizado = termo.replaceAll("\\D", "");
+            if (termoNormalizado.isEmpty()) {
+                todas = mesaRepositoryPort.buscarTodosPorCodigoAsc();
+            } else {
+                todas = mesaRepositoryPort.buscarPorTrechoCodigoAsc(termoNormalizado);
+            }
+        } else {
+            todas = mesaRepositoryPort.buscarTodosPorCodigoAsc();
+        }
+
+        var bloqueios = ReservaRepositoryPort.BLOQUEIA_MESA;
+
+        return todas.stream()
+            .map(mesa -> {
+                boolean ocupada = reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), data, bloqueios);
+                return MesaComOcupacaoResponse.de(MesaResponse.de(mesa), ocupada);
+            })
             .toList();
     }
 }

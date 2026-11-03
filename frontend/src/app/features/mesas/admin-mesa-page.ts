@@ -33,6 +33,7 @@ export class AdminMesaPage {
 
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
+  readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
   readonly carregando = signal(false);
   readonly erroConsulta = signal('');
 
@@ -70,14 +71,30 @@ export class AdminMesaPage {
   }
 
   readonly mesasFiltradas = computed(() => {
-    return this.mesas();
+    let resultado = this.mesas();
+
+    const filtro = this.filtroTipo();
+    if (filtro === 'fixa') {
+      resultado = resultado.filter(m => m.tipo === 'FIXA');
+    } else if (filtro === 'livre') {
+      // Livres = mesas LIVRE disponíveis (sem reserva ativa)
+      resultado = resultado.filter(m => m.tipo === 'LIVRE' && !m.ocupada);
+    } else if (filtro === 'inativa') {
+      resultado = resultado.filter(m => !m.ativa);
+    } else if (filtro === 'reservada') {
+      // Reservadas = mesas LIVRE com reserva ativa para hoje
+      resultado = resultado.filter(m => m.tipo === 'LIVRE' && m.ocupada);
+    }
+
+    return resultado;
   });
 
   constructor() {
     this.buscaMesas$.pipe(
       debounceTime(250),
       switchMap(termo => {
-        return this.adminMesa.listarTodas(termo).pipe(
+        const hoje = new Date().toISOString().split('T')[0];
+        return this.adminMesa.listarComOcupacao(termo, hoje).pipe(
           catchError(e => {
             this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
             return of([] as readonly Mesa[]);

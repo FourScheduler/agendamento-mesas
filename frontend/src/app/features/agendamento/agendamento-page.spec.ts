@@ -9,7 +9,7 @@ import { authInterceptor } from '../../core/auth/auth.interceptor';
 import { ToastService } from '../../shared/toast/toast';
 
 const mesa: Mesa = { id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
-  ocupante: 'Teste', referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
+  ocupante: 'Teste', referenciaVisual: { planta: 'DEMO', x: 24, y: 24 }, ocupada: false };
 const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUARIO' };
 
 const mockToastService = {
@@ -70,7 +70,7 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(request.request.headers.get('Authorization')).toBe('Bearer token');
     request.flush([mesa]);
     fixture.detectChanges();
-    fixture.nativeElement.querySelector('.mesa-item').click();
+    fixture.nativeElement.querySelector('.mesa-card').click();
     fixture.detectChanges();
     return fixture;
   }
@@ -213,14 +213,14 @@ describe('Agendamento integrado à reserva diária', () => {
     alterarCampo(fixture, '2026-10-29');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     expect(fixture.componentInstance.carregandoMesas()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.mesa-item')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.mesa-card')).toBeNull();
     fixture.componentInstance.selecionarMesa(mesa);
     fixture.componentInstance.confirmarReserva();
     http.expectNone('/api/reservas');
     const novaMesa = { ...mesa, id: 53, codigo: '053', ocupante: 'Teste' };
     consulta('2026-10-29').flush([novaMesa]);
     fixture.detectChanges();
-    fixture.nativeElement.querySelector('.mesa-item').click();
+    fixture.nativeElement.querySelector('.mesa-card').click();
     fixture.detectChanges();
     // Data aparece no primeiro item do grid (label "Data")
     const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
@@ -281,7 +281,7 @@ describe('Agendamento integrado à reserva diária', () => {
     consulta().flush([mesa]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.filtro-data__erro')).toBeNull();
-    fixture.nativeElement.querySelector('.mesa-item').click();
+    fixture.nativeElement.querySelector('.mesa-card').click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.botao--confirmar').disabled).toBe(false);
   });
@@ -293,6 +293,6 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.filtro-data__erro').textContent).toContain('Data recusada pelo servidor');
     expect(fixture.componentInstance.reserva.disponibilidadeAtual()).toBe(false);
-    expect(fixture.nativeElement.querySelector('.mesa-item')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.mesa-card')).toBeNull();
   });
 });

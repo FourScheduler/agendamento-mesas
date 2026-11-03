@@ -34,6 +34,7 @@ describe("PlantaMesas", () => {
           x: 100 + (i % 10) * 80,
           y: 80 + Math.floor(i / 10) * 60,
         },
+        ocupada: false,
       })),
     );
     fixture.detectChanges();
@@ -75,6 +76,7 @@ describe("PlantaMesas", () => {
         ativa: true,
         ocupante: "Teste",
         referenciaVisual: { planta: "P", x: 123, y: 87 },
+        ocupada: false,
       },
       {
         id: 981,
@@ -84,6 +86,7 @@ describe("PlantaMesas", () => {
         ativa: false,
         ocupante: "Teste",
         referenciaVisual: { planta: "P", x: 230, y: 87 },
+        ocupada: false,
       },
       {
         id: 117,
@@ -93,6 +96,7 @@ describe("PlantaMesas", () => {
         ativa: true,
         ocupante: "Teste",
         referenciaVisual: { planta: "Outra", x: 10, y: 20 },
+        ocupada: false,
       },
     ];
     request.flush(mesas);
@@ -127,6 +131,7 @@ describe("PlantaMesas", () => {
         ativa: true,
         ocupante: "Teste",
         referenciaVisual: { planta: "TAMBORÉ", x: 24, y: 24 },
+        ocupada: false,
       },
     ]);
     fixture.detectChanges();
