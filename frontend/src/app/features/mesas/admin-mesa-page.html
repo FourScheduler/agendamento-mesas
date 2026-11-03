@@ -179,8 +179,8 @@
   }
 
   @if (mesaSelecionadaParaAcao() && acaoEmAndamento()) {
-    <div class="modal-overlay" (click)="!confirmando() && fecharModal()" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
-      <div class="modal" (click)="$event.stopPropagation()"
+    <div class="modal-overlay" (click)="!confirmando() && fecharModal()" (keydown.escape)="fecharModal()" role="presentation">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" (click)="$event.stopPropagation()"
         [class.modal--ativar]="acaoEmAndamento() === 'ativar'"
         [class.modal--perigo]="acaoEmAndamento() === 'inativar' || acaoEmAndamento() === 'desfixar'">
         <header class="modal__cabecalho">
@@ -242,6 +242,7 @@
                           type="button"
                           class="usuario-busca__opcao"
                           [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                          (pointerdown)="$event.preventDefault()"
                           (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
                           role="option"
                           [aria-selected]="usuarioSelecionado() === usuario.id"
@@ -258,6 +259,7 @@
                           type="button"
                           class="usuario-busca__opcao"
                           [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                          (pointerdown)="$event.preventDefault()"
                           (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
                           role="option"
                           [aria-selected]="usuarioSelecionado() === usuario.id"

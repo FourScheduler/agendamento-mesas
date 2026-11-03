@@ -420,6 +420,54 @@ Lista reservas de todos os usuários.
 
 Cancela a reserva de qualquer usuário (mesmas regras de estado de `PATCH /api/reservas/{id}/cancelamento`). `200` com a reserva `CANCELADA`; erros `401`, `403`, `404` e `409` como na rota do usuário.
 
+### PATCH /api/admin/mesas/{id}/fixar
+
+Fixa uma mesa e associa um usuário ativo como responsável.
+
+#### Request
+
+```json
+{
+  "usuarioId": 7
+}
+```
+
+`200`: retorna `MesaResponse` com `tipo: "FIXA"` e o objeto `responsavel` (`id`, `nome`, `email`).
+
+### PATCH /api/admin/mesas/{id}/desfixar
+
+Desfixa a mesa, altera o tipo para `LIVRE` e remove o responsável (`responsavel: null`).
+
+`200`: retorna o `MesaResponse` atualizado.
+
+### PATCH /api/admin/mesas/{id}/responsavel
+
+Altera o responsável de uma mesa fixa para outro usuário ativo.
+
+#### Request
+
+```json
+{
+  "usuarioId": 8
+}
+```
+
+`200`: retorna o `MesaResponse` atualizado.
+
+### PATCH /api/admin/mesas/{id}/ativacao
+
+Ativa ou inativa uma mesa.
+
+#### Request
+
+```json
+{
+  "ativa": false
+}
+```
+
+`200`: retorna o `MesaResponse` atualizado.
+
 ### PATCH /api/admin/mesas/{id}/tipo
 
 Altera o tipo da mesa entre `FIXA` e `LIVRE`.
@@ -477,6 +525,10 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | POST | `/api/admin/usuarios` | Sim | ADMIN |
 | GET | `/api/admin/reservas` | Sim | ADMIN |
 | PATCH | `/api/admin/reservas/{id}/cancelamento` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/fixar` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/desfixar` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/responsavel` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/ativacao` | Sim | ADMIN |
 | PATCH | `/api/admin/mesas/{id}/tipo` | Sim | ADMIN |
 
 ## Verificação
