@@ -160,9 +160,28 @@ describe('Agendamento integrado à reserva diária', () => {
 
   it('identifica o próprio administrador sem oferecer reserva em nome de terceiros', () => {
     const fixture = abrir('ADMIN');
-    const valores = fixture.nativeElement.querySelectorAll('.resumo__info-value');
-    // O 6º item é o Solicitante (Data, Mesa, Ocupante, Capacidade, Recursos, Solicitante)
-    expect(valores[5].textContent).toContain('Maria');
+    
+    // Mock da chamada de usuários ativos para admin
+    http.expectOne('/api/admin/usuarios').flush([
+      { id: 7, nome: 'Maria', email: 'maria@teste.com' },
+      { id: 8, nome: 'João', email: 'joao@teste.com' }
+    ]);
+    fixture.detectChanges();
+    
+    // Para admin, o solicitante padrão é o próprio usuário (Maria, id=7)
+    expect(fixture.componentInstance.solicitanteSelecionado()).toBe(7);
+    
+    // Foca o input para abrir o dropdown e verificar a seleção
+    const solicitanteInput = fixture.nativeElement.querySelector('#solicitante-busca');
+    solicitanteInput.focus();
+    fixture.detectChanges();
+    
+    // O dropdown deve mostrar Maria como selecionada
+    const opcaoSelecionada = fixture.nativeElement.querySelector('.solicitante-busca__opcao--selecionado');
+    expect(opcaoSelecionada).toBeTruthy();
+    expect(opcaoSelecionada.textContent).toContain('Maria');
+    
+    // Não deve mostrar texto "reservar para outros"
     expect(fixture.nativeElement.textContent).not.toContain('reservar para outros');
   });
 

@@ -43,6 +43,7 @@
           />
         </div>
       </div>
+
       <button class="botao" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -231,7 +232,80 @@
           </div>
           <div class="resumo__info-text">
             <span class="resumo__info-label">Solicitante</span>
-            <span class="resumo__info-value">{{ getSolicitanteLabel() }}</span>
+            @if (isAdmin()) {
+              @if (carregandoUsuarios()) {
+                <div class="resumo__solicitante-loading" role="status">
+                  <svg class="spinner" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round">
+                      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+                    </path>
+                  </svg>
+                  <span>Carregando…</span>
+                </div>
+              } @else {
+                <div class="solicitante-busca">
+                  <input
+                    id="solicitante-busca"
+                    type="text"
+                    class="campo"
+                    placeholder="Buscar por nome ou e-mail..."
+                    [(ngModel)]="buscaSolicitante"
+                    (input)="buscaSolicitante.set($any($event.target).value)"
+                    (focus)="solicitanteFocado.set(true)"
+                    (blur)="solicitanteFocado.set(false)"
+                    [disabled]="confirmando()"
+                    autocomplete="off"
+                    aria-describedby="solicitante-busca-desc"
+                    aria-expanded="mostrarSugestoesSolicitante()"
+                    aria-controls="solicitante-resultados"
+                  />
+                  <span id="solicitante-busca-desc" class="visually-hidden">Digite o nome ou e-mail do solicitante para filtrar</span>
+                  @if (mostrarSugestoesSolicitante()) {
+                    <div 
+                      id="solicitante-resultados"
+                      class="solicitante-busca__resultados" 
+                      role="listbox" 
+                      [attr.aria-label]="buscaSolicitante() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
+                    >
+                      @if (buscaSolicitante() && usuariosFiltrados().length > 0) {
+                        @for (usuario of usuariosFiltrados(); track usuario.id) {
+                          <button
+                            type="button"
+                            class="solicitante-busca__opcao"
+                            [class.solicitante-busca__opcao--selecionado]="solicitanteSelecionado() === usuario.id"
+                            (click)="solicitanteSelecionado.set(usuario.id); solicitanteFocado.set(false); buscaSolicitante.set('')"
+                            role="option"
+                            [aria-selected]="solicitanteSelecionado() === usuario.id"
+                          >
+                            <span class="solicitante-busca__nome">{{ usuario.nome }}</span>
+                            <span class="solicitante-busca__email">{{ usuario.email }}</span>
+                          </button>
+                        }
+                      } @else if (buscaSolicitante() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
+                        <div class="solicitante-busca__vazio" role="status">Nenhum usuário encontrado</div>
+                      } @else if (!buscaSolicitante() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
+                        @for (usuario of usuariosAtivos(); track usuario.id) {
+                          <button
+                            type="button"
+                            class="solicitante-busca__opcao"
+                            [class.solicitante-busca__opcao--selecionado]="solicitanteSelecionado() === usuario.id"
+                            (click)="solicitanteSelecionado.set(usuario.id); solicitanteFocado.set(false); buscaSolicitante.set('')"
+                            role="option"
+                            [aria-selected]="solicitanteSelecionado() === usuario.id"
+                          >
+                            <span class="solicitante-busca__nome">{{ usuario.nome }}</span>
+                            <span class="solicitante-busca__email">{{ usuario.email }}</span>
+                          </button>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <span class="resumo__info-value">{{ getSolicitanteLabel() }}</span>
+            }
           </div>
         </div>
       </div>

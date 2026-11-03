@@ -81,13 +81,17 @@ export class ReservaDiaria {
   }
 
   confirmar() {
+    this.confirmarComSolicitante(null);
+  }
+
+  confirmarComSolicitante(solicitanteId: number | null) {
     const mesa = this.selecionada();
     const sessao = this.auth.sessao();
     if (this.confirmando() || !mesa || !sessao || !this.disponibilidadeAtual()) return;
     this.confirmando.set(true);
     this.erro.set('');
     this.sucesso.set('');
-    this.reservas.criar(mesa.id, this.data())
+    this.reservas.criar(mesa.id, this.data(), solicitanteId ?? undefined)
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: reserva => {
           this.confirmando.set(false);

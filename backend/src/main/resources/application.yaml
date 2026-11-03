@@ -24,6 +24,5 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4201}
   jwt:
-    # Segredo APENAS de desenvolvimento; sobrescreva com JWT_SECRET fora de dev (mínimo 32 caracteres para HS256).
     secret: ${JWT_SECRET:chave-desenvolvimento-agendamento-mesas-2026-00000000}
     expiracao-horas: ${JWT_EXPIRACAO_HORAS:8}

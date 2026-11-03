@@ -10,6 +10,14 @@ export interface Sessao {
   usuario: { id: number; nome: string; email: string; perfil: string };
 }
 
+export interface UsuarioAdminResumo {
+  id: number;
+  nome: string;
+  email: string;
+  perfil: string;
+  ativo: boolean;
+}
+
 const TOKEN_KEY = 'agendamento_mesas_token';
 
 @Injectable({ providedIn: 'root' })

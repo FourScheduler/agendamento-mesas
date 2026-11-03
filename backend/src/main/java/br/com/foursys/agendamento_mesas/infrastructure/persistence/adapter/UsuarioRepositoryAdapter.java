@@ -1,5 +1,6 @@
 package br.com.foursys.agendamento_mesas.infrastructure.persistence.adapter;
 
+import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
 import br.com.foursys.agendamento_mesas.infrastructure.persistence.repository.UsuarioJpaRepository;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
@@ -54,6 +55,11 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     @Override
     public long contarUsuarios() {
         return usuarioJpaRepository.count();
+    }
+
+    @Override
+    public List<UsuarioAdminResumo> listarAtivos() {
+        return  usuarioJpaRepository.findAllAtivos().stream().map(u -> new UsuarioAdminResumo(u.getId(), u.getNome(), u.getEmail(), u.getPapel(), u.isAtivo())).toList();
     }
 
     @Override

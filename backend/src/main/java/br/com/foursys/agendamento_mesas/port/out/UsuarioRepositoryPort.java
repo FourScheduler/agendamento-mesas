@@ -1,5 +1,6 @@
 package br.com.foursys.agendamento_mesas.port.out;
 
+import br.com.foursys.agendamento_mesas.dto.UsuarioAdminResumo;
 import br.com.foursys.agendamento_mesas.model.Usuario;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,8 @@ public interface UsuarioRepositoryPort {
     Optional<Usuario> buscarParaReserva(@Param("id") Long id);
 
     long contarUsuarios();
+
+    List<UsuarioAdminResumo> listarAtivos();
 
     List<Usuario> findByAtivoTrueOrderByNomeAscIdAsc();
 }
