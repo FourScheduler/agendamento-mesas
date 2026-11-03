@@ -49,7 +49,7 @@ visual e a marca, com componentes próprios para seus contratos de API.
   Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
   visualização. Os controles e as instruções ficam abaixo da área rolável,
   sem sobrepor as mesas.
-  O nível exibido como 100% corresponde a 80% da escala proporcional original,
+  O nível exibido como 100% corresponde a 72% da escala proporcional original,
   inclusive ao abrir o mapa ou restaurar a visualização.
   Arrastar o fundo com mouse move o mapa; no toque, usar a rolagem
   nativa. Arrastar não interfere nos botões de mesa. A planta permanece em vista
@@ -57,12 +57,13 @@ visual e a marca, com componentes próprios para seus contratos de API.
 - A paleta do mapa usa estruturas azul-acinzentadas.
   Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
   sobre fundo vermelho suave e inativa tracejada.
-  Mesas disponíveis na data usam verde; ocupadas usam coral suave e
-  rótulo "Ocupada". A legenda diferencia "Livre na data", "Ocupada na data", fixa,
+  Mesas disponíveis na data usam verde e mostram o rótulo "Livre"; reservadas usam
+  lilás suave sem descrição sobre a mesa. A legenda diferencia "Livre na data", "Reservada", fixa,
   inativa e selecionada. A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
-  a disponibilidade. O cartão de revisão mostra mesa, data e solicitante; a confirmação
-  tem estado de envio e resultados acessíveis (`role=status`/`role=alert`).
+  a disponibilidade. No mapa, selecionar uma mesa abre modal com detalhes já expandidos;
+  administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
+  e resultados acessíveis (`role=status`/`role=alert`).
 - Confirmações e críticas de reserva aparecem em uma notificação no canto superior
   direito, abaixo da barra de navegação, com texto branco: verde para sucesso e
   vermelho para erro. Ambas fecham após dez segundos, com somente uma barra de

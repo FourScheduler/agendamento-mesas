@@ -34,6 +34,7 @@ export class PlantaMesas {
   readonly data = input('');
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
+  readonly mesaSelecionadaId = input<number | null>(null);
   readonly mesaSelecionada = output<Mesa>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
@@ -116,7 +117,7 @@ export class PlantaMesas {
   );
   // Escala todo o desenho junto; cabeçalho e legenda mantêm a fonte do Portal.
   readonly escala = computed(() =>
-    Math.min(1, Math.max(1000, this.larguraViewport()) / this.larguraDesenho()) * 0.8 * this.zoom(),
+    Math.min(1, Math.max(1000, this.larguraViewport()) / this.larguraDesenho()) * 0.72 * this.zoom(),
   );
   private arraste: { x: number; y: number; left: number; top: number; pointerId: number } | null = null;
   readonly arrastando = signal(false);
@@ -157,6 +158,7 @@ export class PlantaMesas {
   private readonly catalogo = inject(MesaService);
 
   constructor() {
+    effect(() => this.selecionada.set(this.mesaSelecionadaId()));
     afterNextRender(() => {
       const elemento = this.viewport().nativeElement;
       const ajustar = (largura: number) => {

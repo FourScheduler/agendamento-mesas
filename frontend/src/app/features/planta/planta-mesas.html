@@ -12,7 +12,7 @@
         <span class="amostra amostra--livre" aria-hidden="true"></span>Livre
         na data
       </li>
-      <li><span class="amostra amostra--ocupada" aria-hidden="true"></span>Ocupada na data</li>
+      <li><span class="amostra amostra--ocupada" aria-hidden="true"></span>Reservada</li>
       <li>
         <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa
       </li>
@@ -138,7 +138,7 @@
             [style.height.px]="planta.tamanhoMesa.altura"
             [disabled]="!estaDisponivel(mesa)"
             [attr.aria-pressed]="selecionada() === mesa.id"
-            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data') + (mesa.ocupante ? ', ' + mesa.ocupante : '')"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Reservada' : 'Livre na data') + (mesa.ocupante ? ', ' + mesa.ocupante : '')"
             (click)="selecionar(mesa)"
             (focus)="onMesaFocus(mesa)"
           >
@@ -152,14 +152,8 @@
             @if (mesa.ocupante && mostrarNomes()) {
               <span class="mesa__ocupante">{{ mesa.ocupante }}</span>
             }
-            @if (!mesa.ativa) {
-              <span class="mesa__estado">Inativa</span>
-            } @else if (estaOcupada(mesa)) {
-              <span class="mesa__estado">Ocupada</span>
-            } @else if (mesa.tipo === 'LIVRE') {
+            @if (estaDisponivel(mesa)) {
               <span class="mesa__estado">Livre</span>
-            } @else if (!mostrarNomes()) {
-              <span class="mesa__estado">Mesa fixa</span>
             }
             @if (estaDisponivel(mesa)) {
             <span

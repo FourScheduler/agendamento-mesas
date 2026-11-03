@@ -82,6 +82,4 @@ estilizados com CSS; não são imagens sobrepostas. A apresentação usa os comp
 standalone, os tokens e a fonte Nunito do Portal, seguindo `agendamento-salas`.
 Cabeçalho e legenda se adaptam à tela sem acompanhar a escala do desenho. A pasta
 de imagens exportadas do Figma foi removida; apenas o logo do Portal permanece como PNG.
-Cada mesa usa o código recebido no canto superior esquerdo, estado ao centro e
-marcador no canto direito. Livre tem borda verde, fixa tem fundo cinza, inativa usa
-borda tracejada e seleção tem borda laranja com confirmação visual. Verde representa disponibilidade na data consultada. Mesas ocupadas têm estado próprio em laranja. Nenhum nome ou reserva do SVG é incorporado ao produto.
+Cada mesa usa o código recebido no canto superior esquerdo e estado "Livre" ao centro somente quando disponível; outras condições não exibem descrição sobre a mesa. O marcador fica no canto direito. Livre tem borda verde, fixa tem fundo cinza, inativa usa borda tracejada e seleção tem borda laranja com confirmação visual. Verde representa disponibilidade na data consultada. Mesas reservadas usam lilás claro. Nenhum nome ou reserva do SVG é incorporado ao produto.

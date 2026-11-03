@@ -30,6 +30,7 @@
   @if (!reserva.erroData()) {
     <app-planta-mesas
       [data]="reserva.data()" [atualizacao]="reserva.atualizacao()" [mesaInicialId]="mesaInicialId()"
+      [mesaSelecionadaId]="mesaSelecionada()?.id ?? null"
       (mesaSelecionada)="onMesaSelecionada($event)"
       (disponibilidadeConsultada)="reserva.registrarDisponibilidade($event)"
       (mesaInicialInvalidada)="onMesaInicialInvalidada()"
@@ -39,35 +40,108 @@
   }
 
   @if (mesaSelecionada(); as mesa) {
-    <aside class="detalhes cartao" aria-labelledby="titulo-detalhes">
-      <div class="detalhes__icone" aria-hidden="true">
-        <svg viewBox="0 0 32 32" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="3" width="14" height="13" rx="4" />
-          <path d="M7 14v7h18v-7M10 21l-2 8M22 21l2 8M16 16v5" />
-        </svg>
-      </div>
-      <div class="detalhes__corpo">
-        <h2 id="titulo-detalhes">Mesa {{ mesa.codigo }} <span class="detalhes__status" aria-hidden="true"></span></h2>
-        <p>Disponível em {{ formatarData(reserva.data()) }}</p>
-        <details>
-          <summary>Detalhes da reserva</summary>
-          <dl>
-            <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
-            @if (mesa.ocupante) {
-              <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
-            }
-            <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
-          </dl>
-          <p>A reserva ocupa somente este dia.</p>
-        </details>
-      </div>
-      <button class="botao confirmar" type="button" (click)="reserva.confirmar()"
-        [disabled]="reserva.confirmando() || !usuario() || !reserva.disponibilidadeAtual()">
-        {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
-      </button>
-      <button class="detalhes__fechar" type="button" aria-label="Limpar seleção da mesa"
-        (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">&times;</button>
-    </aside>
+    <div
+      class="detalhes-overlay"
+      (click)="!reserva.confirmando() && fecharDetalhes()"
+      (keydown.escape)="fecharDetalhes()"
+      role="presentation"
+    >
+      <aside
+        class="detalhes cartao"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-detalhes"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="detalhes__corpo">
+          <h2 id="titulo-detalhes">Mesa {{ mesa.codigo }} <span class="detalhes__status" aria-hidden="true"></span></h2>
+          <p>Disponível em {{ formatarData(reserva.data()) }}</p>
+          <section class="detalhes__informacoes" aria-label="Detalhes da reserva">
+            <dl>
+              <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
+              @if (mesa.ocupante) {
+                <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
+              }
+              @if (isAdmin()) {
+                <dt>Solicitante</dt>
+                <dd>
+                  <div class="solicitante-busca" (focusout)="fecharSugestoesSeFora($event)">
+                    <label class="visually-hidden" for="solicitante-busca">Buscar solicitante por nome ou e-mail</label>
+                    <input
+                      id="solicitante-busca"
+                      class="campo"
+                      type="text"
+                      placeholder="Buscar por nome ou e-mail"
+                      [ngModel]="buscaSolicitante()"
+                      (ngModelChange)="buscarSolicitantes($event)"
+                      (focus)="solicitanteFocado.set(true)"
+                      [disabled]="reserva.confirmando()"
+                      autocomplete="off"
+                      [attr.aria-expanded]="mostrarSugestoesSolicitante()"
+                      aria-controls="solicitante-resultados"
+                    />
+                    @if (solicitanteSelecionado(); as solicitante) {
+                      <div class="solicitante-selecionado" role="status">
+                        <span class="solicitante-selecionado__iniciais" aria-hidden="true">{{ iniciaisSolicitante(solicitante.nome) }}</span>
+                        <span class="solicitante-selecionado__dados">
+                          <span class="solicitante-selecionado__rotulo">Reserva para</span>
+                          <span class="solicitante-selecionado__nome">{{ solicitante.nome }}</span>
+                          <span class="solicitante-selecionado__email">{{ solicitante.email }}</span>
+                        </span>
+                        <svg class="solicitante-selecionado__confirmacao" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-label="Solicitante selecionado">
+                          <path d="m5 12 4 4L19 6" />
+                        </svg>
+                      </div>
+                    }
+                    <div
+                      id="solicitante-resultados"
+                      class="solicitante-busca__resultados"
+                      [hidden]="!mostrarSugestoesSolicitante()"
+                      role="listbox"
+                      aria-label="Usuários encontrados"
+                    >
+                      @if (carregandoUsuarios()) {
+                        <div class="solicitante-busca__vazio" role="status">Buscando usuários…</div>
+                      } @else if (erroBuscaSolicitante()) {
+                        <div class="solicitante-busca__vazio" role="alert">{{ erroBuscaSolicitante() }}</div>
+                      } @else if (buscaSolicitante().trim().length < 2) {
+                        <div class="solicitante-busca__vazio" role="status">Digite ao menos 2 caracteres para buscar.</div>
+                      } @else if (usuariosEncontrados().length > 0) {
+                        @for (solicitante of usuariosEncontrados(); track solicitante.id) {
+                          <button
+                            type="button"
+                            class="solicitante-busca__opcao"
+                            [class.solicitante-busca__opcao--selecionado]="solicitanteSelecionado()?.id === solicitante.id"
+                            (pointerdown)="$event.preventDefault()"
+                            (click)="selecionarSolicitante(solicitante)"
+                            role="option"
+                            [aria-selected]="solicitanteSelecionado()?.id === solicitante.id"
+                          >
+                            <span class="solicitante-busca__nome">{{ solicitante.nome }}</span>
+                            <span class="solicitante-busca__email">{{ solicitante.email }}</span>
+                          </button>
+                        }
+                      } @else {
+                        <div class="solicitante-busca__vazio" role="status">Nenhum usuário encontrado</div>
+                      }
+                    </div>
+                  </div>
+                </dd>
+              } @else {
+                <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
+              }
+            </dl>
+            <p>A reserva ocupa somente este dia.</p>
+          </section>
+        </div>
+        <button class="botao confirmar" type="button" (click)="confirmarReserva()"
+          [disabled]="reserva.confirmando() || !usuario() || !reserva.disponibilidadeAtual() || (isAdmin() && !solicitanteSelecionado())">
+          {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
+        </button>
+        <button class="detalhes__fechar" type="button" aria-label="Fechar detalhes da mesa"
+          (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">&times;</button>
+      </aside>
+    </div>
   }
 </main>
 

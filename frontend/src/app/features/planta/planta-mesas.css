@@ -67,8 +67,8 @@
   border: 2px solid #ed9292;
 }
 .amostra--ocupada {
-  background: #ffe4df;
-  border: 2px solid #ff665e;
+  background: #f3e8ff;
+  border: 2px solid #c084fc;
 }
 .amostra--inativa {
   border: 1px dashed #64748b;
@@ -204,7 +204,7 @@
   padding: 6px 10px;
   border-radius: 10px;
   background: rgb(255 255 255 / 80%);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   line-height: 1;
   box-shadow: 0 2px 8px rgb(66 75 84 / 5%);
@@ -259,9 +259,9 @@
   color: #007b55;
 }
 .mesa.ocupada {
-  border-color: #ffaaa5;
-  background: linear-gradient(145deg, #fff8f5, #ffe2db);
-  color: #b52e26;
+  border-color: #d8b4fe;
+  background: linear-gradient(145deg, #faf5ff, #f3e8ff);
+  color: #6b21a8;
 }
 .mesa.inativa {
   border: 1.5px dashed #c3cad4;
@@ -399,7 +399,7 @@
   gap: 1px;
 }
 .planta--legado .mesa__codigo {
-  font-size: 12px;
+  font-size: 13px;
   padding: 1px 3px;
 }
 .planta--legado .mesa__ocupante,

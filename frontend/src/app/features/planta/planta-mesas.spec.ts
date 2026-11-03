@@ -276,7 +276,7 @@ describe("PlantaMesas", () => {
     fixture.detectChanges();
     const componente = fixture.componentInstance;
     expect(componente.zoom()).toBe(1);
-    expect(componente.escala()).toBeCloseTo(0.8);
+    expect(componente.escala()).toBeCloseTo(0.72);
     const viewport = fixture.nativeElement.querySelector(".mapa__viewport");
     viewport.scrollTo = vi.fn();
     const botoes = fixture.nativeElement.querySelectorAll(".mapa__controles button") as NodeListOf<HTMLButtonElement>;
@@ -290,7 +290,7 @@ describe("PlantaMesas", () => {
     expect(botoes[1].disabled).toBe(true);
     botoes[2].click();
     expect(componente.zoom()).toBe(1);
-    expect(componente.escala()).toBeCloseTo(0.8);
+    expect(componente.escala()).toBeCloseTo(0.72);
     expect(viewport.scrollTo).toHaveBeenCalledWith({ left: 0, top: 0 });
   });
 
@@ -330,28 +330,55 @@ describe("PlantaMesas", () => {
     expect(emitir).toHaveBeenCalledExactlyOnceWith(mesas[0]);
   });
 
-  it("oculta o rótulo de mesa fixa ao exibir os nomes dos ocupantes", () => {
+  it("exibe somente o rótulo Livre e mantém nomes opcionais dos ocupantes", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput('data', '2026-11-03');
     fixture.detectChanges();
-    http.expectOne('/api/mesas').flush([{
-      id: 65,
-      codigo: '065',
-      regiao: 'DEMO',
-      tipo: 'FIXA',
-      ativa: true,
-      ocupante: 'Pessoa Exemplo',
-      referenciaVisual: { planta: 'DEMO', x: 200, y: 80 },
-    }]);
+    http.expectOne('/api/mesas').flush([
+      {
+        id: 65,
+        codigo: '065',
+        regiao: 'DEMO',
+        tipo: 'FIXA',
+        ativa: true,
+        ocupante: 'Pessoa Exemplo',
+        referenciaVisual: { planta: 'DEMO', x: 200, y: 80 },
+      },
+      {
+        id: 66,
+        codigo: '066',
+        regiao: 'DEMO',
+        tipo: 'LIVRE',
+        ativa: true,
+        ocupante: '',
+        referenciaVisual: { planta: 'DEMO', x: 400, y: 80 },
+      },
+      {
+        id: 67,
+        codigo: '067',
+        regiao: 'DEMO',
+        tipo: 'LIVRE',
+        ativa: true,
+        ocupante: '',
+        referenciaVisual: { planta: 'DEMO', x: 600, y: 80 },
+      },
+    ]);
+    http.expectOne('/api/mesas/disponiveis?data=2026-11-03')
+      .flush([{ id: 66 }]);
     fixture.detectChanges();
 
-    const mesa = fixture.nativeElement.querySelector('button.mesa') as HTMLButtonElement;
-    expect(mesa.querySelector('.mesa__estado')?.textContent).toContain('Mesa fixa');
+    const mesas = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
+    expect(mesas[0].querySelector('.mesa__estado')).toBeNull();
+    expect(mesas[1].querySelector('.mesa__estado')?.textContent).toBe('Livre');
+    expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
+
+    const mesaFixa = mesas[0];
     (fixture.nativeElement.querySelector('.botao-icone') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(mesa.querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Exemplo');
-    expect(getComputedStyle(mesa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
-    expect(mesa.querySelector('.mesa__estado')).toBeNull();
+    expect(mesaFixa.querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Exemplo');
+    expect(getComputedStyle(mesaFixa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
+    expect(mesaFixa.querySelector('.mesa__estado')).toBeNull();
   });
 
   it("arrasta somente o fundo e libera a captura ao finalizar", () => {
