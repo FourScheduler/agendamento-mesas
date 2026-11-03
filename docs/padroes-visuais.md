@@ -39,11 +39,11 @@ visual e a marca, com componentes próprios para seus contratos de API.
   para acomodar a circulação, escala proporcional
   e largura mínima de 1000px, com rolagem restrita ao desenho e altura de até 70dvh. Cabeçalho
   e legenda ficam fora da escala, preservando a tipografia do Portal.
-- O mapa aproxima a referência de escritório com piso cinza texturizado,
-  janelas laterais, superiores e inferiores e mesas de tampo claro com cadeiras escuras,
-  sem jardineiras laterais.
+- O mapa aproxima a referência de escritório com piso cinza-claro liso,
+  janelas laterais, superiores e inferiores e mesas de tampo claro com cadeiras cinza-claro,
+  sem plantas ou jardineiras decorativas.
   Janelas do topo e da base usam o mesmo vidro azulado e moldura da lateral,
-  com divisórias horizontais equivalentes e sem rótulos de texto. A janela superior
+  com bordas e divisórias internas finas, sem rótulos de texto. A janela superior
   mantém espaço visual em relação às cadeiras da primeira fileira.
   Decorações em CSS não representam novos dados do catálogo.
   Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
@@ -90,6 +90,8 @@ visual e a marca, com componentes próprios para seus contratos de API.
   decorativa anteriormente rotulada como parede foi removida.
   Todas as mesas de uma fileira compartilham o mesmo alinhamento vertical,
   inclusive quando não há mesa correspondente na fileira vizinha (como a 91).
+  As fileiras iniciadas nas mesas 65 e 77 ficam ligeiramente mais próximas
+  no alinhamento horizontal, mantendo cada bancada unida.
   A coluna de sustentação acima da mesa 91 ocupa uma célula da mesma grade;
   cadeiras que interceptariam estruturas não são desenhadas.
   O quadrado cinza ao lado da mesa 97 tem o mesmo tamanho da estrutura próxima

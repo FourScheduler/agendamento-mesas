@@ -255,6 +255,21 @@ describe("PlantaMesas", () => {
     expect(corredor).toBeGreaterThanOrEqual(200);
   });
 
+  it("aproxima horizontalmente as fileiras iniciadas nas mesas 65 e 77 sem separar as bancadas", () => {
+    const mesas: Mesa[] = [
+      [65, '065', 29, 1757], [69, '069', 595, 1857],
+      [77, '077', 833, 1548], [73, '073', 1400, 1650],
+    ].map(([id, codigo, x, y]) => ({
+      id: Number(id), codigo: String(codigo), tipo: 'FIXA', ativa: true, ocupante: '',
+      regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x: Number(x), y: Number(y) },
+    }));
+    const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
+    const distanciaOriginal = (1757 - 1548) * 1.4;
+    expect(posicoes.get(65)!.y - posicoes.get(77)!.y).toBeCloseTo(distanciaOriginal - 64);
+    expect(posicoes.get(69)!.y).toBe(posicoes.get(65)!.y + TAMANHO_MESA.altura);
+    expect(posicoes.get(73)!.y).toBe(posicoes.get(77)!.y + TAMANHO_MESA.altura);
+  });
+
   it("limita o zoom e restaura a visualização sem alterar posições da API", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
     fixture.detectChanges();
@@ -314,6 +329,30 @@ describe("PlantaMesas", () => {
     fixture.componentInstance.mesaSelecionada.subscribe(emitir);
     botoes[0].click();
     expect(emitir).toHaveBeenCalledExactlyOnceWith(mesas[0]);
+  });
+
+  it("oculta o rótulo de mesa fixa ao exibir os nomes dos ocupantes", () => {
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush([{
+      id: 65,
+      codigo: '065',
+      regiao: 'DEMO',
+      tipo: 'FIXA',
+      ativa: true,
+      ocupante: 'Pessoa Exemplo',
+      referenciaVisual: { planta: 'DEMO', x: 200, y: 80 },
+    }]);
+    fixture.detectChanges();
+
+    const mesa = fixture.nativeElement.querySelector('button.mesa') as HTMLButtonElement;
+    expect(mesa.querySelector('.mesa__estado')?.textContent).toContain('Mesa fixa');
+    (fixture.nativeElement.querySelector('.botao-icone') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(mesa.querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Exemplo');
+    expect(getComputedStyle(mesa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
+    expect(mesa.querySelector('.mesa__estado')).toBeNull();
   });
 
   it("arrasta somente o fundo e libera a captura ao finalizar", () => {

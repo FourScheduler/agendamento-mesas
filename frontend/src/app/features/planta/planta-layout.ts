@@ -106,6 +106,20 @@ export function agruparFileiras(
     }
   }
   if (separarCorredor) {
+    for (const mesa of mesas) {
+      const codigo = Number(mesa.codigo);
+      const ajusteY = codigo >= 65 && codigo <= 72
+        ? -32
+        : codigo >= 73 && codigo <= 80
+          ? 32
+          : 0;
+      if (ajusteY !== 0) {
+        const posicao = posicoes.get(mesa.id)!;
+        posicoes.set(mesa.id, { ...posicao, y: posicao.y + ajusteY });
+      }
+    }
+  }
+  if (separarCorredor) {
     for (const posicao of posicoes.values()) {
       const centroX = posicao.x + tamanho.largura / 2;
       for (const estrutura of PLANTA_TAMBORE_EXIBICAO.estruturas) {

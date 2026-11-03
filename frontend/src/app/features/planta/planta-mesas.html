@@ -148,7 +148,6 @@
             @if (planta.posicoes.get(mesa.id)!.inferior) {
               <span class="mesa__cadeira mesa__cadeira--inferior" aria-hidden="true"></span>
             }
-            <span class="mesa__vaso" aria-hidden="true"></span>
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
             @if (mesa.ocupante && mostrarNomes()) {
               <span class="mesa__ocupante">{{ mesa.ocupante }}</span>
@@ -159,7 +158,7 @@
               <span class="mesa__estado">Ocupada</span>
             } @else if (mesa.tipo === 'LIVRE') {
               <span class="mesa__estado">Livre</span>
-            } @else {
+            } @else if (!mostrarNomes()) {
               <span class="mesa__estado">Mesa fixa</span>
             }
             @if (estaDisponivel(mesa)) {
