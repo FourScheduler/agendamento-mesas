@@ -17,6 +17,7 @@ const mesa: Mesa = {
   ativa: true,
   ocupante: "",
   referenciaVisual: { planta: "TAMBORÉ", x: 24, y: 24 },
+  ocupada: false,
 };
 
 describe("Barra de reserva do mapa", () => {
