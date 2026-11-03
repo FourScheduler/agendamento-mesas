@@ -39,41 +39,37 @@
   }
 
   @if (mesaSelecionada(); as mesa) {
-    <aside class="detalhes cartao" appPainelArrastavel aria-labelledby="titulo-detalhes">
-      <div class="cartao__cabecalho detalhes__cabecalho" data-arrastar-painel tabindex="0" role="group"
-        aria-label="Mover detalhes da mesa: arraste ou use as setas do teclado" title="Arraste para mover">
-        <h2 id="titulo-detalhes">Detalhes da mesa</h2>
-        <button class="detalhes__fechar" type="button" aria-label="Fechar detalhes da mesa"
-          title="Fechar" (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">
-          <span aria-hidden="true">&times;</span>
-        </button>
+    <aside class="detalhes cartao" aria-labelledby="titulo-detalhes">
+      <div class="detalhes__icone" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="14" height="13" rx="4" />
+          <path d="M7 14v7h18v-7M10 21l-2 8M22 21l2 8M16 16v5" />
+        </svg>
       </div>
       <div class="detalhes__corpo">
-        <p class="eyebrow">Mesa selecionada</p>
-        <h3>Mesa {{ mesa.codigo }}</h3>
-        <dl>
-          <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
-          @if (mesa.ocupante) {
-            <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
-          }
-          <dt>Data</dt><dd>{{ formatarData(reserva.data()) }}</dd>
-          <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
-        </dl>
-        <p class="detalhes__nota">
-          A reserva ocupa somente este dia. No dia seguinte, a disponibilidade depende de outras reservas.
-        </p>
-        <button class="botao confirmar" type="button" (click)="reserva.confirmar()"
-          [disabled]="reserva.confirmando() || !usuario() || !reserva.disponibilidadeAtual()">
-          {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva do dia' }}
-        </button>
+        <h2 id="titulo-detalhes">Mesa {{ mesa.codigo }} <span class="detalhes__status" aria-hidden="true"></span></h2>
+        <p>Disponível em {{ formatarData(reserva.data()) }}</p>
+        <details>
+          <summary>Detalhes da reserva</summary>
+          <dl>
+            <dt>Localização</dt><dd>{{ mesa.regiao }}</dd>
+            @if (mesa.ocupante) {
+              <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
+            }
+            <dt>Solicitante</dt><dd>{{ usuario()?.nome }}</dd>
+          </dl>
+          <p>A reserva ocupa somente este dia.</p>
+        </details>
       </div>
+      <button class="botao confirmar" type="button" (click)="reserva.confirmar()"
+        [disabled]="reserva.confirmando() || !usuario() || !reserva.disponibilidadeAtual()">
+        {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
+      </button>
+      <button class="detalhes__fechar" type="button" aria-label="Limpar seleção da mesa"
+        (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">&times;</button>
     </aside>
   }
 </main>
-
-<div class="mapa__rodape">
-  
-</div>
 
 <app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
   [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

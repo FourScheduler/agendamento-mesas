@@ -17,9 +17,11 @@ import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
 import {
-  PLANTA_TAMBORE,
+  PLANTA_TAMBORE_EXIBICAO,
   TAMANHO_MESA,
   TAMANHO_MESA_LEGADO,
+  agruparFileiras,
+  contornosBancadas,
 } from "./planta-layout";
 
 @Component({
@@ -41,7 +43,9 @@ export class PlantaMesas {
   readonly erro = signal("");
   readonly selecionada = signal<number | null>(null);
   readonly mostrarNomes = signal(false);
-  readonly layoutTambore = PLANTA_TAMBORE;
+  readonly zoom = signal(1);
+  readonly relevo = signal(true);
+  readonly layoutTambore = PLANTA_TAMBORE_EXIBICAO;
   private readonly larguraViewport = signal(0);
   private readonly viewport =
     viewChild.required<ElementRef<HTMLElement>>("viewport");
@@ -84,21 +88,24 @@ export class PlantaMesas {
           );
         const tamanhoMesa = legado ? TAMANHO_MESA_LEGADO : TAMANHO_MESA;
         const exibirEstruturas = tambore && !legado;
+        const posicoes = agruparFileiras(mesas, tamanhoMesa, exibirEstruturas);
         return {
           nome,
           mesas,
           tambore: exibirEstruturas,
           legado,
           tamanhoMesa,
+          posicoes,
+          bancadas: contornosBancadas(posicoes, tamanhoMesa),
           largura: Math.max(
-            exibirEstruturas ? PLANTA_TAMBORE.largura : 0,
+            exibirEstruturas ? this.layoutTambore.largura : 0,
             ...mesas.map(
-              (m) => m.referenciaVisual.x + tamanhoMesa.largura + 24,
+              (m) => posicoes.get(m.id)!.x + tamanhoMesa.largura + 24,
             ),
           ),
           altura: Math.max(
-            exibirEstruturas ? PLANTA_TAMBORE.altura : 0,
-            ...mesas.map((m) => m.referenciaVisual.y + tamanhoMesa.altura + 24),
+            exibirEstruturas ? this.layoutTambore.altura : 0,
+            ...mesas.map((m) => posicoes.get(m.id)!.y + tamanhoMesa.altura + 24),
           ),
         };
       },
@@ -109,8 +116,44 @@ export class PlantaMesas {
   );
   // Escala todo o desenho junto; cabeçalho e legenda mantêm a fonte do Portal.
   readonly escala = computed(() =>
-    Math.min(1, Math.max(1000, this.larguraViewport()) / this.larguraDesenho()),
+    Math.min(1, Math.max(1000, this.larguraViewport()) / this.larguraDesenho()) * 0.8 * this.zoom(),
   );
+  private arraste: { x: number; y: number; left: number; top: number; pointerId: number } | null = null;
+  readonly arrastando = signal(false);
+
+  ajustarZoom(delta: number) {
+    this.zoom.update(valor => Math.max(0.5, Math.min(1.5, Math.round((valor + delta) * 10) / 10)));
+  }
+
+  centralizarMapa() {
+    this.zoom.set(1);
+    this.viewport().nativeElement.scrollTo({ left: 0, top: 0 });
+  }
+
+  iniciarArraste(event: PointerEvent) {
+    if (event.pointerType === 'touch' || this.arraste || event.button !== 0 || !(event.target instanceof HTMLElement)
+      || event.target.closest('button')) return;
+    const viewport = this.viewport().nativeElement;
+    this.arraste = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft,
+      top: viewport.scrollTop, pointerId: event.pointerId };
+    viewport.setPointerCapture(event.pointerId);
+    this.arrastando.set(true);
+  }
+
+  moverMapa(event: PointerEvent) {
+    if (!this.arraste || event.pointerId !== this.arraste.pointerId) return;
+    const viewport = this.viewport().nativeElement;
+    viewport.scrollLeft = this.arraste.left - (event.clientX - this.arraste.x);
+    viewport.scrollTop = this.arraste.top - (event.clientY - this.arraste.y);
+  }
+
+  finalizarArraste(event: PointerEvent) {
+    if (event.pointerId !== this.arraste?.pointerId) return;
+    const viewport = this.viewport().nativeElement;
+    if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+    this.arraste = null;
+    this.arrastando.set(false);
+  }
   private readonly catalogo = inject(MesaService);
 
   constructor() {
@@ -211,7 +254,7 @@ export class PlantaMesas {
     // Scroll para trazer a mesa focada para a vista
     const mesa = navegaveis[idx];
     const el = this.viewport()?.nativeElement.querySelector(
-      `button.mesa[style*="left: ${mesa.referenciaVisual.x}px"][style*="top: ${mesa.referenciaVisual.y}px"]`
+      `button.mesa[data-mesa-id="${mesa.id}"]`
     ) as HTMLElement;
     el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }

@@ -1,4 +1,4 @@
-<section class="mapa cartao" aria-label="Catálogo de mesas de demonstração">
+<section class="mapa cartao" [class.mapa--relevo]="relevo()" aria-label="Mapa interativo de mesas">
   <header class="mapa__cabecalho">
     <div>
       <p class="eyebrow">{{ mesas()[0]?.regiao ?? 'Catálogo' }}</p>
@@ -23,7 +23,7 @@
         <span class="amostra amostra--selecionada" aria-hidden="true"></span
         >Selecionada
       </li>
-      
+      <li class="legenda__visibilidade">
         <button
           type="button"
           class="botao-icone"
@@ -48,7 +48,7 @@
             <circle cx="12" cy="12" r="3" />
           </svg>
         </button>
-      
+      </li>
     </ul>
   </header>
   <div class="mapa__corpo">
@@ -58,8 +58,14 @@
     <div
       #viewport
       class="mapa__viewport"
+      [class.mapa__viewport--arrastando]="arrastando()"
+      (pointerdown)="iniciarArraste($event)"
+      (pointermove)="moverMapa($event)"
+      (pointerup)="finalizarArraste($event)"
+      (pointercancel)="finalizarArraste($event)"
+      (lostpointercapture)="finalizarArraste($event)"
       tabindex="0"
-      aria-label="Mapa de mesas; use a rolagem horizontal em telas menores"
+      aria-label="Mapa de mesas; arraste o fundo ou use a rolagem para navegar; use as setas para percorrer as mesas disponíveis"
     >
       @if (carregando()) {
       <p role="status" class="mapa__mensagem">Carregando mesas…</p>
@@ -84,7 +90,16 @@
           [style.height.px]="planta.altura"
           [attr.aria-label]="'Planta ' + planta.nome"
         >
+          @for (bancada of planta.bancadas; track $index) {
+            <div class="bancada__relevo" aria-hidden="true"
+              [style.left.px]="bancada.x" [style.top.px]="bancada.y"
+              [style.width.px]="bancada.largura" [style.height.px]="bancada.altura"></div>
+          }
           @if (planta.tambore) {
+          <div class="planta__janelas" aria-hidden="true"></div>
+          <div class="planta__janelas planta__janelas--inferiores" aria-hidden="true"></div>
+          <div class="planta__corredor" aria-hidden="true"></div>
+          <div class="planta__vidros" aria-hidden="true"></div>
           <div class="planta__limite" aria-hidden="true"></div>
           <div
             class="entrada"
@@ -119,13 +134,16 @@
           <button
             type="button"
             class="mesa"
+            [attr.data-mesa-id]="mesa.id"
+            [class.mesa--unida-superior]="!planta.posicoes.get(mesa.id)!.inferior"
+            [class.mesa--unida-inferior]="!planta.posicoes.get(mesa.id)!.superior"
             [class.livre]="estaDisponivel(mesa)"
             [class.ocupada]="estaOcupada(mesa)"
             [class.inativa]="!mesa.ativa"
             [class.fixa]="mesa.ativa && mesa.tipo === 'FIXA'"
             [class.selecionada]="selecionada() === mesa.id"
-            [style.left.px]="mesa.referenciaVisual.x"
-            [style.top.px]="mesa.referenciaVisual.y"
+            [style.left.px]="planta.posicoes.get(mesa.id)!.x"
+            [style.top.px]="planta.posicoes.get(mesa.id)!.y"
             [style.width.px]="planta.tamanhoMesa.largura"
             [style.height.px]="planta.tamanhoMesa.altura"
             [disabled]="!estaDisponivel(mesa)"
@@ -134,6 +152,13 @@
             (click)="selecionar(mesa)"
             (focus)="onMesaFocus(mesa)"
           >
+            @if (planta.posicoes.get(mesa.id)!.superior) {
+              <span class="mesa__cadeira mesa__cadeira--superior" aria-hidden="true"></span>
+            }
+            @if (planta.posicoes.get(mesa.id)!.inferior) {
+              <span class="mesa__cadeira mesa__cadeira--inferior" aria-hidden="true"></span>
+            }
+            <span class="mesa__vaso" aria-hidden="true"></span>
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
             @if (mesa.ocupante && mostrarNomes()) {
               <span class="mesa__ocupante">{{ mesa.ocupante }}</span>
@@ -163,9 +188,17 @@
     </div>
   </div>
   <footer class="mapa__rodape">
+    <div class="mapa__controles" role="group" aria-label="Controles do mapa">
+      <button type="button" (click)="ajustarZoom(0.1)" [disabled]="zoom() >= 1.5" aria-label="Aumentar zoom">+</button>
+      <button type="button" (click)="ajustarZoom(-0.1)" [disabled]="zoom() <= 0.5" aria-label="Diminuir zoom">−</button>
+      <button type="button" (click)="centralizarMapa()" aria-label="Restaurar visualização do mapa">↺</button>
+      <span>{{ (zoom() * 100).toFixed(0) }}%</span>
+      <button type="button" class="mapa__modo" (click)="relevo.set(false)" [attr.aria-pressed]="!relevo()">2D</button>
+      <button type="button" class="mapa__modo" (click)="relevo.set(true)" [attr.aria-pressed]="relevo()" aria-label="Visualização com relevo">Relevo</button>
+    </div>
     <p>
-      Planta de demonstração. A disponibilidade considera somente a data escolhida.
-      No dia seguinte, a mesa estará livre se não houver outra reserva.
+      Arraste o fundo para navegar e use + e − para ajustar o zoom.
+      A disponibilidade considera somente a data escolhida.
     </p>
   </footer>
 </section>

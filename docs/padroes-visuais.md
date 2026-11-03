@@ -35,11 +35,28 @@ visual e a marca, com componentes próprios para seus contratos de API.
   decorativos com bordas e fundos CSS. O cabeçalho usa calendário SVG inline e o
   logo local `public/logo-portal.png`; não depende de arquivos exportados do Figma.
 - A planta usa toda a largura do conteúdo (container de até 1800px), seguindo a
-  geometria do SVG fornecido. Canvas de 1670 × 1972 unidades, escala proporcional
-  e largura mínima de 1000px, com rolagem horizontal restrita ao desenho. Cabeçalho
+  geometria do SVG fornecido como base (1670 × 1972 unidades), com expansão visual
+  para acomodar a circulação, escala proporcional
+  e largura mínima de 1000px, com rolagem restrita ao desenho e altura de até 70dvh. Cabeçalho
   e legenda ficam fora da escala, preservando a tipografia do Portal.
-- Seleção em `#fffaf6` com borda `#ff892e`, fixa em cinza e inativa tracejada.
-  Mesas disponíveis na data usam borda verde; ocupadas usam fundo laranja suave e
+- O mapa aproxima a referência de escritório com piso cinza texturizado,
+  janelas laterais, superiores e inferiores e mesas de tampo claro com cadeiras escuras,
+  sem jardineiras laterais.
+  Janelas do topo e da base usam o mesmo vidro azulado e moldura da lateral,
+  com divisórias horizontais equivalentes e sem rótulos de texto.
+  Decorações em CSS não representam novos dados do catálogo.
+  Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
+  visualização. Os controles e as instruções ficam abaixo da área rolável,
+  sem sobrepor as mesas.
+  O nível exibido como 100% corresponde a 80% da escala proporcional original,
+  inclusive ao abrir o mapa ou restaurar a visualização.
+  Arrastar o fundo com mouse move o mapa; no toque, usar a rolagem
+  nativa. Arrastar não interfere nos botões de mesa. Os modos 2D e Relevo
+  alternam sombras de profundidade em CSS, sem motor 3D ou dependências externas.
+- A paleta do mapa usa estruturas azul-acinzentadas.
+  Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
+  sobre fundo vermelho suave e inativa tracejada.
+  Mesas disponíveis na data usam verde; ocupadas usam coral suave e
   rótulo "Ocupada". A legenda diferencia "Livre na data", "Ocupada na data", fixa,
   inativa e selecionada. A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
@@ -55,12 +72,26 @@ visual e a marca, com componentes próprios para seus contratos de API.
   de 8px e cantos de 4px, adaptando-se a janelas menores. O fundo de sucesso é
   `#07bc0c`; o texto é centralizado e a altura cresce conforme a mensagem. A rolagem
   interna só aparece se o texto ultrapassar a altura disponível na janela.
-- No mapa em telas acima de 700px, o cartão de detalhes pode ser arrastado pelo
-  cabeçalho ou movido com as setas ao focar o cabeçalho (Shift acelera). O movimento
-  fica dentro da janela; fechar e confirmar continuam independentes do arraste.
-  Em telas menores, o cartão permanece no fluxo da página.
+- No mapa, a seleção aparece em uma barra abaixo do desenho com código, data,
+  ícone de cadeira e botão Confirmar reserva. Localização e solicitante ficam
+  em Detalhes da reserva, expansível por teclado. Limpar seleção continua disponível.
+  Em telas menores, o botão de confirmação ocupa a largura da barra.
 - Os dados e posições continuam vindo exclusivamente da API de mesas. Nenhum
   catálogo, fluxo de salas ou autenticação mockada foi copiado.
+- Fileiras vizinhas são unidas visualmente em pares por bloco do corredor:
+  a segunda encosta na primeira e as cadeiras internas são removidas.
+  Mesas sem correspondente mantêm suas cadeiras. O ajuste usa as coordenadas
+  da API sem alterar o banco, os IDs ou a seleção individual de cada mesa.
+  Em Tamboré, as laterais também encostam, formando bancadas por bloco
+  (1/8, 2/7, 3/6, 4/5). O espaçamento vertical da base é ampliado em 40%,
+  mantendo as duplas encostadas, e o corredor central tem mais de 200 unidades.
+  Entrada, paredes e estruturas acompanham essa transformação de apresentação.
+  Todas as mesas de uma fileira compartilham o mesmo alinhamento vertical,
+  inclusive quando não há mesa correspondente na fileira vizinha (como a 91).
+  A coluna de sustentação acima da mesa 91 ocupa uma célula da mesma grade;
+  cadeiras que interceptariam estruturas não são desenhadas.
+  No modo Relevo, a sombra acompanha apenas o contorno externo da bancada
+  de duas fileiras, sem sombras ou deslocamento de hover nas divisões individuais.
 
 Na gestão de mesas, usar cartão branco com cabeçalho integrado, contagem de
 resultados e tabela com títulos em fundo cinza-claro. Números ficam centralizados
