@@ -102,7 +102,6 @@ describe("PlantaMesas", () => {
       "button.mesa",
     ) as NodeListOf<HTMLButtonElement>;
     expect(buttons.length).toBe(3);
-    const planta = fixture.componentInstance.plantas()[0];
     expect(buttons[0].style.left).toBe("123px");
     expect(buttons[0].style.top).toBe("87px");
     expect(buttons[1].disabled).toBe(true);

@@ -55,12 +55,12 @@
         <span id="busca-desc" class="visually-hidden">Digite um número, por exemplo mesa 10, para filtrar a lista. Sem números, todas as mesas são exibidas.</span>
       </div>
       <span class="admin-mesa-page__contagem" role="status">
-        <strong>{{ mesasFiltradas().length }}</strong>
-        {{ mesasFiltradas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
+        <strong>{{ mesas().length }}</strong>
+        {{ mesas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
       </span>
       </div>
 
-      @if (mesasFiltradas().length === 0) {
+      @if (mesas().length === 0) {
         <app-vazio
           titulo="Nenhuma mesa encontrada"
           [mensagem]="busca() ? 'Nenhuma mesa corresponde à busca.' : 'Nenhuma mesa cadastrada.'"
@@ -79,7 +79,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (mesa of mesasFiltradas(); track trackByMesa($index, mesa)) {
+              @for (mesa of mesas(); track mesa.id) {
                 <tr [class.admin-mesa-page__linha--inativa]="!mesa.ativa">
                   <td class="admin-mesa-page__codigo"><span class="admin-mesa-page__numero">{{ mesa.codigo }}</span></td>
                   <td>{{ mesa.regiao }}</td>
@@ -237,7 +237,7 @@
                     [attr.aria-label]="buscaUsuario() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
                   >
                     @if (buscaUsuario() && usuariosFiltrados().length > 0) {
-                      @for (usuario of usuariosFiltrados(); track trackByUsuario($index, usuario)) {
+                      @for (usuario of usuariosFiltrados(); track usuario.id) {
                         <button
                           type="button"
                           class="usuario-busca__opcao"
@@ -253,7 +253,7 @@
                     } @else if (buscaUsuario() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
                       <div class="usuario-busca__vazio" role="status">Nenhum usuário encontrado</div>
                     } @else if (!buscaUsuario() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
-                      @for (usuario of usuariosAtivos(); track trackByUsuario($index, usuario)) {
+                      @for (usuario of usuariosAtivos(); track usuario.id) {
                         <button
                           type="button"
                           class="usuario-busca__opcao"

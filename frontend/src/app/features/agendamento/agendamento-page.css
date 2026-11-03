@@ -86,17 +86,6 @@
   border-color: var(--orange);
   box-shadow: 0 0 0 3px var(--orange-soft);
 }
-.botao--mapa-header {
-  background: transparent;
-  color: var(--orange);
-  border: 1px solid var(--orange);
-  min-height: 44px;
-}
-.botao--mapa-header:hover:not(:disabled) {
-  background: var(--orange-soft);
-  border-color: var(--orange);
-  color: var(--orange);
-}
 .filtro-data__erro {
   margin-top: 0.5rem;
   color: var(--error);
@@ -180,39 +169,10 @@
 
   border-left: 8px solid var(--orange);
 }
-/* .mesa-item:disabled { cursor: not-allowed; opacity: 0.65; }
-.mesa-item--selecionada {
-
-
-} */
-.mesa-item__codigo {
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--navy);
-}
-.mesa-item__regiao {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-.mesa-item__tipo {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--mesa-livre);
-  background: var(--mesa-livre-bg);
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .resumo-reserva {
   position: sticky;
   top: 100px;
   min-height: fit-content;
-}
-
-.resumo__cabecalho {
-  border-bottom: 1px solid var(--border-soft);
 }
 
 .resumo__titulo {
@@ -244,42 +204,8 @@
   margin: 0;
   line-height: 1.6;
 }
-.resumo__detalhes {
-  margin: 0 0 1.5rem;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.5rem 1rem;
-}
-.resumo__detalhes dt {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.resumo__detalhes dd {
-  margin: 0;
-  color: var(--text);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-.resumo__acoes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
 .botao--largura-total {
   width: 100%;
-}
-.botao--outline {
-  background: transparent;
-  color: var(--navy);
-  border: 1px solid var(--border);
-}
-.botao--outline:hover:not(:disabled) {
-  background: var(--orange-soft);
-  border-color: var(--orange);
-  color: var(--orange);
 }
 .resumo__erro {
   margin-top: 1rem;
@@ -438,41 +364,6 @@
   flex-direction: column;
 }
 
-/* Header com data e reserva de dia inteiro */
-.resumo__header {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding-bottom: 1rem;
-}
-.resumo__header-icon {
-
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  color: var(--orange);
-  flex-shrink: 0;
-}
-.resumo__header-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  min-width: 0;
-}
-.resumo__header-label {
-  font-weight: 600;
-  font-size: 0.9375rem;
-  color: var(--navy);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.resumo__header-periodo {
-  font-size: 0.8125rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
 /* Divisores */
 .resumo__divider {
   height: 1px;
@@ -523,48 +414,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Select do solicitante no resumo (admin) */
-.resumo__solicitante-select {
-  width: 100%;
-  min-height: 40px;
-  padding: 0 0.875rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: white;
-  color: var(--text);
-  font-size: 0.875rem;
-  font-family: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  padding-right: 2.5rem;
-}
-.resumo__solicitante-select:focus {
-  outline: none;
-  border-color: var(--orange);
-  box-shadow: 0 0 0 3px var(--orange-soft);
-}
-.resumo__solicitante-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: var(--disabled);
-}
-.resumo__solicitante-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-.resumo__solicitante-loading .spinner {
-  width: 16px;
-  height: 16px;
 }
 
 /* Busca de solicitante (admin) */
@@ -752,25 +601,6 @@ input::placeholder {
 }
 .botao--confirmar svg {
   flex-shrink: 0;
-}
-
-/* Indicadores de passo (3 pontinhos) */
-.resumo__steps {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  padding-top: 0.5rem;
-}
-.resumo__step {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--border);
-  transition: background 0.2s, transform 0.2s;
-}
-.resumo__step.active {
-  background: var(--orange);
-  transform: scale(1.15);
 }
 
 /* Erro */
