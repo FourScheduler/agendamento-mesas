@@ -30,6 +30,7 @@
           (click)="alternarNomes()"
           [attr.aria-pressed]="mostrarNomes()"
           aria-label="{{ mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes' }}"
+          title="{{ mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes' }}"
         >
           <svg
             class="icone-olho"
@@ -143,7 +144,7 @@
               <span class="mesa__estado">Ocupada</span>
             } @else if (mesa.tipo === 'LIVRE') {
               <span class="mesa__estado">Livre</span>
-            } @else if (mostrarNomes()) {
+            } @else {
               <span class="mesa__estado">Mesa fixa</span>
             }
             @if (estaDisponivel(mesa)) {
