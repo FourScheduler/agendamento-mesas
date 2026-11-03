@@ -85,11 +85,14 @@ visual e a marca, com componentes próprios para seus contratos de API.
   Em Tamboré, as laterais também encostam, formando bancadas por bloco
   (1/8, 2/7, 3/6, 4/5). O espaçamento vertical da base é ampliado em 40%,
   mantendo as duplas encostadas, e o corredor central tem mais de 200 unidades.
-  Entrada, paredes e estruturas acompanham essa transformação de apresentação.
+  Entrada e estruturas acompanham essa transformação de apresentação; a faixa cinza
+  decorativa anteriormente rotulada como parede foi removida.
   Todas as mesas de uma fileira compartilham o mesmo alinhamento vertical,
   inclusive quando não há mesa correspondente na fileira vizinha (como a 91).
   A coluna de sustentação acima da mesa 91 ocupa uma célula da mesma grade;
   cadeiras que interceptariam estruturas não são desenhadas.
+  O quadrado cinza ao lado da mesa 97 tem o mesmo tamanho da estrutura próxima
+  às mesas 93/94 e fica alinhado à fileira da mesa 97.
   No modo Relevo, a sombra acompanha apenas o contorno externo da bancada
   de duas fileiras, sem sombras ou deslocamento de hover nas divisões individuais.
 

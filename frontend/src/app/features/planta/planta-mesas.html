@@ -111,16 +111,6 @@
           >
             Entrada
           </div>
-          <div
-            class="parede"
-            aria-hidden="true"
-            [style.left.px]="layoutTambore.parede.x"
-            [style.top.px]="layoutTambore.parede.y"
-            [style.width.px]="layoutTambore.parede.largura"
-            [style.height.px]="layoutTambore.parede.altura"
-          >
-            Paredes
-          </div>
           @for (estrutura of layoutTambore.estruturas; track $index) {
           <div
             class="estrutura"

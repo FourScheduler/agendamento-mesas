@@ -143,9 +143,7 @@ describe("PlantaMesas", () => {
     expect(
       fixture.nativeElement.querySelector(".entrada").textContent,
     ).toContain("Entrada");
-    expect(
-      fixture.nativeElement.querySelector(".parede").textContent,
-    ).toContain("Parede");
+    expect(fixture.nativeElement.querySelector(".parede")).toBeNull();
     expect(fixture.nativeElement.querySelectorAll(".estrutura").length).toBe(2);
     expect(fixture.nativeElement.querySelector(".planta__jardineiras")).toBeNull();
     expect(fixture.nativeElement.querySelector(".planta__vidros")).not.toBeNull();
@@ -246,6 +244,13 @@ describe("PlantaMesas", () => {
     expect(coluna.y).toBe(posicoes.get(94)!.y);
     expect(coluna.largura).toBe(TAMANHO_MESA.largura);
     expect(coluna.y + coluna.altura).toBe(posicoes.get(91)!.y);
+    const estruturaProximaMesa97 = PLANTA_TAMBORE_EXIBICAO.estruturas[0];
+    const estruturaProximaMesa93 = PLANTA_TAMBORE_EXIBICAO.estruturas[1];
+    expect(estruturaProximaMesa97.largura).toBe(estruturaProximaMesa93.largura);
+    expect(estruturaProximaMesa97.altura).toBe(estruturaProximaMesa93.altura);
+    expect(estruturaProximaMesa97.x + estruturaProximaMesa97.largura)
+      .toBe(posicoes.get(97)!.x);
+    expect(estruturaProximaMesa97.y).toBe(posicoes.get(97)!.y);
     const corredor = posicoes.get(112)!.x - posicoes.get(1)!.x - 4 * TAMANHO_MESA.largura;
     expect(corredor).toBeGreaterThanOrEqual(200);
   });
@@ -299,6 +304,11 @@ describe("PlantaMesas", () => {
     expect(botoes[1].disabled).toBe(true);
     expect(botoes[1].classList.contains('ocupada')).toBe(true);
     expect(botoes[0].querySelectorAll('.mesa__cadeira').length).toBe(2);
+    const cadeira = botoes[0].querySelector('.mesa__cadeira') as HTMLElement;
+    expect(getComputedStyle(cadeira).left).toBe('0px');
+    expect(getComputedStyle(cadeira).right).toBe('0px');
+    expect(getComputedStyle(cadeira).marginLeft).toBe('auto');
+    expect(getComputedStyle(cadeira).marginRight).toBe('auto');
     expect(botoes[0].style.left).toBe('200px');
     const emitir = vi.fn();
     fixture.componentInstance.mesaSelecionada.subscribe(emitir);

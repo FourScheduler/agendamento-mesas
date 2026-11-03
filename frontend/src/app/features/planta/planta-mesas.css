@@ -129,7 +129,6 @@
 .planta__limite {
   position: absolute;
   inset: 0;
-  border-top: 8px ridge #c1cfd8;
   pointer-events: none;
 }
 .planta__janelas {
@@ -159,7 +158,6 @@
   background: rgb(255 255 255 / 27%);
 }
 .entrada,
-.parede,
 .estrutura {
   position: absolute;
   display: grid;
@@ -181,10 +179,6 @@
   border-radius: 3px;
   background: linear-gradient(130deg, #929fa8, #697783);
   box-shadow: 6px 9px 10px rgb(35 43 55 / 20%);
-}
-.parede {
-  color: #fff;
-  writing-mode: vertical-rl;
 }
 .mesa {
   position: absolute;
@@ -241,12 +235,14 @@
 }
 .mesa__cadeira {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   width: 38px;
   height: 20px;
+  margin-left: auto;
+  margin-right: auto;
   border: 3px solid #192933;
   border-radius: 9px 9px 5px 5px;
-  transform: translateX(-50%);
   background: linear-gradient(#405562, #1d2b34);
   box-shadow:
     inset 0 2px 0 #728791,
@@ -396,14 +392,16 @@
 .mesa__cadeira::after {
   content: "";
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   top: -10px;
   width: 28px;
   height: 8px;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 4px;
   background: linear-gradient(#546773, #1b2931);
   border: 1px solid #172730;
-  transform: translateX(-50%);
 }
 .mesa__vaso {
   position: absolute;

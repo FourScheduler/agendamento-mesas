@@ -29,15 +29,20 @@ export const PLANTA_TAMBORE_EXIBICAO = {
   altura: Math.ceil(ampliarY(PLANTA_TAMBORE.altura)),
   entrada: ajustarEstrutura(PLANTA_TAMBORE.entrada),
   parede: ajustarEstrutura(PLANTA_TAMBORE.parede),
-  estruturas: PLANTA_TAMBORE.estruturas.map(estrutura =>
-    estrutura.largura === TAMANHO_MESA.largura && estrutura.altura === TAMANHO_MESA.altura
-      ? {
-          x: 956 + Math.round((estrutura.x - 836) / 189) * TAMANHO_MESA.largura,
-          y: ampliarY(estrutura.y),
-          largura: TAMANHO_MESA.largura,
-          altura: TAMANHO_MESA.altura,
-        }
-      : ajustarEstrutura(estrutura)),
+  estruturas: [
+    {
+      x: 956 + 2 * TAMANHO_MESA.largura - TAMANHO_MESA.largura,
+      y: ampliarY(445) + TAMANHO_MESA.altura,
+      largura: TAMANHO_MESA.largura,
+      altura: TAMANHO_MESA.altura,
+    },
+    {
+      x: 956 + Math.round((PLANTA_TAMBORE.estruturas[1].x - 836) / 189) * TAMANHO_MESA.largura,
+      y: ampliarY(PLANTA_TAMBORE.estruturas[1].y),
+      largura: TAMANHO_MESA.largura,
+      altura: TAMANHO_MESA.altura,
+    },
+  ],
 };
 
 export function agruparFileiras(
