@@ -49,6 +49,14 @@ Reservas são de **dia inteiro**. A planta combina `GET /api/mesas` com `GET /ap
 
 `ReservaService.criar` revalida mesa, usuário, data e conflitos sob locks, em uma única transação. O frontend apenas apresenta a disponibilidade consultada; a confirmação é a autoridade final. Uma reserva de D não ocupa D+1, sem necessidade de alterar seu status à meia-noite.
 
+O backend também oferece `GET /api/mesas/com-ocupacao?data=yyyy-MM-dd`, autenticado,
+com o catálogo completo, `ocupada` e `ocupanteNaData: { id, nome, email }`. O ocupante
+vem do usuário da reserva `PENDENTE`/`CONFIRMADA` naquela data; sem reserva válida,
+o campo é `null`. O cancelamento remove essa ocupação da consulta, preservando o
+histórico. O texto cadastral `ocupante` e o vínculo fixo `responsavel` permanecem
+independentes da reserva diária. Esta etapa disponibiliza o contrato no backend;
+a exibição de `ocupanteNaData` nas telas ainda precisa ser integrada no frontend.
+
 ## Consumidor Angular
 
 `MapaPage`, na rota protegida `/mapa`, permite escolher o dia e hospeda o componente abaixo. `AgendamentoPage`, em `/agendamento`, apresenta a lista de mesas disponíveis e o resumo da reserva. As duas telas compartilham `ReservaDiaria`, usam o mesmo POST e preservam a data ao navegar entre lista e planta:

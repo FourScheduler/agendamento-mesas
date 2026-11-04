@@ -1,6 +1,6 @@
 # Contratos da API do MVP de mesas
 
-Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, `POST /api/reservas` e listagem de reservas próprias com filtros estão implementados. Cancelamento de reservas e demais rotas administrativas abaixo descrevem os contratos previstos.
+Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, `POST /api/reservas`, listagem com filtros e cancelamento de reservas próprias estão implementados. As rotas de gestão administrativa de reservas abaixo descrevem contratos previstos.
 
 ## Convenções
 
@@ -192,6 +192,19 @@ de criação de reservas: mesas fixas e inativas também são retornadas.
 
 `ocupada` é `true` apenas quando existe reserva `PENDENTE` ou `CONFIRMADA`
 na data informada. Reservas canceladas e de outras datas não marcam ocupação.
+O campo adicional `ocupanteNaData` identifica o usuário dessa reserva com `id`,
+`nome` e `email`; sem reserva bloqueante na data, retorna `null`. O `id` é o do
+usuário persistido em `reservas.usuario_id`, inclusive quando a reserva foi feita
+por um administrador para outro solicitante. Usuário posteriormente desativado
+continua identificado na reserva existente. Senha, hash e token não são retornados.
+
+`ocupante` continua sendo o texto cadastral da mesa e `responsavel` continua sendo
+o vínculo de mesa fixa; nenhum deles é sobrescrito pela ocupação diária. Consultar
+ou cancelar uma reserva não altera esses campos. As ocupações das mesas retornadas
+são buscadas em lote, incluindo o usuário. Se houver duplicidade legada de reservas
+bloqueantes para a mesma mesa/data, a apresentação usa a de maior ID, sem alterar
+o histórico; a criação atual impede esse conflito.
+
 Resposta `200` com lista (possivelmente vazia); data malformada retorna `400`
 e ausência de autenticação retorna `401`.
 
@@ -285,8 +298,15 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `404` | `solicitanteId` inexistente ou inativo. | `Solicitante inativo ou inexistente.` |
 | `409` | Mesa `FIXA`. | `Mesa 018 é fixa e não pode ser reservada.` |
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
+| `409` | Solicitante vinculado como responsável de uma mesa `FIXA`, ativa ou inativa. | `O solicitante possui uma mesa fixa e não pode realizar reservas.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
 | `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
+
+O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
+sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
+podem ser criadas se atenderem às demais regras. O bloqueio não cancela reservas
+anteriores. O backend disponibiliza o motivo do conflito em `detail`; a adequação
+da interface para apresentar esse texto fica para uma etapa posterior.
 
 ---
 
@@ -335,31 +355,22 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 
 ---
 
-## PATCH /api/reservas/{id}/cancelamento (planejado)
+## PATCH /api/reservas/{id}/cancelamento
 
-Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento. A mesa volta a ficar disponível.
+Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento,
+inclusive após o dia reservado. A reserva deixa de bloquear somente a sua data.
+O cancelamento não transforma mesa fixa em livre, não ativa mesa inativa e não
+remove responsável fixo ou ocupante textual. As regras administrativas atuais da
+mesa continuam valendo para novas reservas.
 
 ### Response `200`
 
-```json
-{
-  "id": 10,
-  "status": "CANCELADA",
-  "data": "2026-10-28",
-  "criadaEm": "2026-10-23T14:30:00",
-  "canceladaEm": "2026-10-24T09:00:00",
-  "mesa": {
-    "id": 44,
-    "codigo": "044",
-    "regiao": "TAMBORÉ"
-  },
-  "solicitante": {
-    "id": 3,
-    "nome": "Maria Souza",
-    "email": "maria.souza@exemplo.com"
-  }
-}
-```
+Sem corpo, após o commit. O histórico permanece em `GET /api/reservas/minhas`, com
+`status: CANCELADA` e `canceladaEm` no fuso `America/Sao_Paulo`. ID, data, mesa,
+solicitante e timestamps anteriores da reserva são preservados.
+
+Duas tentativas simultâneas pelo dono resultam em um `200` e um `409`. A segunda
+não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação.
 
 ### Erros
 
@@ -375,6 +386,24 @@ Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momen
 ## Rotas de administrador
 
 Exigem perfil `ADMIN`. Usuário comum recebe `403`.
+
+Fixação, nova atribuição/troca de responsável e alteração de tipo para `FIXA`
+recusam mesas com reservas `PENDENTE`/`CONFIRMADA` de hoje em diante (`409`):
+`Mesa 044 possui reservas não canceladas de hoje em diante. Revise as reservas antes de alterar a mesa.`
+Inativação também verifica essas reservas, além do impedimento por responsável.
+O dia atual é avaliado em `America/Sao_Paulo`; a consulta inclui reservas além da
+janela de 15 dias. Reservas canceladas e datas passadas não impedem a operação.
+
+Para receber uma mesa fixa, o usuário também não pode ter reservas não canceladas
+de hoje em diante, mesmo em outra mesa. O conflito retorna `409` com:
+`O usuário possui reservas não canceladas de hoje em diante e não pode receber uma mesa fixa.`
+Nenhuma operação cancela ou transfere reservas automaticamente. Manter o mesmo
+responsável de uma mesa ativa é uma operação sem nova atribuição.
+
+Em disputa concorrente, o estado é revalidado depois dos bloqueios. Se o responsável
+observado tiver mudado, retorna `409` com:
+`O responsável da mesa foi alterado por outra operação. Atualize os dados e tente novamente.`
+A operação recusada não sobrescreve o vínculo nem apresenta sucesso.
 
 ### POST /api/admin/usuarios
 
@@ -439,6 +468,12 @@ Cancela a reserva de qualquer usuário (mesmas regras de estado de `PATCH /api/r
 
 Fixa uma mesa e associa um usuário ativo como responsável.
 
+A mesa também deve estar ativa. Se estiver inativa, retorna `409` com `detail`:
+`Mesa 044 está inativa. Ative a mesa antes de fixá-la ou atribuir um responsável.`
+O código da mesa é incluído na mensagem. A operação recusada não ativa a mesa,
+não altera seu tipo e não atribui o responsável. Após ativá-la pelo endpoint de
+ativação, a fixação pode ser solicitada novamente.
+
 #### Request
 
 ```json
@@ -449,6 +484,11 @@ Fixa uma mesa e associa um usuário ativo como responsável.
 
 `200`: retorna `MesaResponse` com `tipo: "FIXA"` e o objeto `responsavel` (`id`, `nome`, `email`).
 
+Se o usuário já estiver vinculado a outra mesa, retorna `409` com `detail`:
+`O usuário já possui uma mesa fixa vinculada. Desfixe a mesa atual antes de atribuir outra.`
+A mesa atual do usuário não é desfixada automaticamente e a mesa de destino permanece
+inalterada. Mesas inativas vinculadas também impedem uma nova atribuição.
+
 ### PATCH /api/admin/mesas/{id}/desfixar
 
 Desfixa a mesa, altera o tipo para `LIVRE` e remove o responsável (`responsavel: null`).
@@ -458,6 +498,15 @@ Desfixa a mesa, altera o tipo para `LIVRE` e remove o responsável (`responsavel
 ### PATCH /api/admin/mesas/{id}/responsavel
 
 Altera o responsável de uma mesa fixa para outro usuário ativo.
+
+A mesa deve estar ativa, inclusive no caso de fixa legada sem responsável. Mesa
+inativa retorna `409` com a mensagem de ativação prévia descrita na fixação,
+preservando o responsável anterior, quando existente.
+
+O usuário de destino não pode estar vinculado a outra mesa, sob pena de `409` com
+a mesma mensagem da fixação. Nesse caso, os dois vínculos existentes são preservados.
+Informar novamente o responsável da própria mesa ativa retorna `200`, sem conflito.
+Após uma troca bem-sucedida, o usuário anterior pode ser vinculado a outra mesa.
 
 #### Request
 
@@ -472,6 +521,18 @@ Altera o responsável de uma mesa fixa para outro usuário ativo.
 ### PATCH /api/admin/mesas/{id}/ativacao
 
 Ativa ou inativa uma mesa.
+
+Para inativar (`ativa: false`), a mesa não pode ter responsável vinculado. Caso
+exista `responsavel_id`, retorna `409` com `detail`:
+`Mesa 044 possui um responsável vinculado. Remova o vínculo antes de inativá-la.`
+O bloqueio também vale para responsável inativo, mesa já inativa com vínculo legado
+e tipo `LIVRE` com vínculo inconsistente. A recusa preserva ativação, tipo e responsável.
+O administrador deve remover o vínculo explicitamente, por exemplo desfixando a
+mesa, antes de solicitar a inativação. Mesa sem responsável pode ser inativada
+mantendo o tipo atual, inclusive `FIXA` legada sem responsável.
+
+Ativar (`ativa: true`) não remove nem troca responsável e não altera o tipo. A
+ativação de uma mesa legada com usuário responsável inativo continua permitida.
 
 #### Request
 
@@ -520,8 +581,9 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | `401` | Sem ou com token inválido. | |
 | `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
 | `404` | Mesa inexistente. | `Mesa 999 não encontrada.` |
+| `409` | Alterar para `FIXA` uma mesa inativa. | `Mesa 044 está inativa. Ative a mesa antes de fixá-la ou atribuir um responsável.` |
 
-> Efeito sobre reservas existentes ao tornar `FIXA` uma mesa com reservas futuras é pendência de negócio (ver [fluxo-mvp](fluxo-mvp.md)). A implementação deve validar antes de aplicar a mudança.
+> Alterar de `LIVRE` para `FIXA` também verifica reservas de hoje em diante, conforme as regras administrativas acima. Alterar para `LIVRE` remove o responsável e preserva a ativação e as reservas.
 
 ---
 

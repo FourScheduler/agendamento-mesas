@@ -80,6 +80,11 @@ public class ReservaService {
 
         // Revalida também a data: o request pode ter aguardado a liberação dos locks.
         datas.validar(request.data());
+        if (mesaRepositoryPort.existeMesaFixaPorResponsavelId(usuario.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "O solicitante possui uma mesa fixa e não pode realizar reservas.");
+        }
+
         if (!mesa.isAtiva()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " está inativa.");
         }
@@ -124,25 +129,34 @@ public class ReservaService {
             .toList();
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancelar(Long idReserva, UsuarioAutenticado usuarioAutenticado) {
+        if (usuarioAutenticado == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticação obrigatória.");
+        }
+        // A mesma ordem da criação: usuário -> mesa. O usuário serializa cancelamentos próprios.
+        usuarioRepositoryPort.buscarParaReserva(usuarioAutenticado.id())
+            .filter(Usuario::isAtivo)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
+
         Reserva reserva = buscarReserva(idReserva);
-        Mesa mesa = buscarMesa(reserva.getMesa().getId());
 
         if (!reserva.getUsuario().getId().equals(usuarioAutenticado.id())) {
             throw new UsuarioSemPermissaoException();
         }
 
+        // Mantém consultas/criações/alterações administrativas coordenadas até o commit.
+        mesaRepositoryPort.buscarParaReserva(reserva.getMesa().getId())
+            .orElseThrow(MesaNaoEncontradaException::new);
+
         if (reserva.getStatus() == StatusReserva.CANCELADA) {
             throw new ReservaJaCanceladaException(idReserva);
         }
 
-        reserva.setCanceladaEm(LocalDateTime.now());
+        reserva.setCanceladaEm(LocalDateTime.now(relogio));
         reserva.setStatus(StatusReserva.CANCELADA);
 
-        mesa.setAtiva(true);
-        mesa.setTipo(TipoMesa.LIVRE);
-
-        reservaRepositoryPort.salvar(reserva);
+        reservaRepositoryPort.salvarESincronizar(reserva);
     }
 
     //Métodos Utilitários

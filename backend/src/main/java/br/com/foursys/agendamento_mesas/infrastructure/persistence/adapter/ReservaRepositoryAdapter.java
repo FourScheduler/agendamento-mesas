@@ -40,6 +40,12 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public List<Reserva> buscarOcupacoesNaData(LocalDate data, Collection<Long> mesaIds,
+            Collection<StatusReserva> bloqueios) {
+        return reservaJpaRepository.buscarOcupacoesNaData(data, mesaIds, bloqueios);
+    }
+
+    @Override
     public List<Reserva> listarMinhas(Long usuarioId, LocalDate inicio, LocalDate fim, StatusReserva status) {
         return reservaJpaRepository.listarMinhas(usuarioId, inicio, fim, status);
     }
@@ -57,6 +63,16 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     @Override
     public boolean mesaOcupadaNaData(Long mesaId, LocalDate data, Collection<StatusReserva> bloqueios) {
         return reservaJpaRepository.mesaOcupadaNaData(mesaId, data, bloqueios);
+    }
+
+    @Override
+    public boolean mesaTemReservasDesde(Long mesaId, LocalDate inicio, Collection<StatusReserva> bloqueios) {
+        return reservaJpaRepository.mesaTemReservasDesde(mesaId, inicio, bloqueios);
+    }
+
+    @Override
+    public boolean usuarioTemReservasDesde(Long usuarioId, LocalDate inicio, Collection<StatusReserva> bloqueios) {
+        return reservaJpaRepository.usuarioTemReservasDesde(usuarioId, inicio, bloqueios);
     }
 
     @Override

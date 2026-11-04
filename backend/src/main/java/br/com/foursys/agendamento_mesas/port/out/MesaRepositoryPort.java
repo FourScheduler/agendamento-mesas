@@ -22,6 +22,8 @@ public interface MesaRepositoryPort {
 
     Optional<Mesa> buscarParaReserva(Long id);
 
+    Optional<Long> buscarResponsavelId(Long mesaId);
+
     List<Mesa> buscarTodosPorCodigoAsc();
 
     List<Mesa> buscarPorTrechoCodigoAsc(String termo);
@@ -39,4 +41,8 @@ public interface MesaRepositoryPort {
     long contar();
 
     boolean existePorCodigo(String codigo);
+
+    boolean existeMesaFixaPorResponsavelId(Long usuarioId);
+
+    boolean existeOutraMesaPorResponsavelId(Long usuarioId, Long mesaId);
 }

@@ -12,6 +12,15 @@ import java.util.List;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
     @Query("""
+        select r from Reserva r
+        join fetch r.usuario
+        where r.data = :data and r.mesa.id in :mesaIds and r.status in :bloqueios
+        order by r.id desc
+        """)
+    List<Reserva> buscarOcupacoesNaData(@Param("data") LocalDate data,
+        @Param("mesaIds") Collection<Long> mesaIds, @Param("bloqueios") Collection<StatusReserva> bloqueios);
+
+    @Query("""
             select count(r) > 0
             from Reserva r
             where r.mesa.id = :mesaId
@@ -35,6 +44,20 @@ public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
         @Param("data") LocalDate data,
         @Param("bloqueios") Collection<StatusReserva> bloqueios
     );
+
+    @Query("""
+        select count(r) > 0 from Reserva r
+        where r.mesa.id = :mesaId and r.data >= :inicio and r.status in :bloqueios
+        """)
+    boolean mesaTemReservasDesde(@Param("mesaId") Long mesaId, @Param("inicio") LocalDate inicio,
+        @Param("bloqueios") Collection<StatusReserva> bloqueios);
+
+    @Query("""
+        select count(r) > 0 from Reserva r
+        where r.usuario.id = :usuarioId and r.data >= :inicio and r.status in :bloqueios
+        """)
+    boolean usuarioTemReservasDesde(@Param("usuarioId") Long usuarioId, @Param("inicio") LocalDate inicio,
+        @Param("bloqueios") Collection<StatusReserva> bloqueios);
 
     List<Reserva> findByUsuarioIdOrderByDataDesc(Long usuarioId);
 
