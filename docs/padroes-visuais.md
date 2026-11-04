@@ -46,6 +46,15 @@ visual e a marca, com componentes próprios para seus contratos de API.
   com bordas e divisórias internas finas, sem rótulos de texto. A janela superior
   mantém espaço visual em relação às cadeiras da primeira fileira.
   Decorações em CSS não representam novos dados do catálogo.
+  O topo da fileira 93 fica 48 unidades abaixo da base da bancada 41–48,
+  no bloco direito, conforme a linha de referência visual.
+  As bancadas seguintes acompanham o deslocamento da 93 consecutivamente.
+  A estrutura no vão acompanha esse ajuste apenas visual, preservando a circulação.
+  Os intervalos entre bancadas da direita repetem os da esquerda, mantendo
+  a abertura da entrada como exceção.
+  O bloco Entrada ocupa a largura das quatro mesas do bloco direito e fica
+  centralizado no vão entre bancadas, com margens iguais acima e abaixo
+  para não sobrepor as cadeiras.
   Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
   visualização. Os controles e a legenda ficam juntos abaixo da área rolável.
   As instruções aparecem ao passar o mouse sobre o ícone de informação,

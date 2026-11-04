@@ -16,6 +16,14 @@ export const PLANTA_TAMBORE = {
 } as const;
 
 const ampliarY = (y: number) => 24 + (y - 24) * 1.4;
+const inicioBancada93 = ampliarY(1108) + 2 * TAMANHO_MESA.altura + 48;
+const ajusteBlocoDireito = inicioBancada93 - (ampliarY(1321) - 16);
+const deslocamentoBlocoInferiorDireito = ampliarY(1757) - 32 - 16 - ampliarY(1548) + ajusteBlocoDireito;
+const deslocamentoBancada85 = ampliarY(1541) - 16 - ampliarY(1294) + ajusteBlocoDireito;
+const deslocamentoBancada93 = inicioBancada93 - ampliarY(1048);
+const deslocamentoBancada98 = ampliarY(457) - ampliarY(445);
+const inicioEntrada = ampliarY(457) + 2 * TAMANHO_MESA.altura + 60;
+const fimEntrada = inicioBancada93 - 60;
 const ajustarX = (x: number) => x < 800
   ? 24 + (x - 24) * 180 / 189
   : 956 + (x - 836) * 180 / 189;
@@ -27,18 +35,23 @@ const ajustarEstrutura = (estrutura: { x: number; y: number; largura: number; al
 export const PLANTA_TAMBORE_EXIBICAO = {
   largura: Math.ceil(ajustarX(PLANTA_TAMBORE.largura)),
   altura: Math.ceil(ampliarY(PLANTA_TAMBORE.altura)),
-  entrada: ajustarEstrutura(PLANTA_TAMBORE.entrada),
+  entrada: {
+    x: 956,
+    y: inicioEntrada,
+    largura: 4 * TAMANHO_MESA.largura,
+    altura: fimEntrada - inicioEntrada,
+  },
   parede: ajustarEstrutura(PLANTA_TAMBORE.parede),
   estruturas: [
     {
       x: 956 + 2 * TAMANHO_MESA.largura - TAMANHO_MESA.largura,
-      y: ampliarY(445) + TAMANHO_MESA.altura,
+      y: ampliarY(445) + deslocamentoBancada98 + TAMANHO_MESA.altura,
       largura: TAMANHO_MESA.largura,
       altura: TAMANHO_MESA.altura,
     },
     {
       x: 956 + Math.round((PLANTA_TAMBORE.estruturas[1].x - 836) / 189) * TAMANHO_MESA.largura,
-      y: ampliarY(PLANTA_TAMBORE.estruturas[1].y),
+      y: ampliarY(PLANTA_TAMBORE.estruturas[1].y) + deslocamentoBancada93,
       largura: TAMANHO_MESA.largura,
       altura: TAMANHO_MESA.altura,
     },
@@ -111,8 +124,14 @@ export function agruparFileiras(
       const ajusteY = codigo >= 65 && codigo <= 72
         ? -32
         : codigo >= 73 && codigo <= 80
-          ? 32
-          : 0;
+          ? deslocamentoBlocoInferiorDireito
+          : codigo >= 89 && codigo <= 95
+            ? deslocamentoBancada93
+            : codigo >= 81 && codigo <= 88
+              ? deslocamentoBancada85
+              : codigo >= 96 && codigo <= 99
+                ? deslocamentoBancada98
+                : 0;
       if (ajusteY !== 0) {
         const posicao = posicoes.get(mesa.id)!;
         posicoes.set(mesa.id, { ...posicao, y: posicao.y + ajusteY });
