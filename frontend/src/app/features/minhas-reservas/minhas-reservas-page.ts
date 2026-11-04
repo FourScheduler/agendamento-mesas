@@ -1,7 +1,6 @@
 import { DestroyRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Reserva } from '../agendamento/reserva';
 import { Carregando } from '../../shared/estados/carregando';
@@ -41,7 +40,6 @@ const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA'];
 })
 export class MinhasReservasPage implements OnInit {
   private readonly reservasService = inject(ReservaService);
-  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);

@@ -4,6 +4,7 @@ import br.com.foursys.agendamento_mesas.dto.response.MesaComOcupacaoResponse;
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.service.MesaService;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 public class MesaController {
 
     private final MesaService mesasService;
+    private final Clock relogio;
 
-    public MesaController(MesaService mesas) {
+    public MesaController(MesaService mesas, Clock relogio) {
         this.mesasService = mesas;
+        this.relogio = relogio;
     }
 
     @GetMapping
@@ -44,7 +47,7 @@ public class MesaController {
         @RequestParam(required = false) LocalDate data,
         @RequestParam(required = false) String termo
     ) {
-        LocalDate dataConsulta = data != null ? data : LocalDate.now();
+        LocalDate dataConsulta = data != null ? data : LocalDate.now(relogio);
         List<MesaComOcupacaoResponse> lista = mesasService.listarComOcupacao(dataConsulta, termo);
         return ResponseEntity.ok(lista);
     }

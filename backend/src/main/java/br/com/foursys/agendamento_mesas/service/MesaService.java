@@ -4,8 +4,11 @@ import br.com.foursys.agendamento_mesas.dto.response.MesaComOcupacaoResponse;
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
+import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
+import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
+import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,11 +23,18 @@ import org.springframework.web.server.ResponseStatusException;
 public class MesaService {
     private final DataReservaValidator datas;
     private final MesaRepositoryPort mesaRepositoryPort;
+    private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final ReservaRepositoryPort reservaRepositoryPort;
 
-    public MesaService(DataReservaValidator datas, MesaRepositoryPort mesaRepositoryPort, ReservaRepositoryPort reservaRepositoryPort) {
+    public MesaService(
+        DataReservaValidator datas,
+        MesaRepositoryPort mesaRepositoryPort,
+        UsuarioRepositoryPort usuarioRepositoryPort,
+        ReservaRepositoryPort reservaRepositoryPort
+    ) {
         this.datas = datas;
         this.mesaRepositoryPort = mesaRepositoryPort;
+        this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.reservaRepositoryPort = reservaRepositoryPort;
     }
 
@@ -79,32 +89,96 @@ public class MesaService {
             .toList();
     }
 
-    public List<MesaComOcupacaoResponse> listarComOcupacao(LocalDate data) {
-        return listarComOcupacao(data, null);
+    public List<MesaComOcupacaoResponse> listarComOcupacao(LocalDate data, String termo) {
+        return listar(termo).stream()
+            .map(mesa -> MesaComOcupacaoResponse.de(mesa,
+                reservaRepositoryPort.mesaOcupadaNaData(mesa.id(), data, ReservaRepositoryPort.BLOQUEIA_MESA)))
+            .toList();
     }
 
-    public List<MesaComOcupacaoResponse> listarComOcupacao(LocalDate data, String termo) {
-        datas.validar(data);
-
-        List<Mesa> todas;
-        if (termo != null && !termo.isBlank()) {
-            String termoNormalizado = termo.replaceAll("\\D", "");
-            if (termoNormalizado.isEmpty()) {
-                todas = mesaRepositoryPort.buscarTodosPorCodigoAsc();
-            } else {
-                todas = mesaRepositoryPort.buscarPorTrechoCodigoAsc(termoNormalizado);
-            }
-        } else {
-            todas = mesaRepositoryPort.buscarTodosPorCodigoAsc();
+    @Transactional
+    public MesaResponse fixar(Long id, Long usuarioId) {
+        Mesa mesa = obterPorId(id);
+        validarUsuarioId(usuarioId);
+        if (mesa.getTipo() == TipoMesa.FIXA) {
+            throw conflito("Mesa " + mesa.getCodigo() + " já está fixa.");
         }
 
-        var bloqueios = ReservaRepositoryPort.BLOQUEIA_MESA;
+        mesa.setTipo(TipoMesa.FIXA);
+        mesa.setResponsavel(obterUsuarioAtivo(usuarioId));
+        return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
+    }
 
-        return todas.stream()
-            .map(mesa -> {
-                boolean ocupada = reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), data, bloqueios);
-                return MesaComOcupacaoResponse.de(MesaResponse.de(mesa), ocupada);
-            })
-            .toList();
+    @Transactional
+    public MesaResponse desfixar(Long id) {
+        Mesa mesa = obterPorId(id);
+        if (mesa.getTipo() != TipoMesa.FIXA) {
+            throw conflito("Mesa " + mesa.getCodigo() + " não está fixa.");
+        }
+
+        mesa.setTipo(TipoMesa.LIVRE);
+        mesa.setResponsavel(null);
+        return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
+    }
+
+    @Transactional
+    public MesaResponse alterarResponsavel(Long id, Long usuarioId) {
+        Mesa mesa = obterPorId(id);
+        validarUsuarioId(usuarioId);
+        if (mesa.getTipo() != TipoMesa.FIXA) {
+            throw conflito("Somente mesas fixas podem ter responsável.");
+        }
+
+        mesa.setResponsavel(obterUsuarioAtivo(usuarioId));
+        return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
+    }
+
+    @Transactional
+    public MesaResponse alterarTipo(Long id, TipoMesa tipo) {
+        if (tipo == null) {
+            throw new DadosInvalidosException("Campo 'tipo' é obrigatório.");
+        }
+
+        Mesa mesa = obterPorId(id);
+        mesa.setTipo(tipo);
+        if (tipo == TipoMesa.LIVRE) {
+            mesa.setResponsavel(null);
+        }
+        return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
+    }
+
+    @Transactional
+    public MesaResponse alterarAtivacao(Long id, Boolean ativa) {
+        if (ativa == null) {
+            throw new DadosInvalidosException("Campo 'ativa' é obrigatório.");
+        }
+
+        Mesa mesa = obterPorId(id);
+        mesa.setAtiva(ativa);
+        return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
+    }
+
+    private Mesa obterPorId(Long id) {
+        return mesaRepositoryPort.buscarPorId(id).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + id + " não encontrada."));
+    }
+
+    private Usuario obterUsuarioAtivo(Long usuarioId) {
+        Usuario usuario = usuarioRepositoryPort.buscarPorId(usuarioId).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário ativo não encontrado."));
+        if (!usuario.isAtivo()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário ativo não encontrado.");
+        }
+        return usuario;
+    }
+
+    private void validarUsuarioId(Long usuarioId) {
+        if (usuarioId == null || usuarioId <= 0) {
+            throw new DadosInvalidosException("Campo 'usuarioId' deve ser um inteiro positivo.");
+        }
+    }
+
+    private ResponseStatusException conflito(String mensagem) {
+        return new ResponseStatusException(HttpStatus.CONFLICT, mensagem);
     }
 }

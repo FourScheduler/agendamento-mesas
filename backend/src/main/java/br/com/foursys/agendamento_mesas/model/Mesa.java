@@ -8,6 +8,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.*;
@@ -48,4 +51,30 @@ public class Mesa {
 
     @Column(name = "ocupante", length = 120)
     private String ocupante;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_id")
+    private Usuario responsavel;
+
+    public Mesa(
+        Long id,
+        String codigo,
+        String regiao,
+        TipoMesa tipo,
+        boolean ativa,
+        String planta,
+        Integer posicaoX,
+        Integer posicaoY,
+        String ocupante
+    ) {
+        this.id = id;
+        this.codigo = codigo;
+        this.regiao = regiao;
+        this.tipo = tipo;
+        this.ativa = ativa;
+        this.planta = planta;
+        this.posicaoX = posicaoX;
+        this.posicaoY = posicaoY;
+        this.ocupante = ocupante;
+    }
 }

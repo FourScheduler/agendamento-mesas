@@ -50,7 +50,7 @@ export class AdminMesaService {
   }
 
   listarUsuariosAtivos() {
-    return this.http.get<readonly UsuarioAtivo[]>(`${environment.apiUrl}/admin/usuarios/ativos`);
+    return this.http.get<readonly UsuarioAtivo[]>(`${environment.apiUrl}/admin/usuarios`);
   }
 
   fixarMesa(id: number, request: FixarMesaRequest) {

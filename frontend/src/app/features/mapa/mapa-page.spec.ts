@@ -49,6 +49,7 @@ describe("Barra de reserva do mapa", () => {
   afterEach(() => {
     http.verify();
     localStorage.clear();
+    vi.useRealTimers();
   });
 
   function abrir() {
@@ -69,8 +70,12 @@ describe("Barra de reserva do mapa", () => {
     const resumo = fixture.nativeElement.querySelector(
       ".detalhes",
     ) as HTMLElement;
+    expect(resumo.getAttribute("role")).toBe("dialog");
+    expect(resumo.getAttribute("aria-modal")).toBe("true");
     expect(resumo.textContent).toContain("Mesa 044");
-    expect(resumo.textContent).toContain("Data");
+    expect(resumo.textContent).toContain("Disponível em");
+    expect(resumo.querySelector(".detalhes__informacoes")).not.toBeNull();
+    expect(resumo.querySelector("details")).toBeNull();
     expect(resumo.querySelector("dl")?.textContent).toContain(
       "Pessoa Teste",
     );
@@ -106,6 +111,59 @@ describe("Barra de reserva do mapa", () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
     http.expectNone("/api/reservas");
+  });
+
+  it("permite ao administrador escolher outro solicitante na busca e envia o ID", async () => {
+    vi.useFakeTimers();
+    TestBed.inject(AuthService).sessao.set({
+      token: "teste",
+      tipo: "Bearer",
+      usuario: {
+        id: 1,
+        nome: "Admin",
+        email: "admin@example.com",
+        perfil: "ADMIN",
+      },
+    });
+    const fixture = abrir();
+    const busca = fixture.nativeElement.querySelector("#solicitante-busca") as HTMLInputElement;
+    busca.value = "outra";
+    busca.dispatchEvent(new Event("input", { bubbles: true }));
+    fixture.detectChanges();
+
+    await vi.advanceTimersByTimeAsync(250);
+    const pesquisa = http.expectOne(request =>
+      request.url === "/api/admin/usuarios/busca" && request.params.get("termo") === "outra",
+    );
+    pesquisa.flush([{
+      id: 42,
+      nome: "Pessoa Solicitante",
+      email: "pessoa@example.com",
+      perfil: "USUARIO",
+      ativo: true,
+    }]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector(".solicitante-busca__opcao") as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".solicitante-selecionado")?.textContent)
+      .toContain("Pessoa Solicitante");
+
+    (fixture.nativeElement.querySelector(".confirmar") as HTMLButtonElement).click();
+    const request = http.expectOne("/api/reservas");
+    expect(request.request.body).toEqual({
+      mesaId: 44,
+      data: fixture.componentInstance.reserva.data(),
+      solicitanteId: 42,
+    });
+    request.flush(
+      { id: 9, status: "CONFIRMADA", data: request.request.body.data, mesa, solicitante: { id: 42, nome: "Pessoa Solicitante", email: "pessoa@example.com" } },
+    );
+    fixture.detectChanges();
+    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
   });
 });

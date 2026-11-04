@@ -6,7 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Mesa } from '../mesas/mesa';
 import { ToastService } from '../../shared/toast/toast';
-import { adicionarDias, formatarData, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
+import { adicionarDias, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
 
 /** Estado por página, compartilhando as regras de confirmação entre lista e planta. */
 @Injectable()
@@ -93,7 +93,7 @@ export class ReservaDiaria {
     this.sucesso.set('');
     this.reservas.criar(mesa.id, this.data(), solicitanteId ?? undefined)
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: reserva => {
+        next: () => {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
           this.toast.sucesso('Reserva Confirmada');

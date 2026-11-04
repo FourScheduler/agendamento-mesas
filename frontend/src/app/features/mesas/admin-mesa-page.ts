@@ -70,25 +70,6 @@ export class AdminMesaPage {
     void this.router.navigate(['/mapa']);
   }
 
-  readonly mesasFiltradas = computed(() => {
-    let resultado = this.mesas();
-
-    const filtro = this.filtroTipo();
-    if (filtro === 'fixa') {
-      resultado = resultado.filter(m => m.tipo === 'FIXA');
-    } else if (filtro === 'livre') {
-      // Livres = mesas LIVRE disponíveis (sem reserva ativa)
-      resultado = resultado.filter(m => m.tipo === 'LIVRE' && !m.ocupada);
-    } else if (filtro === 'inativa') {
-      resultado = resultado.filter(m => !m.ativa);
-    } else if (filtro === 'reservada') {
-      // Reservadas = mesas LIVRE com reserva ativa para hoje
-      resultado = resultado.filter(m => m.tipo === 'LIVRE' && m.ocupada);
-    }
-
-    return resultado;
-  });
-
   constructor() {
     this.buscaMesas$.pipe(
       debounceTime(250),
@@ -317,11 +298,6 @@ export class AdminMesaPage {
     return `${mesa.responsavel.nome} (${mesa.responsavel.email})`;
   }
 
-  getResponsavelLabel(mesa: Mesa): string {
-    if (!mesa.responsavel) return 'Não atribuída';
-    return `${mesa.responsavel.nome} (${mesa.responsavel.email})`;
-  }
-
   podeFixar(mesa: Mesa): boolean {
     return mesa.tipo === 'LIVRE' && !mesa.responsavel;
   }
@@ -340,13 +316,5 @@ export class AdminMesaPage {
 
   getAtivacaoLabel(ativa: boolean): string {
     return ativa ? 'Ativa' : 'Inativa';
-  }
-
-  trackByMesa(index: number, mesa: Mesa): number {
-    return mesa.id;
-  }
-
-  trackByUsuario(index: number, usuario: UsuarioAtivo): number {
-    return usuario.id;
   }
 }
