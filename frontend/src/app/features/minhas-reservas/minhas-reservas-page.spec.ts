@@ -54,10 +54,12 @@ describe('MinhasReservasPage', () => {
     fixture.detectChanges();
 
     const conteudo = fixture.nativeElement.textContent as string;
-    expect(conteudo).toContain('Mesa fixa atribuída');
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__status--atribuida')?.textContent).toContain(
+      'Mesa fixa',
+    );
     expect(conteudo).toContain('Mesa 001 - TAMBORÉ');
     expect(conteudo).not.toContain('Mesa 002 - TAMBORÉ');
-    expect(conteudo).toContain('Esta mesa é gerenciada pelo administrador.');
+    expect(conteudo).toContain('Para cancelar a reserva, entre em contato com o administrador.');
     expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa button')).toBeNull();
   });
 
