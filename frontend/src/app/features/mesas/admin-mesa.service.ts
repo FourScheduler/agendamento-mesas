@@ -38,6 +38,17 @@ export class AdminMesaService {
     return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas`, { params });
   }
 
+  listarComOcupacao(termo?: string, data?: string) {
+    let params = new HttpParams();
+    if (termo?.trim()) {
+      params = params.set('termo', termo.trim());
+    }
+    if (data) {
+      params = params.set('data', data);
+    }
+    return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas/com-ocupacao`, { params });
+  }
+
   listarUsuariosAtivos() {
     return this.http.get<readonly UsuarioAtivo[]>(`${environment.apiUrl}/admin/usuarios`);
   }

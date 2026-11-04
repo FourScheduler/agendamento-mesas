@@ -1,5 +1,6 @@
 package br.com.foursys.agendamento_mesas.controller;
 
+import br.com.foursys.agendamento_mesas.dto.response.MesaComOcupacaoResponse;
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.service.MesaService;
 
@@ -36,5 +37,15 @@ public class MesaController {
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(listaMesasDisponiveis);
+    }
+
+    @GetMapping("/com-ocupacao")
+    public ResponseEntity<List<MesaComOcupacaoResponse>> listarComOcupacao(
+        @RequestParam(required = false) LocalDate data,
+        @RequestParam(required = false) String termo
+    ) {
+        LocalDate dataConsulta = data != null ? data : LocalDate.now();
+        List<MesaComOcupacaoResponse> lista = mesasService.listarComOcupacao(dataConsulta, termo);
+        return ResponseEntity.ok(lista);
     }
 }

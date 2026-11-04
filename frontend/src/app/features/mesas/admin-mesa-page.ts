@@ -33,6 +33,7 @@ export class AdminMesaPage {
 
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
+  readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
   readonly carregando = signal(false);
   readonly erroConsulta = signal('');
 
@@ -73,7 +74,8 @@ export class AdminMesaPage {
     this.buscaMesas$.pipe(
       debounceTime(250),
       switchMap(termo => {
-        return this.adminMesa.listarTodas(termo).pipe(
+        const hoje = new Date().toISOString().split('T')[0];
+        return this.adminMesa.listarComOcupacao(termo, hoje).pipe(
           catchError(e => {
             this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
             return of([] as readonly Mesa[]);

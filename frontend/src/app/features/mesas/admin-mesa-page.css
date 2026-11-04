@@ -78,6 +78,50 @@
   font-size: 0.8125rem;
 }
 
+.admin-mesa-page__filtros-tipo {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-mesa-page__filtro-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--navy);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  min-height: 40px;
+}
+
+.admin-mesa-page__filtro-botao:hover:not(:disabled) {
+  background: #f0f2f6;
+  border-color: var(--muted-soft);
+}
+
+.admin-mesa-page__filtro-botao:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+
+.admin-mesa-page__filtro-botao--ativo {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #ffffff;
+}
+
+.admin-mesa-page__filtro-botao--ativo:hover:not(:disabled) {
+  background: #1a1a3a;
+  border-color: #1a1a3a;
+}
+
 .admin-mesa-page__contagem strong {
   display: block;
   color: var(--navy);

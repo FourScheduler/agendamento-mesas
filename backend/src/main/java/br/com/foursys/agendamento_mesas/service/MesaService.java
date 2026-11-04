@@ -1,5 +1,6 @@
 package br.com.foursys.agendamento_mesas.service;
 
+import br.com.foursys.agendamento_mesas.dto.response.MesaComOcupacaoResponse;
 import br.com.foursys.agendamento_mesas.dto.response.MesaResponse;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
 import br.com.foursys.agendamento_mesas.model.Mesa;
