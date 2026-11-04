@@ -1,8 +1,10 @@
 <section class="pagina minhas-reservas">
   <header class="minhas-reservas__cabecalho">
     <div>
-      <h1 class="titulo">Minhas reservas</h1>
-      <p class="subtitulo">Acompanhe as mesas reservadas por você.</p>
+      <h1 class="titulo">{{ ehAdmin() ? 'Gerenciar reservas' : 'Minhas reservas' }}</h1>
+      <p class="subtitulo">
+        {{ ehAdmin() ? 'Consulte e gerencie as reservas dos usuários.' : 'Acompanhe suas reservas e as mesas atribuídas a você.' }}
+      </p>
     </div>
 
     <button
@@ -92,22 +94,63 @@
     </p>
   }
 
+  @if (carregandoMesaAtribuida()) {
+    <p class="minhas-reservas__mesa-fixa-carregando" role="status">Verificando mesa atribuída...</p>
+  } @else if (erroMesaAtribuida(); as erro) {
+    <p class="campo__erro minhas-reservas__aviso" role="alert">
+      {{ erro }}
+      <button class="minhas-reservas__limpar" type="button" (click)="buscarMesaAtribuida()">Tentar novamente</button>
+    </p>
+  } @else if (mesasAtribuidas().length > 0) {
+    <section class="minhas-reservas__mesas-fixas" aria-labelledby="mesas-fixas-titulo">
+      <ul class="minhas-reservas__lista minhas-reservas__lista--fixas">
+        @for (mesa of mesasAtribuidas(); track mesa.id) {
+          <li class="cartao minhas-reservas__cartao minhas-reservas__cartao--fixa">
+            <span class="minhas-reservas__ordem minhas-reservas__ordem--fixa" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="8" y="2.5" width="8" height="6" rx="1" />
+                <path d="M12 8.5v2M10 10.5h4M3 12h18M5 12v8M19 12v8" />
+              </svg>
+            </span>
+            <div class="minhas-reservas__conteudo">
+              <div class="minhas-reservas__linha">
+                <div class="minhas-reservas__identificacao">
+                  <p class="minhas-reservas__mesa">Mesa {{ mesa.codigo }} - {{ mesa.regiao }}</p>
+                  <span class="minhas-reservas__detalhes">Atribuída a você</span>
+                </div>
+                <span class="minhas-reservas__status minhas-reservas__status--atribuida">Mesa fixa</span>
+              </div>
+              @if (!ehAdmin()) {
+                <p class="minhas-reservas__mesa-fixa-aviso">Para cancelar a reserva, entre em contato com o administrador.</p>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   @if (carregando()) {
-    <app-carregando texto="Buscando suas reservas..." />
+    <app-carregando [texto]="ehAdmin() ? 'Buscando reservas...' : 'Buscando suas reservas...'" />
   } @else if (erroApi(); as mensagem) {
     <app-erro
-      titulo="Não foi possível carregar suas reservas"
+      [titulo]="ehAdmin() ? 'Não foi possível carregar as reservas' : 'Não foi possível carregar suas reservas'"
       [mensagem]="mensagem"
       (tentarNovamente)="buscar()"
     />
-  } @else if (cartoes().length === 0) {
+  } @else if (
+    cartoes().length === 0 &&
+    mesasAtribuidas().length === 0 &&
+    !carregandoMesaAtribuida() &&
+    !erroMesaAtribuida()
+  ) {
     <app-vazio
       [titulo]="tituloVazio"
       [mensagem]="mensagemVazio()"
       acao="Agendar uma mesa"
       (acaoClicada)="irParaAgendamento()"
     />
-  } @else {
+  } @else if (cartoes().length > 0) {
     <ul class="minhas-reservas__lista">
       @for (cartao of cartoes(); track cartao.chave) {
         <li class="cartao minhas-reservas__cartao">
@@ -133,6 +176,11 @@
                     {{ rotuloStatus(cartao.reserva.status) }}
                   </span>
                 </div>
+                @if (ehAdmin()) {
+                  <span class="minhas-reservas__detalhes">
+                    Para {{ cartao.reserva.solicitante?.nome ?? 'usuário não identificado' }}
+                  </span>
+                }
               </div>
 
               <div class="minhas-reservas__acoes">
@@ -179,6 +227,11 @@
                 Criada em {{ formatarData(cartao.reserva.criadaEm.split('T')[0]) }}
               </span>
             </p>
+            @if (!ehAdmin() && reservaCriadaPorAdmin(cartao)) {
+              <p class="minhas-reservas__aviso-admin">
+                Reserva realizada pelo administrador. Para alterações, entre em contato com a administração.
+              </p>
+            }
           </div>
         </li>
       }

@@ -59,6 +59,7 @@ export class AdminMesaPage {
   readonly mesaSelecionadaParaAcao = signal<Mesa | null>(null);
   readonly acaoEmAndamento = signal<'fixar' | 'desfixar' | 'alterar-responsavel' | 'ativar' | 'inativar' | null>(null);
   readonly usuarioSelecionado = signal<number | null>(null);
+  readonly editandoUsuario = signal(true);
   readonly confirmando = signal(false);
   readonly erroAcao = signal('');
 
@@ -133,6 +134,7 @@ export class AdminMesaPage {
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('fixar');
     this.usuarioSelecionado.set(null);
+    this.editandoUsuario.set(true);
     this.buscaUsuario.set('');
     this.erroAcao.set('');
     this.confirmando.set(false);
@@ -150,6 +152,7 @@ export class AdminMesaPage {
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('alterar-responsavel');
     this.usuarioSelecionado.set(null);
+    this.editandoUsuario.set(true);
     this.buscaUsuario.set('');
     this.erroAcao.set('');
     this.confirmando.set(false);
@@ -174,8 +177,27 @@ export class AdminMesaPage {
     this.mesaSelecionadaParaAcao.set(null);
     this.acaoEmAndamento.set(null);
     this.usuarioSelecionado.set(null);
+    this.editandoUsuario.set(true);
     this.erroAcao.set('');
     this.confirmando.set(false);
+  }
+
+  selecionarUsuario(usuarioId: number) {
+    this.usuarioSelecionado.set(usuarioId);
+    this.editandoUsuario.set(false);
+    this.usuarioFocado.set(false);
+    this.buscaUsuario.set('');
+  }
+
+  trocarUsuario() {
+    this.usuarioSelecionado.set(null);
+    this.editandoUsuario.set(true);
+    this.buscaUsuario.set('');
+    this.usuarioFocado.set(false);
+  }
+
+  getUsuarioSelecionado(): UsuarioAtivo | undefined {
+    return this.usuariosAtivos().find(usuario => usuario.id === this.usuarioSelecionado());
   }
 
   confirmarAcao() {
@@ -271,22 +293,25 @@ export class AdminMesaPage {
 
     switch (acao) {
       case 'fixar': {
-        const usuario = this.usuariosAtivos().find(u => u.id === this.usuarioSelecionado());
-        return `Confirmar fixação da mesa ${mesa.codigo} (${mesa.regiao}) para ${usuario?.nome ?? 'usuário selecionado'}?`;
+        const usuario = this.getUsuarioSelecionado();
+        return usuario
+          ? `Atribuir esta mesa para ${usuario.nome}?`
+          : 'Selecione quem ficará responsável por esta mesa.';
       }
       case 'desfixar': {
-        return `Confirmar desfixação da mesa ${mesa.codigo}? O responsável será removido e o tipo passará para LIVRE.`;
+        return 'A mesa ficará livre e o responsável atual será removido.';
       }
       case 'alterar-responsavel': {
-        const usuario = this.usuariosAtivos().find(u => u.id === this.usuarioSelecionado());
-        const atual = mesa.responsavel ? `${mesa.responsavel.nome} (${mesa.responsavel.email})` : 'não atribuída';
-        return `Alterar responsável da mesa ${mesa.codigo} de "${atual}" para ${usuario?.nome ?? 'usuário selecionado'}?`;
+        const usuario = this.getUsuarioSelecionado();
+        return usuario
+          ? `O novo responsável será ${usuario.nome}.`
+          : 'Selecione o novo responsável para esta mesa.';
       }
       case 'ativar': {
-        return `Confirmar ativação da mesa ${mesa.codigo}?`;
+        return 'A mesa voltará a aparecer como ativa.';
       }
       case 'inativar': {
-        return `Confirmar inativação da mesa ${mesa.codigo}? A mesa não ficará disponível para reservas.`;
+        return 'A mesa ficará indisponível para novas reservas.';
       }
       default: return '';
     }

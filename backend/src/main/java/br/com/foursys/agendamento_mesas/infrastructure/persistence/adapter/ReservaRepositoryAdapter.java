@@ -40,6 +40,11 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public List<Reserva> listarTodas(LocalDate inicio, LocalDate fim, StatusReserva status) {
+        return reservaJpaRepository.listarTodas(inicio, fim, status);
+    }
+
+    @Override
     public List<Reserva> listarMinhas(Long usuarioId, LocalDate inicio, LocalDate fim, StatusReserva status) {
         return reservaJpaRepository.listarMinhas(usuarioId, inicio, fim, status);
     }

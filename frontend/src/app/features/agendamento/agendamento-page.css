@@ -130,16 +130,16 @@
 }
 
 .mesas-livres {
-    min-height: 500px
+    min-height: 500px;
+    border: 0;
+    background: transparent
 }
 
 .mesas-livres__titulo {
     display: flex;
     align-items: baseline;
     gap: .5rem;
-    margin: 0.5rem 0.5rem 1.5rem;
-    padding: 0 0 1rem;
-    border-bottom: 1px solid var(--border-soft);
+    margin: 0 0 1rem;
     color: var(--navy);
     font-size: 1.125rem;
     font-weight: 700
@@ -179,168 +179,180 @@
 
 .mesas-livres__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: .75rem
 }
 
-/* ===== MESA CARD ===== */
 .mesa-card {
-    position: relative;
     display: flex;
-    flex-direction: column;
-    padding: 1.25rem;
-    margin:0.3rem;
-    border: 2px solid var(--border-soft);
-    border-radius: 16px;
-    background: white;
+    align-items: center;
+    min-width: 0;
+    min-height: 88px;
+    padding: .75rem;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: var(--card-bg);
     cursor: pointer;
-    transition: border-color .2s, box-shadow .2s, transform .15s;
-    min-height: 180px
+    transition: border-color .15s ease, background .15s ease
 }
 
 .mesa-card:hover {
-   border-color: var(--orange); 
-    transform: translateY(-4px)
+    border-color: var(--orange-400);
+    background: #fffdfa
 }
 
 .mesa-card:focus-visible {
     outline: none;
     border-color: var(--orange);
-    box-shadow: 0 0 0 3px var(--orange-soft), 0 8px 24px rgba(255, 83, 21, .12)
+    box-shadow: 0 0 0 2px var(--orange-soft)
 }
 
 .mesa-card--selecionada {
     border-color: var(--orange);
-    box-shadow: 0 0 0 3px var(--orange-soft), 0 8px 24px rgba(255, 83, 21, .15)
+    background: var(--selection-bg)
 }
 
 .mesa-card--indisponivel {
-    opacity: .6;
     cursor: not-allowed;
-    background: var(--disabled)
+    background: var(--page-bg)
 }
 
 .mesa-card--indisponivel:hover {
     border-color: var(--border-soft);
-    box-shadow: none;
-    transform: none
+    background: var(--page-bg);
 }
 
-.mesa-card__topo {
+.mesa-card__linha {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: .25rem
+    align-items: center;
+    gap: .625rem;
+    width: 100%;
+    min-width: 0
 }
 
 .mesa-card__icone-wrapper {
     display: grid;
     place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, var(--orange-soft), #fff5eb);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 8px;
+    background: var(--orange-soft);
     color: var(--orange);
-    flex-shrink: 0;
-    box-shadow: inset 0 1px 2px rgba(255, 83, 21, .2)
+    flex-shrink: 0
 }
 
 .mesa-card--indisponivel .mesa-card__icone-wrapper {
     background: var(--disabled);
-    color: var(--muted-soft)
+    color: var(--muted)
 }
 
 .mesa-card__status {
-    font-size: .625rem;
-    font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    padding: .25rem .625rem;
-    border-radius: 999px;
-    white-space: nowrap;
-    flex-shrink: 0
-}
-
-.mesa-card__status:not(.mesa-card__status--indisponivel) {
-    color: var(--mesa-livre);
-    background: var(--mesa-livre-bg)
-}
-
-.mesa-card__status--indisponivel {
-    color: #dc2626;
-    background: #fef2f2;
-    border: 1px solid #fecaca
-}
-
-.mesa-card__corpo {
-    display: flex;
-    flex-direction: column;
-    gap: .5rem;
-    flex: 1;
-    min-width: 0
-}
-
-.mesa-card__nome {
-    margin: 0;
-    font-weight: 700;
-    font-size: 1.25rem;
-    color: var(--navy);
-    line-height: 1.2
-}
-
-.mesa-card__ocupante {
-    margin: 0;
-    padding: .5rem .75rem;
-    font-size: .8125rem;
-    font-weight: 500;
-    color: var(--text);
-    background: var(--bg-soft);
-    border-radius: 8px;
-    border: 1px solid var(--border-soft);
-    line-height: 1.4
-}
-
-.mesa-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem .75rem;
-    margin-top: .25rem
-}
-
-.mesa-card__meta-item {
     display: inline-flex;
     align-items: center;
-    gap: .375rem;
-    font-size: .75rem;
-    color: var(--muted);
+    gap: .3rem;
+    font-size: .6875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    flex-shrink: 0;
     white-space: nowrap
 }
 
-.mesa-card__meta-item svg {
-    color: var(--muted-soft);
+.mesa-card__identificacao {
+    flex: 1;
+    display: grid;
+    gap: .125rem;
+    min-width: 0
+}
+
+.mesa-card__status {
+    color: var(--mesa-livre-texto);
+}
+
+.mesa-card__status::before {
+    width: .375rem;
+    height: .375rem;
+    border-radius: 50%;
+    background: currentColor;
+    content: ""
+}
+
+.mesa-card__status--indisponivel {
+    color: var(--error);
+}
+
+.mesa-card__nome {
+    overflow: hidden;
+    margin: 0;
+    color: var(--navy);
+    font-size: .9375rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.mesa-card__regiao {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: .75rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.mesa-card__regiao svg {
+    flex-shrink: 0;
+    color: var(--muted-soft)
+}
+
+.mesa-card__ocupante {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: .6875rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.mesa-card__acoes {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
     flex-shrink: 0
 }
 
-.mesa-card__meta-item span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px
-}
-
 .mesa-card__check {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 1.25rem;
+    height: 1.25rem;
     border-radius: 50%;
     background: var(--orange);
     color: white;
-    box-shadow: 0 2px 8px rgba(255, 83, 21, .3);
     animation: check-pop .2s ease-out
+}
+
+.mesa-card--selecionada .mesa-card__icone-wrapper {
+    background: var(--orange);
+    color: #ffffff
+}
+
+.mesa-card--indisponivel .mesa-card__icone-wrapper {
+    background: var(--surface);
+    color: var(--muted)
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mesa-card {
+        transition: none
+    }
+
+    .mesa-card__check {
+        animation: none
+    }
 }
 
 .resumo__titulo{
@@ -767,5 +779,10 @@ input::placeholder {
 
     .mesas-livres__grid {
         grid-template-columns: 1fr
+    }
+
+    .mesa-card {
+        min-height: 76px;
+        padding: .625rem
     }
 }

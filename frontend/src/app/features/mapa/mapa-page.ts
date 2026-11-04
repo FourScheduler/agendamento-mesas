@@ -1,6 +1,6 @@
-import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, DestroyRef, ElementRef, afterNextRender, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -38,6 +38,7 @@ export class MapaPage {
   readonly formatarData = formatarData;
   readonly buscaSolicitante = signal('');
   readonly solicitanteFocado = signal(false);
+  readonly editandoSolicitante = signal(true);
   readonly solicitanteSelecionado = signal<UsuarioAdminResumo | null>(null);
   readonly usuariosEncontrados = signal<readonly UsuarioAdminResumo[]>([]);
   readonly carregandoUsuarios = signal(false);
@@ -126,6 +127,7 @@ export class MapaPage {
     const busca = termo.trim();
     this.buscaSolicitante.set(termo);
     this.solicitanteSelecionado.set(null);
+    this.editandoSolicitante.set(true);
     this.usuariosEncontrados.set([]);
     this.erroBuscaSolicitante.set('');
     this.termosBuscaSolicitante.next(busca);
@@ -133,10 +135,22 @@ export class MapaPage {
 
   selecionarSolicitante(usuario: UsuarioAdminResumo) {
     this.solicitanteSelecionado.set(usuario);
+    this.editandoSolicitante.set(false);
     this.buscaSolicitante.set('');
     this.usuariosEncontrados.set([]);
     this.solicitanteFocado.set(false);
     this.termosBuscaSolicitante.next('');
+  }
+
+  trocarSolicitante() {
+    if (this.reserva.confirmando()) return;
+
+    this.solicitanteSelecionado.set(null);
+    this.editandoSolicitante.set(true);
+    this.buscaSolicitante.set('');
+    this.usuariosEncontrados.set([]);
+    this.erroBuscaSolicitante.set('');
+    this.solicitanteFocado.set(false);
   }
 
   confirmarReserva() {

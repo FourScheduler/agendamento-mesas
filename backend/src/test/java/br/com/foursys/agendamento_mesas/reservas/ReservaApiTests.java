@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.*;
-import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.model.*;
 import br.com.foursys.agendamento_mesas.port.out.MesaRepositoryPort;
 import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
@@ -89,6 +88,8 @@ reservas.deletarTodos();
                 .andExpect(jsonPath("$.solicitante.id").value(maria.getId()))
                 .andExpect(jsonPath("$.solicitante.nome").value("Maria"))
                 .andExpect(jsonPath("$.solicitante.email").value("maria@teste.com"))
+                .andExpect(jsonPath("$.criador.id").value(maria.getId()))
+                .andExpect(jsonPath("$.criador.perfil").value("USUARIO"))
                 .andExpect(jsonPath("$.criadaEm").value("2026-10-26T09:00:00"))
                 .andExpect(jsonPath("$.confirmadaEm").value("2026-10-26T09:00:00"));
         // Leitura em outra transação depois da resposta HTTP.
@@ -108,11 +109,55 @@ reservas.deletarTodos();
                 .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"2026-10-26\",\"solicitanteId\":" + joao.getId() + "}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.solicitante.id").value(joao.getId()))
-            .andExpect(jsonPath("$.solicitante.nome").value("João"));
+            .andExpect(jsonPath("$.solicitante.nome").value("João"))
+            .andExpect(jsonPath("$.criador.id").value(admin.getId()))
+            .andExpect(jsonPath("$.criador.perfil").value("ADMIN"));
 
         assertThat(reservas.buscarTodos()).singleElement()
             .extracting(reserva -> reserva.getUsuario().getId())
             .isEqualTo(joao.getId());
+    }
+
+    @Test
+    void beneficiarioVeReservaCriadaPorAdminEAdminPodeListaLa() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+
+        mvc.perform(get("/api/reservas/minhas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(criada.id()))
+            .andExpect(jsonPath("$[0].usuarioId").value(joao.getId()))
+            .andExpect(jsonPath("$[0].criador.perfil").value("ADMIN"));
+
+        mvc.perform(get("/api/admin/reservas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(criada.id()))
+            .andExpect(jsonPath("$[0].solicitante.id").value(joao.getId()));
+
+        mvc.perform(get("/api/admin/reservas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void beneficiarioNaoCancelaReservaCriadaPorAdminMasAdminPode() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.status").value(403));
+
+        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getStatus())
+            .isEqualTo(StatusReserva.CONFIRMADA);
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
+            .andExpect(status().isOk());
+
+        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getStatus())
+            .isEqualTo(StatusReserva.CANCELADA);
     }
 
     @Test
@@ -277,10 +322,10 @@ reservas.deletarTodos();
     void recusaCancelarReservaDeOutroUsuarioSemAlterarReserva() throws Exception {
         var reserva = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
 
-        assertThatThrownBy(() -> mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
-                .header("Authorization", "Bearer " + jwt.gerarToken(joao))))
-                .isInstanceOf(jakarta.servlet.ServletException.class)
-                .hasRootCauseInstanceOf(UsuarioSemPermissaoException.class);
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
 
         var persistida = reservas.buscarPorId(reserva.getId()).orElseThrow();
         assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);

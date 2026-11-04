@@ -22,6 +22,12 @@ public interface ReservaRepositoryPort {
 
     List<Reserva> buscarTodos();
 
+    List<Reserva> listarTodas(
+        @Param("inicio") LocalDate inicio,
+        @Param("fim") LocalDate fim,
+        @Param("status") StatusReserva status
+    );
+
     List<Reserva> listarMinhas(
         @Param("usuarioId") Long usuarioId,
         @Param("inicio") LocalDate inicio,
