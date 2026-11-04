@@ -190,11 +190,6 @@
   color: #ffffff;
 }
 
-.minhas-reservas__status--pendente {
-  background: var(--orange-soft);
-  color: var(--orange);
-}
-
 .minhas-reservas__confirmacaoTexto {
   color: var(--navy);
   font-size: 0.8125rem;

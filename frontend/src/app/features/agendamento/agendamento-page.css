@@ -95,20 +95,6 @@
     border-color: var(--orange);
     box-shadow: 0 0 0 3px var(--orange-soft)
 }
-
-.botao--mapa-header {
-    background: transparent;
-    color: var(--orange);
-    border: 1px solid var(--orange);
-    min-height: 44px
-}
-
-.botao--mapa-header:hover:not(:disabled) {
-    background: var(--orange-soft);
-    border-color: var(--orange);
-    color: var(--orange)
-}
-
 .filtro-data__erro {
     margin-top: .5rem;
     color: var(--error);
@@ -172,35 +158,49 @@
 }
 
 .mesas-livres__vazio {
-    text-align: center;
-    padding: 3rem 1.5rem;
-    color: var(--muted)
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+}
+.mesas-livres__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mesa-item {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.mesa-item:hover {
+  border-color: var(--orange-400);
+
+  border-left: 8px solid var(--orange);
+}
+.resumo-reserva {
+  position: sticky;
+  top: 100px;
+  min-height: fit-content;
 }
 
-.mesas-livres__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem
-}
-
-/* ===== MESA CARD ===== */
-.mesa-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    padding: 1.25rem;
-    margin:0.3rem;
-    border: 2px solid var(--border-soft);
-    border-radius: 16px;
-    background: white;
-    cursor: pointer;
-    transition: border-color .2s, box-shadow .2s, transform .15s;
-    min-height: 180px
-}
-
-.mesa-card:hover {
-   border-color: var(--orange); 
-    transform: translateY(-4px)
+.resumo__titulo {
+  color: var(--orange);
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding:1rem 0 0 0.75rem;
 }
 
 .mesa-card:focus-visible {
@@ -219,31 +219,121 @@
     cursor: not-allowed;
     background: var(--disabled)
 }
-
-.mesa-card--indisponivel:hover {
-    border-color: var(--border-soft);
-    box-shadow: none;
-    transform: none
+.resumo__vazio p {
+  margin: 0;
+  line-height: 1.6;
+}
+.botao--largura-total {
+  width: 100%;
+}
+.resumo__erro {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #dc2626;
+  font-size: 0.875rem;
 }
 
-.mesa-card__topo {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: .25rem
+/* ----- Lista de mesas – item com imagem ----- */
+.mesa-item {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: start;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-.mesa-card__icone-wrapper {
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, var(--orange-soft), #fff5eb);
-    color: var(--orange);
-    flex-shrink: 0;
-    box-shadow: inset 0 1px 2px rgba(255, 83, 21, .2)
+.mesa-item--selecionada {
+  border: 2px solid;
+  border-color: var(--orange-400);
+}
+
+
+.mesa-item:hover {
+  border-color: var(--orange-400);
+  box-shadow: 0 2px 8px rgba(255,83,21,0.1);
+}
+
+/* Mesa indisponível */
+.mesa-item--indisponivel {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--disabled);
+}
+.mesa-item--indisponivel:hover {
+  border-color: var(--border-soft);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Imagem da mesa */
+.mesa-item__imagem {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* Área de informações à direita da imagem */
+.mesa-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;          /* permite que o texto faça ellipsis se necessário */
+}
+
+/* Cabeçalho: nome + status */
+.mesa-item__cabecalho {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.mesa-item__nome {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--navy);
+}
+.mesa-item__status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mesa-livre);
+  background: var(--mesa-livre-bg);
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mesa-item__status--indisponivel {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+/* Ocupante da mesa */
+.mesa-item__ocupante {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-top: 0.25rem;
+}
+
+/* Linha de ícones (capacidade, localização, tomadas) */
+.mesa-item__detalhes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
 .mesa-card--indisponivel .mesa-card__icone-wrapper {
@@ -396,43 +486,7 @@
     flex-direction: column
 }
 
-.resumo__header {
-    display: flex;
-    align-items: center;
-    gap: .875rem;
-    padding-bottom: 1rem
-}
-
-.resumo__header-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    color: var(--orange);
-    flex-shrink: 0
-}
-
-.resumo__header-info {
-    display: flex;
-    flex-direction: column;
-    gap: .125rem;
-    min-width: 0
-}
-
-.resumo__header-label {
-    font-weight: 600;
-    font-size: .9375rem;
-    color: var(--navy);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis
-}
-
-.resumo__header-periodo {
-    font-size: .8125rem;
-    color: var(--muted);
-    font-weight: 500
-}
-
+/* Divisores */
 .resumo__divider {
     height: 1px;
     background: var(--border-soft);
@@ -488,51 +542,7 @@
     text-overflow: ellipsis
 }
 
-.resumo__solicitante-select {
-    width: 100%;
-    min-height: 40px;
-    padding: 0 .875rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: white;
-    color: var(--text);
-    font-size: .875rem;
-    font-family: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right .75rem center;
-    padding-right: 2.5rem
-}
-
-.resumo__solicitante-select:focus {
-    outline: none;
-    border-color: var(--orange);
-    box-shadow: 0 0 0 3px var(--orange-soft)
-}
-
-.resumo__solicitante-select:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-    background: var(--disabled)
-}
-
-.resumo__solicitante-loading {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    color: var(--muted);
-    font-size: .875rem;
-    font-weight: 500
-}
-
-.resumo__solicitante-loading .spinner {
-    width: 16px;
-    height: 16px
-}
-
+/* Busca de solicitante (admin) */
 .solicitante-busca {
     position: relative;
     width: 100%;
@@ -722,26 +732,7 @@ input::placeholder {
     flex-shrink: 0
 }
 
-.resumo__steps {
-    display: flex;
-    justify-content: center;
-    gap: .5rem;
-    padding-top: .5rem
-}
-
-.resumo__step {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--border);
-    transition: background .2s, transform .2s
-}
-
-.resumo__step.active {
-    background: var(--orange);
-    transform: scale(1.15)
-}
-
+/* Erro */
 .resumo__erro {
     margin: 0;
     padding: .75rem 1rem;

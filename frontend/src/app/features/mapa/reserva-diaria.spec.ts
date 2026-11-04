@@ -111,7 +111,9 @@ describe('Reserva diária pela planta', () => {
     carregar([]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
-    expect(fixture.nativeElement.querySelector('.mesa').textContent).toContain('Ocupada');
+    expect(fixture.nativeElement.querySelector('.mesa').classList.contains('ocupada')).toBe(true);
+    expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-label')).toContain('Reservada');
+    expect(fixture.nativeElement.querySelector('.mesa__estado')).toBeNull();
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
   });
 

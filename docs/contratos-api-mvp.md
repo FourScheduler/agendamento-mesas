@@ -180,6 +180,21 @@ Nenhum.
 
 ---
 
+## GET /api/mesas/com-ocupacao
+
+Lista o catálogo com o indicador `ocupada` para a data consultada, preservando
+os campos de mesa, responsável e referência visual. Aceita `termo` com a mesma
+normalização de código de `/api/mesas`. Exige autenticação.
+
+`data` é opcional, no formato `yyyy-MM-dd`; quando omitida, usa o dia atual
+do relógio da aplicação, em `America/Sao_Paulo`. A consulta não aplica a janela
+de criação de reservas: mesas fixas e inativas também são retornadas.
+
+`ocupada` é `true` apenas quando existe reserva `PENDENTE` ou `CONFIRMADA`
+na data informada. Reservas canceladas e de outras datas não marcam ocupação.
+Resposta `200` com lista (possivelmente vazia); data malformada retorna `400`
+e ausência de autenticação retorna `401`.
+
 ## GET /api/mesas/disponiveis
 
 Lista as mesas disponíveis para a data informada: **ativas**, **`LIVRE`** e **sem reserva não cancelada** na data. É a base da planta com disponibilidade.
@@ -420,6 +435,54 @@ Lista reservas de todos os usuários.
 
 Cancela a reserva de qualquer usuário (mesmas regras de estado de `PATCH /api/reservas/{id}/cancelamento`). `200` com a reserva `CANCELADA`; erros `401`, `403`, `404` e `409` como na rota do usuário.
 
+### PATCH /api/admin/mesas/{id}/fixar
+
+Fixa uma mesa e associa um usuário ativo como responsável.
+
+#### Request
+
+```json
+{
+  "usuarioId": 7
+}
+```
+
+`200`: retorna `MesaResponse` com `tipo: "FIXA"` e o objeto `responsavel` (`id`, `nome`, `email`).
+
+### PATCH /api/admin/mesas/{id}/desfixar
+
+Desfixa a mesa, altera o tipo para `LIVRE` e remove o responsável (`responsavel: null`).
+
+`200`: retorna o `MesaResponse` atualizado.
+
+### PATCH /api/admin/mesas/{id}/responsavel
+
+Altera o responsável de uma mesa fixa para outro usuário ativo.
+
+#### Request
+
+```json
+{
+  "usuarioId": 8
+}
+```
+
+`200`: retorna o `MesaResponse` atualizado.
+
+### PATCH /api/admin/mesas/{id}/ativacao
+
+Ativa ou inativa uma mesa.
+
+#### Request
+
+```json
+{
+  "ativa": false
+}
+```
+
+`200`: retorna o `MesaResponse` atualizado.
+
 ### PATCH /api/admin/mesas/{id}/tipo
 
 Altera o tipo da mesa entre `FIXA` e `LIVRE`.
@@ -470,6 +533,7 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | GET | `/api/auth/perfil` | Sim | Qualquer |
 | GET | `/api/admin/usuarios/busca?termo=...` | Sim | ADMIN |
 | GET | `/api/mesas` | Sim | Qualquer |
+| GET | `/api/mesas/com-ocupacao` | Sim | Qualquer |
 | GET | `/api/mesas/disponiveis` | Sim | Qualquer |
 | POST | `/api/reservas` | Sim | Qualquer |
 | GET | `/api/reservas/minhas` | Sim | Qualquer |
@@ -477,6 +541,10 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 | POST | `/api/admin/usuarios` | Sim | ADMIN |
 | GET | `/api/admin/reservas` | Sim | ADMIN |
 | PATCH | `/api/admin/reservas/{id}/cancelamento` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/fixar` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/desfixar` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/responsavel` | Sim | ADMIN |
+| PATCH | `/api/admin/mesas/{id}/ativacao` | Sim | ADMIN |
 | PATCH | `/api/admin/mesas/{id}/tipo` | Sim | ADMIN |
 
 ## Verificação
