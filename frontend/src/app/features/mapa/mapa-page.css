@@ -156,10 +156,7 @@ app-planta-mesas {
 .detalhes dd:last-child {
   border-bottom: 0;
 }
-.detalhes dd .solicitante-selecionado {
-  display: block;
-  margin: 0;
-}
+
 .detalhes__nota {
   margin: auto 0 0.75rem;
   color: var(--muted);
