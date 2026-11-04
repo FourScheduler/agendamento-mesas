@@ -64,7 +64,7 @@ describe("PlantaMesas", () => {
     }
   });
 
-  it("usa os IDs e posições da API e impede seleção de inativas e fixas", () => {
+  it("usa os IDs e posições da API e permite consultar mesas não reserváveis", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
     fixture.detectChanges();
     const request = http.expectOne("/api/mesas");
@@ -108,15 +108,20 @@ describe("PlantaMesas", () => {
     expect(buttons.length).toBe(3);
     expect(buttons[0].style.left).toBe("123px");
     expect(buttons[0].style.top).toBe("87px");
-    expect(buttons[1].disabled).toBe(true);
-    expect(buttons[2].disabled).toBe(true);
+    expect(buttons[0].getAttribute("aria-disabled")).toBe("false");
+    expect(buttons[1].disabled).toBe(false);
+    expect(buttons[1].getAttribute("aria-disabled")).toBe("true");
+    expect(buttons[2].disabled).toBe(false);
+    expect(buttons[2].getAttribute("aria-disabled")).toBe("true");
     const emit = vi.fn();
     fixture.componentInstance.mesaSelecionada.subscribe(emit);
     buttons[0].click();
     fixture.componentInstance.selecionar(mesas[1]);
     fixture.componentInstance.selecionar(mesas[2]);
-    expect(emit).toHaveBeenCalledExactlyOnceWith(mesas[0]);
-    expect(fixture.componentInstance.selecionada()).toBe(731);
+    expect(emit).toHaveBeenNthCalledWith(1, { mesa: mesas[0], disponivel: true });
+    expect(emit).toHaveBeenNthCalledWith(2, { mesa: mesas[1], disponivel: false });
+    expect(emit).toHaveBeenNthCalledWith(3, { mesa: mesas[2], disponivel: false });
+    expect(fixture.componentInstance.selecionada()).toBe(117);
   });
 
   it("mantém a geometria de Tamboré com entrada e parede sem duplicar mesas", () => {
@@ -220,7 +225,7 @@ describe("PlantaMesas", () => {
     const emitir = vi.fn();
     fixture.componentInstance.mesaSelecionada.subscribe(emitir);
     botao(8).click();
-    expect(emitir).toHaveBeenCalledExactlyOnceWith(mesas[7]);
+    expect(emitir).toHaveBeenCalledExactlyOnceWith({ mesa: mesas[7], disponivel: true });
   });
 
   it("separa os blocos e não une mesas através da entrada ou de posições ausentes", () => {
@@ -394,7 +399,8 @@ describe("PlantaMesas", () => {
     fixture.detectChanges();
     const botoes = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
     expect(botoes[0].disabled).toBe(false);
-    expect(botoes[1].disabled).toBe(true);
+    expect(botoes[1].disabled).toBe(false);
+    expect(botoes[1].getAttribute('aria-disabled')).toBe('true');
     expect(botoes[1].classList.contains('ocupada')).toBe(true);
     expect(botoes[0].querySelectorAll('.mesa__cadeira').length).toBe(2);
     const cadeira = botoes[0].querySelector('.mesa__cadeira') as HTMLElement;
@@ -406,7 +412,7 @@ describe("PlantaMesas", () => {
     const emitir = vi.fn();
     fixture.componentInstance.mesaSelecionada.subscribe(emitir);
     botoes[0].click();
-    expect(emitir).toHaveBeenCalledExactlyOnceWith(mesas[0]);
+    expect(emitir).toHaveBeenCalledExactlyOnceWith({ mesa: mesas[0], disponivel: true });
   });
 
   it("exibe somente o rótulo Livre e mantém nomes opcionais dos ocupantes", () => {
