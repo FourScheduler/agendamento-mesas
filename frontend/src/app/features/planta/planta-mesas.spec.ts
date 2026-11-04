@@ -183,7 +183,7 @@ describe("PlantaMesas", () => {
       const coluna = fileira % 2 === 0 ? indice % 4 : 3 - indice % 4;
       return {
         id: indice + 1, codigo: String(indice + 1).padStart(3, '0'),
-        regiao: 'TAMBORÉ', tipo: 'LIVRE', ativa: true, ocupante: '',
+        regiao: 'TAMBORÉ', tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: '',
         referenciaVisual: { planta: 'TAMBORÉ', x: 24 + coluna * 189,
           y: [24, 124, 240, 340][fileira] },
       };
@@ -231,7 +231,7 @@ describe("PlantaMesas", () => {
       [93, 834, 1048], [94, 1211, 1048],
       [92, 834, 1148], [91, 1023, 1148],
     ].map(([id, x, y]) => ({
-      id, codigo: String(id), tipo: 'LIVRE', ativa: true, ocupante: '',
+      id, codigo: String(id), tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: '',
       regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x, y },
     }));
     const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
@@ -264,7 +264,7 @@ describe("PlantaMesas", () => {
       [65, '065', 29, 1757], [69, '069', 595, 1857],
       [77, '077', 833, 1548], [73, '073', 1400, 1650],
     ].map(([id, codigo, x, y]) => ({
-      id: Number(id), codigo: String(codigo), tipo: 'FIXA', ativa: true, ocupante: '',
+      id: Number(id), codigo: String(codigo), tipo: 'FIXA', ativa: true, ocupada: false, ocupante: '',
       regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x: Number(x), y: Number(y) },
     }));
     const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
@@ -309,6 +309,7 @@ describe("PlantaMesas", () => {
       regiao: 'DEMO',
       tipo: 'LIVRE',
       ativa: true,
+      ocupada: false,
       ocupante: '',
       referenciaVisual: { planta: 'P', x: id * 200, y: 80 },
     }));

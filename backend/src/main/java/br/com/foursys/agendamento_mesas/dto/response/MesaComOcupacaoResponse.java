@@ -9,6 +9,7 @@ public record MesaComOcupacaoResponse(
     TipoMesa tipo,
     boolean ativa,
     String ocupante,
+    MesaResponse.UsuarioResponsavel responsavel,
     ReferenciaVisual referenciaVisual,
     boolean ocupada
 ) {
@@ -22,6 +23,7 @@ public record MesaComOcupacaoResponse(
             mesa.tipo(),
             mesa.ativa(),
             mesa.ocupante(),
+            mesa.responsavel(),
             new ReferenciaVisual(
                 mesa.referenciaVisual().planta(),
                 mesa.referenciaVisual().x(),

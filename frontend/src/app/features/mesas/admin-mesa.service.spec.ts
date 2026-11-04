@@ -13,6 +13,7 @@ const mesa: Mesa = {
   regiao: 'TAMBORÉ',
   tipo: 'FIXA',
   ativa: true,
+  ocupada: false,
   responsavel: { id: 7, nome: 'Pessoa Teste', email: 'pessoa@example.com' },
   ocupante: null,
   referenciaVisual: { planta: 'TAMBORÉ', x: 24, y: 24 },
@@ -31,6 +32,18 @@ describe('AdminMesaService', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('sends the date and code filter to the occupancy endpoint', () => {
+    service.listarComOcupacao(' Mesa 44 ', '2026-11-04').subscribe(mesas => {
+      expect(mesas[0].ocupada).toBe(true);
+      expect(mesas[0].responsavel).toEqual(mesa.responsavel);
+    });
+    const request = http.expectOne(r => r.url === '/api/mesas/com-ocupacao');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('termo')).toBe('Mesa 44');
+    expect(request.request.params.get('data')).toBe('2026-11-04');
+    request.flush([{ ...mesa, ocupada: true }]);
+  });
 
   it('uses the implemented endpoint to list active users', () => {
     service.listarUsuariosAtivos().subscribe();

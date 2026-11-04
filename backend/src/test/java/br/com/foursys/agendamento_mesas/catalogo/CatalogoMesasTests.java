@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +46,64 @@ class CatalogoMesasTests {
     @Autowired UsuarioRepositoryPort usuarios;
     @Autowired ReservaRepositoryPort reservas;
     @Autowired JwtService jwt;
+    @Autowired Clock relogio;
+
+    @Test
+    void consultaOcupacaoPorDataPreservaCatalogoEFiltraCodigo() throws Exception {
+        LocalDate data = LocalDate.now(relogio);
+        var usuario = usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow();
+        Mesa pendente = repository.salvar(new Mesa(null, "9901", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0, null));
+        Mesa confirmada = repository.salvar(new Mesa(null, "9902", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 0, null));
+        Mesa cancelada = repository.salvar(new Mesa(null, "9903", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0, null));
+        Mesa outraData = repository.salvar(new Mesa(null, "9904", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 0, null));
+        confirmada.setResponsavel(usuario);
+        reservas.salvar(new Reserva(pendente, usuario, data, StatusReserva.PENDENTE));
+        reservas.salvar(new Reserva(confirmada, usuario, data, StatusReserva.CONFIRMADA));
+        reservas.salvar(new Reserva(cancelada, usuario, data, StatusReserva.CANCELADA));
+        reservas.salvar(new Reserva(outraData, usuario, data.plusDays(1), StatusReserva.CONFIRMADA));
+        reservas.sincronizar();
+        String token = "Bearer " + jwt.gerarToken(usuario);
+
+        mvc.perform(get("/api/mesas/com-ocupacao")
+                        .param("data", data.toString())
+                        .param("termo", "Mesa 990")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[0].codigo").value("9901"))
+                .andExpect(jsonPath("$[0].ocupada").value(true))
+                .andExpect(jsonPath("$[1].ocupada").value(true))
+                .andExpect(jsonPath("$[1].tipo").value("FIXA"))
+                .andExpect(jsonPath("$[1].responsavel.id").value(usuario.getId()))
+                .andExpect(jsonPath("$[1].referenciaVisual.planta").value("DEMO"))
+                .andExpect(jsonPath("$[2].ocupada").value(false))
+                .andExpect(jsonPath("$[3].ocupada").value(false))
+                .andExpect(jsonPath("$[3].ativa").value(false));
+
+        mvc.perform(get("/api/mesas/com-ocupacao")
+                        .param("termo", "9901")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ocupada").value(true));
+
+        mvc.perform(get("/api/mesas/com-ocupacao")
+                        .param("data", data.plusDays(1).toString())
+                        .param("termo", "9901")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ocupada").value(false));
+    }
+
+    @Test
+    void consultaOcupacaoExigeAutenticacaoEDataIso() throws Exception {
+        mvc.perform(get("/api/mesas/com-ocupacao"))
+                .andExpect(status().isUnauthorized());
+        String token = jwt.gerarToken(usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow());
+        mvc.perform(get("/api/mesas/com-ocupacao")
+                        .param("data", "data-invalida")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void catalogoAutenticadoIncluiInativaEReferenciaVisualSemDisponibilidadeGlobal() throws Exception {

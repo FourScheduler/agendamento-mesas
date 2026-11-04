@@ -24,15 +24,18 @@ public class MesaService {
     private final DataReservaValidator datas;
     private final MesaRepositoryPort mesaRepositoryPort;
     private final UsuarioRepositoryPort usuarioRepositoryPort;
+    private final ReservaRepositoryPort reservaRepositoryPort;
 
     public MesaService(
         DataReservaValidator datas,
         MesaRepositoryPort mesaRepositoryPort,
-        UsuarioRepositoryPort usuarioRepositoryPort
+        UsuarioRepositoryPort usuarioRepositoryPort,
+        ReservaRepositoryPort reservaRepositoryPort
     ) {
         this.datas = datas;
         this.mesaRepositoryPort = mesaRepositoryPort;
         this.usuarioRepositoryPort = usuarioRepositoryPort;
+        this.reservaRepositoryPort = reservaRepositoryPort;
     }
 
     public List<MesaResponse> listar() {
@@ -83,6 +86,13 @@ public class MesaService {
             .buscarMesasDisponiveis(data, TipoMesa.LIVRE, ReservaRepositoryPort.BLOQUEIA_MESA)
             .stream()
             .map(MesaResponse::de)
+            .toList();
+    }
+
+    public List<MesaComOcupacaoResponse> listarComOcupacao(LocalDate data, String termo) {
+        return listar(termo).stream()
+            .map(mesa -> MesaComOcupacaoResponse.de(mesa,
+                reservaRepositoryPort.mesaOcupadaNaData(mesa.id(), data, ReservaRepositoryPort.BLOQUEIA_MESA)))
             .toList();
     }
 
