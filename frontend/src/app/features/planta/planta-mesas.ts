@@ -8,6 +8,7 @@ import {
   signal,
   afterNextRender,
   DestroyRef,
+  Injector,
   ElementRef,
   viewChild,
   HostListener,
@@ -36,6 +37,7 @@ export class PlantaMesas {
   readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionadaId = input<number | null>(null);
   readonly mesaSelecionada = output<Mesa>();
+  readonly mesaInicialSelecionada = output<Mesa>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
@@ -51,6 +53,7 @@ export class PlantaMesas {
   private readonly viewport =
     viewChild.required<ElementRef<HTMLElement>>("viewport");
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   /** Mesas disponíveis para navegação por teclado (ordenadas por planta, y, x) */
   private readonly mesasNavegaveis = computed(() =>
@@ -195,7 +198,16 @@ export class PlantaMesas {
             const mesaInicialId = this.mesaInicialId();
             if (mesaInicialId !== null) {
               const mesaInicial = mesas.find(mesa => mesa.id === mesaInicialId);
-              if (mesaInicial && this.estaDisponivel(mesaInicial)) this.selecionar(mesaInicial);
+              if (mesaInicial && this.estaDisponivel(mesaInicial)) {
+                this.selecionada.set(mesaInicial.id);
+                this.mesaInicialSelecionada.emit(mesaInicial);
+                afterNextRender(() => {
+                  if (this.selecionada() !== mesaInicial.id) return;
+                  this.viewport().nativeElement
+                    .querySelector<HTMLElement>(`button.mesa[data-mesa-id="${mesaInicial.id}"]`)
+                    ?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+                }, { injector: this.injector });
+              }
               else this.mesaInicialInvalidada.emit();
             }
           }

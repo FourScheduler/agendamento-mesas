@@ -4,7 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
-import { provideRouter, Router } from "@angular/router";
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { MapaPage } from "./mapa-page";
 import { Mesa } from "../mesas/mesa";
@@ -64,6 +64,48 @@ describe("Barra de reserva do mapa", () => {
     fixture.detectChanges();
     return fixture;
   }
+
+  it("rola até a mesa recebida do agendamento e mantém o destaque sem abrir o modal", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    const rolar = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: rolar,
+    });
+    try {
+      vi.spyOn(TestBed.inject(ActivatedRoute).snapshot.queryParamMap, "get")
+        .mockImplementation(nome => convertToParamMap({ mesaId: "44" }).get(nome));
+      const fixture = TestBed.createComponent(MapaPage);
+      fixture.detectChanges();
+      http.expectOne("/api/mesas").flush([mesa]);
+      http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+      fixture.detectChanges();
+      const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
+      expect(botao.classList.contains("selecionada")).toBe(true);
+      expect(botao.getAttribute("aria-pressed")).toBe("true");
+      expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(44);
+      expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
+      expect(rolar).toHaveBeenCalledExactlyOnceWith({
+        block: "center", inline: "center", behavior: "instant",
+      });
+      expect(rolar.mock.contexts[0]).toBe(botao);
+      http.expectNone("/api/reservas");
+
+      botao.click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(".detalhes")).not.toBeNull();
+      fixture.nativeElement.querySelector(".detalhes__fechar").click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
+      expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", descriptor);
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+      }
+    }
+  });
 
   it("mostra o resumo e mantém a confirmação integrada à API", () => {
     const fixture = abrir();

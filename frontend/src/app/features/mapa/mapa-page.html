@@ -32,6 +32,7 @@
       [data]="reserva.data()" [atualizacao]="reserva.atualizacao()" [mesaInicialId]="mesaInicialId()"
       [mesaSelecionadaId]="mesaSelecionada()?.id ?? null"
       (mesaSelecionada)="onMesaSelecionada($event)"
+      (mesaInicialSelecionada)="onMesaInicialSelecionada($event)"
       (disponibilidadeConsultada)="reserva.registrarDisponibilidade($event)"
       (mesaInicialInvalidada)="onMesaInicialInvalidada()"
     />
@@ -39,7 +40,7 @@
     <p role="status">Escolha uma data válida para consultar a disponibilidade.</p>
   }
 
-  @if (mesaSelecionada(); as mesa) {
+  @if (detalhesAbertos() && mesaSelecionada(); as mesa) {
     <div
       class="detalhes-overlay"
       (click)="!reserva.confirmando() && fecharDetalhes()"

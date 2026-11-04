@@ -61,7 +61,12 @@ visual e a marca, com componentes próprios para seus contratos de API.
   lilás suave sem descrição sobre a mesa. A legenda diferencia "Livre na data", "Reservada", fixa,
   inativa e selecionada. A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
-  a disponibilidade. No mapa, selecionar uma mesa abre modal com detalhes já expandidos;
+  a disponibilidade. No agendamento, clicar novamente na mesa selecionada remove
+  a seleção; Enter e Espaço têm o mesmo comportamento.
+  No mapa, selecionar uma mesa abre modal com detalhes já expandidos;
+  ao chegar por Ver mapa do agendamento, a mesa fica somente destacada, sem abrir
+  o modal automaticamente. A rolagem leva diretamente à mesa selecionada,
+  centralizando-a na área visível. Clicar na mesa na planta abre os detalhes;
   administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
   e resultados acessíveis (`role=status`/`role=alert`).
 - Confirmações e críticas de reserva aparecem em uma notificação no canto superior

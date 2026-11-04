@@ -32,6 +32,7 @@ export class MapaPage {
   readonly isAdmin = computed(() => this.usuario()?.perfil === 'ADMIN');
   readonly mesaInicialId = signal(Number(this.route.snapshot.queryParamMap.get('mesaId')) || null);
   readonly mesaSelecionada = this.reserva.selecionada;
+  readonly detalhesAbertos = signal(false);
   readonly formatarData = formatarData;
   readonly buscaSolicitante = signal('');
   readonly solicitanteFocado = signal(false);
@@ -81,14 +82,22 @@ export class MapaPage {
 
   onMesaSelecionada(mesa: Mesa) {
     this.reserva.selecionar(mesa);
+    this.detalhesAbertos.set(this.mesaSelecionada()?.id === mesa.id);
+  }
+
+  onMesaInicialSelecionada(mesa: Mesa) {
+    this.reserva.selecionar(mesa);
+    this.detalhesAbertos.set(false);
   }
 
   onDataChange(data: string) {
+    this.detalhesAbertos.set(false);
     this.mesaInicialId.set(null);
     this.reserva.alterarData(data);
   }
 
   onMesaInicialInvalidada() {
+    this.detalhesAbertos.set(false);
     this.mesaInicialId.set(null);
     this.reserva.limparSelecao();
   }
@@ -99,6 +108,7 @@ export class MapaPage {
 
   fecharDetalhes() {
     if (!this.reserva.confirmando()) {
+      this.detalhesAbertos.set(false);
       this.mesaInicialId.set(null);
       this.reserva.limparSelecao();
     }
