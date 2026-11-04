@@ -152,6 +152,42 @@ describe('Agendamento integrado à reserva diária', () => {
     consulta('2026-10-29').flush([]);
   });
 
+  it('remove a seleção ao clicar novamente na mesma mesa e permite selecionar de novo', () => {
+    const fixture = abrir();
+    const card = fixture.nativeElement.querySelector('.mesa-card') as HTMLElement;
+    expect(card.getAttribute('aria-selected')).toBe('true');
+
+    card.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    expect(card.classList.contains('mesa-card--selecionada')).toBe(false);
+    expect(card.getAttribute('aria-selected')).toBe('false');
+    fixture.componentInstance.confirmarReserva();
+    http.expectNone('/api/reservas');
+    fixture.componentInstance.irParaMapa();
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
+      ['/mapa'], { queryParams: { data: '2026-10-28', mesaId: null } },
+    );
+
+    card.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(44);
+    expect(card.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('alterna a seleção da mesa pelo teclado', () => {
+    const fixture = abrir();
+    const card = fixture.nativeElement.querySelector('.mesa-card') as HTMLElement;
+    for (const key of ['Enter', ' ']) {
+      card.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+      card.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(44);
+    }
+  });
+
   it('preserva a data na navegação para a planta', () => {
     const fixture = abrir();
     fixture.componentInstance.irParaMapa();

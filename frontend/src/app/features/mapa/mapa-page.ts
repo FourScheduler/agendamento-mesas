@@ -1,5 +1,6 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -16,7 +17,7 @@ import { ReservaService } from '../agendamento/reserva.service';
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [FormsModule, PlantaMesas, Notificacao],
+  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao],
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
@@ -27,11 +28,13 @@ export class MapaPage {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly reservas = inject(ReservaService);
+  private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
   readonly isAdmin = computed(() => this.usuario()?.perfil === 'ADMIN');
   readonly mesaInicialId = signal(Number(this.route.snapshot.queryParamMap.get('mesaId')) || null);
   readonly mesaSelecionada = this.reserva.selecionada;
+  readonly detalhesAbertos = signal(false);
   readonly formatarData = formatarData;
   readonly buscaSolicitante = signal('');
   readonly solicitanteFocado = signal(false);
@@ -49,6 +52,12 @@ export class MapaPage {
   private readonly termosBuscaSolicitante = new Subject<string>();
 
   constructor() {
+    afterNextRender(() => {
+      const pagina = this.elemento.nativeElement.ownerDocument.scrollingElement;
+      if (pagina) {
+        pagina.scrollTop += this.elemento.nativeElement.getBoundingClientRect().top;
+      }
+    });
     const usuarioAtual = this.usuario();
     if (this.isAdmin() && usuarioAtual) {
       this.solicitanteSelecionado.set({ ...usuarioAtual, ativo: true });
@@ -81,14 +90,22 @@ export class MapaPage {
 
   onMesaSelecionada(mesa: Mesa) {
     this.reserva.selecionar(mesa);
+    this.detalhesAbertos.set(this.mesaSelecionada()?.id === mesa.id);
+  }
+
+  onMesaInicialSelecionada(mesa: Mesa) {
+    this.reserva.selecionar(mesa);
+    this.detalhesAbertos.set(false);
   }
 
   onDataChange(data: string) {
+    this.detalhesAbertos.set(false);
     this.mesaInicialId.set(null);
     this.reserva.alterarData(data);
   }
 
   onMesaInicialInvalidada() {
+    this.detalhesAbertos.set(false);
     this.mesaInicialId.set(null);
     this.reserva.limparSelecao();
   }
@@ -99,6 +116,7 @@ export class MapaPage {
 
   fecharDetalhes() {
     if (!this.reserva.confirmando()) {
+      this.detalhesAbertos.set(false);
       this.mesaInicialId.set(null);
       this.reserva.limparSelecao();
     }

@@ -36,7 +36,8 @@ describe('Rotas da develop integradas à issue 7', () => {
     const harness = await RouterTestingHarness.create('/mapa?data=2026-10-29');
     http.expectOne('/api/mesas').flush([]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([]);
-    expect(harness.routeNativeElement?.textContent).toContain('Mapa de Mesas');
+    expect(harness.routeNativeElement?.querySelector('.mapa__cabecalho h1')?.textContent)
+      .toBe('Mapa de mesas');
     expect((harness.routeNativeElement?.querySelector('#data-reserva') as HTMLInputElement).value).toBe('2026-10-29');
   });
 });
