@@ -1,5 +1,6 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -16,7 +17,7 @@ import { ReservaService } from '../agendamento/reserva.service';
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [FormsModule, PlantaMesas, Notificacao],
+  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao],
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
@@ -27,6 +28,7 @@ export class MapaPage {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly reservas = inject(ReservaService);
+  private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
   readonly isAdmin = computed(() => this.usuario()?.perfil === 'ADMIN');
@@ -50,6 +52,12 @@ export class MapaPage {
   private readonly termosBuscaSolicitante = new Subject<string>();
 
   constructor() {
+    afterNextRender(() => {
+      const pagina = this.elemento.nativeElement.ownerDocument.scrollingElement;
+      if (pagina) {
+        pagina.scrollTop += this.elemento.nativeElement.getBoundingClientRect().top;
+      }
+    });
     const usuarioAtual = this.usuario();
     if (this.isAdmin() && usuarioAtual) {
       this.solicitanteSelecionado.set({ ...usuarioAtual, ativo: true });

@@ -47,8 +47,11 @@ visual e a marca, com componentes próprios para seus contratos de API.
   mantém espaço visual em relação às cadeiras da primeira fileira.
   Decorações em CSS não representam novos dados do catálogo.
   Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
-  visualização. Os controles e as instruções ficam abaixo da área rolável,
-  sem sobrepor as mesas.
+  visualização. Os controles e a legenda ficam juntos abaixo da área rolável.
+  As instruções aparecem ao passar o mouse sobre o ícone de informação,
+  sem ação de clique; foco por teclado também permite ler a dica.
+  O dia da reserva e as ações da consulta ficam no cabeçalho do mapa,
+  sem um bloco de título duplicado acima dele.
   O nível exibido como 100% corresponde a 72% da escala proporcional original,
   inclusive ao abrir o mapa ou restaurar a visualização.
   Arrastar o fundo com mouse move o mapa; no toque, usar a rolagem
@@ -67,6 +70,8 @@ visual e a marca, com componentes próprios para seus contratos de API.
   ao chegar por Ver mapa do agendamento, a mesa fica somente destacada, sem abrir
   o modal automaticamente. A rolagem leva diretamente à mesa selecionada,
   centralizando-a na área visível. Clicar na mesa na planta abre os detalhes;
+  a página enquadra cabeçalho, planta e rodapé na janela; a centralização da mesa
+  altera somente a rolagem interna, preservando a visibilidade dos controles.
   administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
   e resultados acessíveis (`role=status`/`role=alert`).
 - Confirmações e críticas de reserva aparecem em uma notificação no canto superior

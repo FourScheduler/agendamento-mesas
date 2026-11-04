@@ -77,6 +77,17 @@ describe("Barra de reserva do mapa", () => {
         .mockImplementation(nome => convertToParamMap({ mesaId: "44" }).get(nome));
       const fixture = TestBed.createComponent(MapaPage);
       fixture.detectChanges();
+      const viewport = fixture.nativeElement.querySelector(".mapa__viewport") as HTMLElement;
+      const centralizar = vi.fn();
+      viewport.scrollTo = centralizar;
+      vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(10, 20, 400, 300),
+      );
+      Object.defineProperty(viewport, "clientWidth", { configurable: true, value: 400 });
+      Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 300 });
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+        return new DOMRect(710, 920, 100, 60);
+      });
       http.expectOne("/api/mesas").flush([mesa]);
       http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
       fixture.detectChanges();
@@ -85,10 +96,10 @@ describe("Barra de reserva do mapa", () => {
       expect(botao.getAttribute("aria-pressed")).toBe("true");
       expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(44);
       expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
-      expect(rolar).toHaveBeenCalledExactlyOnceWith({
-        block: "center", inline: "center", behavior: "instant",
+      expect(centralizar).toHaveBeenCalledExactlyOnceWith({
+        left: 550, top: 780, behavior: "instant",
       });
-      expect(rolar.mock.contexts[0]).toBe(botao);
+      expect(rolar).not.toHaveBeenCalled();
       http.expectNone("/api/reservas");
 
       botao.click();
@@ -99,6 +110,7 @@ describe("Barra de reserva do mapa", () => {
       expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
       expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
     } finally {
+      vi.restoreAllMocks();
       if (descriptor) {
         Object.defineProperty(HTMLElement.prototype, "scrollIntoView", descriptor);
       } else {
@@ -109,6 +121,25 @@ describe("Barra de reserva do mapa", () => {
 
   it("mostra o resumo e mantém a confirmação integrada à API", () => {
     const fixture = abrir();
+    expect(fixture.nativeElement.querySelector(".page-header")).toBeNull();
+    expect(fixture.nativeElement.querySelector(".mapa__cabecalho #data-reserva")).not.toBeNull();
+    const atualizar = fixture.nativeElement.querySelector("#atualizar-disponibilidade") as HTMLButtonElement;
+    expect(atualizar.textContent?.trim()).toBe("Atualizar");
+    expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
+    const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
+    expect(tooltip.getAttribute("role")).toBe("tooltip");
+    expect(getComputedStyle(tooltip).visibility).toBe("hidden");
+    const informacao = fixture.nativeElement.querySelector(
+      '[aria-describedby="mapa-informacoes"]',
+    ) as HTMLElement;
+    expect(informacao.tagName).toBe("SPAN");
+    expect(informacao.getAttribute("tabindex")).toBe("0");
+    informacao.click();
+    fixture.detectChanges();
+    expect(getComputedStyle(tooltip).visibility).toBe("hidden");
+    expect(tooltip.textContent)
+      .toContain("A disponibilidade considera somente a data escolhida.");
     const resumo = fixture.nativeElement.querySelector(
       ".detalhes",
     ) as HTMLElement;

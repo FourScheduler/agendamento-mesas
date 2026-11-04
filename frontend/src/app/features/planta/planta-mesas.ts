@@ -14,6 +14,7 @@ import {
   HostListener,
 } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
+import { NgTemplateOutlet } from "@angular/common";
 import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
@@ -28,6 +29,7 @@ import {
 @Component({
   selector: "app-planta-mesas",
   standalone: true,
+  imports: [NgTemplateOutlet],
   templateUrl: "./planta-mesas.html",
   styleUrl: "./planta-mesas.css",
 })
@@ -203,9 +205,20 @@ export class PlantaMesas {
                 this.mesaInicialSelecionada.emit(mesaInicial);
                 afterNextRender(() => {
                   if (this.selecionada() !== mesaInicial.id) return;
-                  this.viewport().nativeElement
-                    .querySelector<HTMLElement>(`button.mesa[data-mesa-id="${mesaInicial.id}"]`)
-                    ?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+                  const viewport = this.viewport().nativeElement;
+                  const mesa = viewport.querySelector<HTMLElement>(
+                    `button.mesa[data-mesa-id="${mesaInicial.id}"]`,
+                  );
+                  if (!mesa) return;
+                  const area = viewport.getBoundingClientRect();
+                  const alvo = mesa.getBoundingClientRect();
+                  viewport.scrollTo({
+                    left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
+                      - (viewport.clientWidth - alvo.width) / 2,
+                    top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
+                      - (viewport.clientHeight - alvo.height) / 2,
+                    behavior: 'instant',
+                  });
                 }, { injector: this.injector });
               }
               else this.mesaInicialInvalidada.emit();
