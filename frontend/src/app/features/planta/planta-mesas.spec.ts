@@ -259,7 +259,7 @@ describe("PlantaMesas", () => {
     expect(corredor).toBeGreaterThanOrEqual(200);
   });
 
-  it("aproxima horizontalmente as fileiras iniciadas nas mesas 65 e 77 sem separar as bancadas", () => {
+  it("reposiciona a fileira 77 junto ao bloco direito sem separar as bancadas", () => {
     const mesas: Mesa[] = [
       [65, '065', 29, 1757], [69, '069', 595, 1857],
       [77, '077', 833, 1548], [73, '073', 1400, 1650],
@@ -268,10 +268,83 @@ describe("PlantaMesas", () => {
       regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x: Number(x), y: Number(y) },
     }));
     const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
-    const distanciaOriginal = (1757 - 1548) * 1.4;
-    expect(posicoes.get(65)!.y - posicoes.get(77)!.y).toBeCloseTo(distanciaOriginal - 64);
+    expect(posicoes.get(65)!.y - posicoes.get(77)!.y).toBeCloseTo(66.2);
     expect(posicoes.get(69)!.y).toBe(posicoes.get(65)!.y + TAMANHO_MESA.altura);
     expect(posicoes.get(73)!.y).toBe(posicoes.get(77)!.y + TAMANHO_MESA.altura);
+  });
+
+  it("posiciona o topo da fileira 93 abaixo da bancada 41 conforme a linha de referência", () => {
+    const mesas: Mesa[] = [
+      [41, 24, 1108], [48, 24, 1208],
+      [93, 834, 1048], [94, 1211, 1048], [95, 1400, 1048],
+      [92, 834, 1148], [91, 1023, 1148], [90, 1211, 1148], [89, 1400, 1148],
+      [85, 834, 1294], [84, 834, 1394],
+    ].map(([id, x, y]) => ({
+      id, codigo: String(id), tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: '',
+      regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x, y },
+    }));
+    const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
+    for (const codigo of [93, 94, 95]) {
+      expect(posicoes.get(codigo)!.y)
+        .toBeCloseTo(posicoes.get(48)!.y + TAMANHO_MESA.altura + 48);
+    }
+    for (const codigo of [89, 90, 91, 92]) {
+      expect(posicoes.get(codigo)!.y).toBeCloseTo(posicoes.get(48)!.y + 232);
+    }
+    expect(posicoes.get(93)!.x).toBeGreaterThan(posicoes.get(41)!.x + 4 * TAMANHO_MESA.largura);
+    const estrutura = PLANTA_TAMBORE_EXIBICAO.estruturas[1];
+    expect(estrutura.y).toBeCloseTo(posicoes.get(93)!.y);
+    expect(estrutura.y + estrutura.altura).toBeCloseTo(posicoes.get(91)!.y);
+    expect(posicoes.get(85)!.y - posicoes.get(92)!.y - TAMANHO_MESA.altura)
+      .toBeGreaterThan(70);
+    expect(mesas.find(mesa => mesa.id === 93)!.referenciaVisual.y).toBe(1048);
+  });
+
+  it("centraliza a entrada no vão direito com margens iguais para as cadeiras", () => {
+    const mesas: Mesa[] = [
+      [98, 1213, 445], [97, 1213, 545],
+      [93, 834, 1048], [92, 834, 1148],
+    ].map(([id, x, y]) => ({
+      id, codigo: String(id), tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: '',
+      regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x, y },
+    }));
+    const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
+    const entrada = PLANTA_TAMBORE_EXIBICAO.entrada;
+    const fimBancadaSuperior = posicoes.get(97)!.y + TAMANHO_MESA.altura;
+    const inicioBancadaInferior = posicoes.get(93)!.y;
+    expect(entrada.x).toBe(posicoes.get(93)!.x);
+    expect(entrada.largura).toBe(4 * TAMANHO_MESA.largura);
+    expect(entrada.y - fimBancadaSuperior).toBeCloseTo(60);
+    expect(inicioBancadaInferior - entrada.y - entrada.altura).toBeCloseTo(60);
+    expect(entrada.y + entrada.altura / 2)
+      .toBeCloseTo((fimBancadaSuperior + inicioBancadaInferior) / 2);
+    expect(entrada.altura).toBeGreaterThan(0);
+  });
+
+  it("repete os intervalos das bancadas esquerdas no bloco direito, exceto na entrada", () => {
+    const mesas: Mesa[] = [
+      [1, 24, 24], [8, 24, 124], [9, 24, 240], [16, 24, 340],
+      [17, 24, 457], [24, 24, 557],
+      [112, 836, 24], [111, 836, 124], [104, 836, 240], [103, 836, 340],
+      [98, 1213, 445], [97, 1213, 545],
+      [49, 24, 1321], [56, 24, 1421], [57, 29, 1541], [64, 29, 1641],
+      [65, 29, 1757], [72, 29, 1857],
+      [93, 834, 1048], [92, 834, 1148], [85, 834, 1294], [84, 834, 1394],
+      [77, 833, 1548], [76, 834, 1650],
+    ].map(([id, x, y]) => ({
+      id, codigo: String(id), tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: '',
+      regiao: 'TAMBORÉ', referenciaVisual: { planta: 'TAMBORÉ', x, y },
+    }));
+    const posicoes = agruparFileiras(mesas, TAMANHO_MESA, true);
+    const intervalo = (superior: number, inferior: number) =>
+      posicoes.get(inferior)!.y - posicoes.get(superior)!.y - TAMANHO_MESA.altura;
+    for (const [esquerdaFim, esquerdaInicio, direitaFim, direitaInicio] of [
+      [8, 9, 111, 104], [16, 17, 103, 98],
+      [56, 57, 92, 85], [64, 65, 84, 77],
+    ]) {
+      expect(intervalo(direitaFim, direitaInicio))
+        .toBeCloseTo(intervalo(esquerdaFim, esquerdaInicio));
+    }
   });
 
   it("limita o zoom e restaura a visualização sem alterar posições da API", () => {

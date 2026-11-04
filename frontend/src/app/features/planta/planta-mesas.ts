@@ -8,11 +8,13 @@ import {
   signal,
   afterNextRender,
   DestroyRef,
+  Injector,
   ElementRef,
   viewChild,
   HostListener,
 } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
+import { NgTemplateOutlet } from "@angular/common";
 import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
@@ -27,6 +29,7 @@ import {
 @Component({
   selector: "app-planta-mesas",
   standalone: true,
+  imports: [NgTemplateOutlet],
   templateUrl: "./planta-mesas.html",
   styleUrl: "./planta-mesas.css",
 })
@@ -36,6 +39,7 @@ export class PlantaMesas {
   readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionadaId = input<number | null>(null);
   readonly mesaSelecionada = output<Mesa>();
+  readonly mesaInicialSelecionada = output<Mesa>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
@@ -51,6 +55,7 @@ export class PlantaMesas {
   private readonly viewport =
     viewChild.required<ElementRef<HTMLElement>>("viewport");
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   /** Mesas disponíveis para navegação por teclado (ordenadas por planta, y, x) */
   private readonly mesasNavegaveis = computed(() =>
@@ -195,7 +200,27 @@ export class PlantaMesas {
             const mesaInicialId = this.mesaInicialId();
             if (mesaInicialId !== null) {
               const mesaInicial = mesas.find(mesa => mesa.id === mesaInicialId);
-              if (mesaInicial && this.estaDisponivel(mesaInicial)) this.selecionar(mesaInicial);
+              if (mesaInicial && this.estaDisponivel(mesaInicial)) {
+                this.selecionada.set(mesaInicial.id);
+                this.mesaInicialSelecionada.emit(mesaInicial);
+                afterNextRender(() => {
+                  if (this.selecionada() !== mesaInicial.id) return;
+                  const viewport = this.viewport().nativeElement;
+                  const mesa = viewport.querySelector<HTMLElement>(
+                    `button.mesa[data-mesa-id="${mesaInicial.id}"]`,
+                  );
+                  if (!mesa) return;
+                  const area = viewport.getBoundingClientRect();
+                  const alvo = mesa.getBoundingClientRect();
+                  viewport.scrollTo({
+                    left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
+                      - (viewport.clientWidth - alvo.width) / 2,
+                    top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
+                      - (viewport.clientHeight - alvo.height) / 2,
+                    behavior: 'instant',
+                  });
+                }, { injector: this.injector });
+              }
               else this.mesaInicialInvalidada.emit();
             }
           }
