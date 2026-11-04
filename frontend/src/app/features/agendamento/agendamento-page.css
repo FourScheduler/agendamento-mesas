@@ -226,114 +226,16 @@
 .botao--largura-total {
   width: 100%;
 }
-.resumo__erro {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius);
-  color: #dc2626;
-  font-size: 0.875rem;
-}
 
-/* ----- Lista de mesas – item com imagem ----- */
-.mesa-item {
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  align-items: start;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  background: white;
-  cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-}
-
-.mesa-item--selecionada {
-  border: 2px solid;
-  border-color: var(--orange-400);
-}
-
-
-.mesa-item:hover {
-  border-color: var(--orange-400);
-  box-shadow: 0 2px 8px rgba(255,83,21,0.1);
-}
-
-/* Mesa indisponível */
-.mesa-item--indisponivel {
-  opacity: 0.55;
-  cursor: not-allowed;
-  background: var(--disabled);
-}
-.mesa-item--indisponivel:hover {
-  border-color: var(--border-soft);
-  box-shadow: none;
-  transform: none;
-}
-
-/* Imagem da mesa */
-.mesa-item__imagem {
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-
-/* Área de informações à direita da imagem */
-.mesa-item__info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;          /* permite que o texto faça ellipsis se necessário */
-}
-
-/* Cabeçalho: nome + status */
-.mesa-item__cabecalho {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.mesa-item__nome {
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--navy);
-}
-.mesa-item__status {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--mesa-livre);
-  background: var(--mesa-livre-bg);
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.mesa-item__status--indisponivel {
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
-/* Ocupante da mesa */
-.mesa-item__ocupante {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text);
-  margin-top: 0.25rem;
-}
-
-/* Linha de ícones (capacidade, localização, tomadas) */
-.mesa-item__detalhes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  font-size: 0.8rem;
-  color: var(--muted);
+.mesa-card__icone-wrapper {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--orange-soft), #fff5eb);
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 2px rgba(255, 83, 21, .2)
 }
 
 .mesa-card--indisponivel .mesa-card__icone-wrapper {
