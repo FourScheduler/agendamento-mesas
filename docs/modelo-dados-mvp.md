@@ -2,7 +2,7 @@
 
 Definição do banco MySQL do MVP: tabelas, relacionamentos, estados e conjunto de demonstração.
 
-Reservas são de dia inteiro, armazenadas em `reservas.data`. A criação confirma diretamente e preserva a estrutura existente; nenhuma migration nova é necessária para a issue #7.
+Reservas são de dia inteiro, armazenadas em `reservas.data`. A criação confirma diretamente. A migration `V8` adiciona o autor da reserva para distinguir reservas próprias das criadas por um administrador para outra pessoa.
 
 ## Tabelas
 
@@ -29,8 +29,11 @@ Reservas são de dia inteiro, armazenadas em `reservas.data`. A criação confir
 | `planta` | VARCHAR(20) | Referência visual da planta (demonstração: `TAMBORÉ`). |
 | `posicao_x` | INTEGER | Referência visual (coordenada x na planta). |
 | `posicao_y` | INTEGER | Referência visual (coordenada y na planta). |
+| `ocupante` | VARCHAR(120) | Nome ou designação exibida para a mesa. |
+| `responsavel_id` | BIGINT | FK NULL → `usuarios(id)`. Responsável por uma mesa `FIXA`, alterado somente pela administração. |
 
 `planta`/`posicao_x`/`posicao_y` servem apenas ao desenho do frontend; não participam de regra de negócio.
+O responsável de uma mesa fixa vê essa atribuição em uma seção própria de Minhas reservas. Ela não é uma reserva por data e não pode ser cancelada pelo usuário; a administração gerencia a atribuição pela gestão de mesas.
 
 ### `reservas`
 
@@ -39,6 +42,7 @@ Reservas são de dia inteiro, armazenadas em `reservas.data`. A criação confir
 | `id` | BIGINT | PK, auto incremento. |
 | `mesa_id` | BIGINT | FK NOT NULL → `mesas(id)`. Uma reserva sempre aponta uma mesa. |
 | `usuario_id` | BIGINT | FK NOT NULL → `usuarios(id)`. Relação reserva → usuário é obrigatória (decisão aprovada: "usuário responsável pela reserva"). |
+| `criado_por_id` | BIGINT | FK NULL → `usuarios(id)`. Usuário que criou a reserva; nulo apenas em registros legados. |
 | `data` | DATE | NOT NULL. Dia inteiro reservado (`yyyy-MM-dd`). |
 | `status` | VARCHAR(10) | NOT NULL. `PENDENTE`, `CONFIRMADA` ou `CANCELADA`. |
 | `criada_em` | DATETIME | NOT NULL. Data/hora local `America/Sao_Paulo`. |
@@ -68,6 +72,10 @@ A unicidade "uma reserva não cancelada por mesa/data" e "uma reserva não cance
 - `/api/mesas` retorna todas as mesas (fixas, livres e inativas), ordenadas por código, sem disponibilidade temporal.
 - `/api/mesas/disponiveis?data=D` retorna mesas com `ativa = TRUE` E `tipo = 'LIVRE'` E sem reserva em `D` com status em (`PENDENTE`, `CONFIRMADA`).
 - `/api/reservas/minhas` filtra por `usuario_id` do token.
+- `usuario_id` identifica o beneficiário da reserva; `criado_por_id` identifica seu autor. O beneficiário vê reservas criadas pelo administrador em seu nome, mas somente um administrador pode cancelá-las. O próprio usuário pode cancelar as reservas que criou para si; reservas legadas sem autor permanecem canceláveis pelo beneficiário.
+- `/api/admin/reservas` lista todas as reservas e exige perfil `ADMIN`. Administradores cancelam qualquer reserva pela rota autenticada de cancelamento.
+- Minhas reservas também consulta `/api/mesas` para exibir mesas fixas cujo `responsavel_id` corresponde ao usuário autenticado. Essas atribuições não entram no histórico nem nos filtros de reservas por data/status.
+- Para mesas fixas legadas sem `responsavel_id`, a tela também reconhece a atribuição pelo nome registrado em `ocupante`.
 
 ## Seed de demonstração
 

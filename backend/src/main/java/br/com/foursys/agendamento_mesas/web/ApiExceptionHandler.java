@@ -5,6 +5,7 @@ import br.com.foursys.agendamento_mesas.exceptions.UsuarioInativoException;
 import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -72,6 +73,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ReservaNaoEncontradaException.class)
     public ProblemDetail reservaNaoEncontrada(ReservaNaoEncontradaException e, HttpServletRequest request) {
         return problema(HttpStatus.NOT_FOUND, HttpStatus.NOT_FOUND.getReasonPhrase(), e.getMessage(), request);
+    }
+
+    @ExceptionHandler(UsuarioSemPermissaoException.class)
+    public ProblemDetail usuarioSemPermissao(UsuarioSemPermissaoException e, HttpServletRequest request) {
+        return problema(HttpStatus.FORBIDDEN, "Acesso negado", e.getMessage(), request);
     }
 
     private ProblemDetail problema(HttpStatus status, String title, String detail, HttpServletRequest request) {

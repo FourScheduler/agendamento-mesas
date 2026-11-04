@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.dto.response;
 
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
+import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.model.Usuario;
@@ -18,14 +19,17 @@ public record ReservaResponse(
     LocalDateTime confirmadaEm,
     LocalDateTime canceladaEm,
     MesaResumo mesa,
-    SolicitanteResumo solicitante
+    SolicitanteResumo solicitante,
+    CriadorResumo criador
 ) {
     public record MesaResumo(Long id, String codigo, String regiao) {}
     public record SolicitanteResumo(Long id, String nome, String email) {}
+    public record CriadorResumo(Long id, String nome, PerfilUsuario perfil) {}
 
     public static ReservaResponse toResponse(Reserva reserva) {
         Mesa mesa = reserva.getMesa();
         Usuario usuario = reserva.getUsuario();
+        Usuario criador = reserva.getCriadoPor();
 
         return new ReservaResponse(
             reserva.getId(),
@@ -37,7 +41,8 @@ public record ReservaResponse(
             reserva.getConfirmadaEm(),
             reserva.getCanceladaEm(),
             new MesaResumo(mesa.getId(), mesa.getCodigo(), mesa.getRegiao()),
-            new SolicitanteResumo(usuario.getId(), usuario.getNome(), usuario.getEmail())
+            new SolicitanteResumo(usuario.getId(), usuario.getNome(), usuario.getEmail()),
+            criador == null ? null : new CriadorResumo(criador.getId(), criador.getNome(), criador.getPapel())
         );
     }
 }

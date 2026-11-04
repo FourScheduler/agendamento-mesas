@@ -7,6 +7,9 @@ import { Carregando } from '../../shared/estados/carregando';
 import { Erro } from '../../shared/estados/erro';
 import { Vazio } from '../../shared/estados/vazio';
 import { ToastService } from '../../shared/toast/toast';
+import { AuthService } from '../../core/auth/auth.service';
+import { Mesa } from '../mesas/mesa';
+import { MesaService } from '../mesas/mesa.service';
 
 type Filtro = 'futuras' | 'passadas';
 
@@ -43,8 +46,14 @@ export class MinhasReservasPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+  private readonly mesasService = inject(MesaService);
 
   readonly reservas = signal<Reserva[]>([]);
+  readonly ehAdmin = computed(() => this.auth.usuario()?.perfil === 'ADMIN');
+  readonly mesasAtribuidas = signal<readonly Mesa[]>([]);
+  readonly carregandoMesaAtribuida = signal(false);
+  readonly erroMesaAtribuida = signal<string | null>(null);
   readonly carregando = signal(false);
   readonly erroApi = signal<string | null>(null);
   readonly filtro = signal<Filtro>('futuras');
@@ -95,11 +104,46 @@ export class MinhasReservasPage implements OnInit {
   readonly mensagemVazio = computed(() =>
     this.temFiltroAtivo()
       ? 'Nenhuma reserva corresponde aos filtros escolhidos.'
-      : 'As suas reservas aparecerão aqui assim que forem criadas.',
+      : this.ehAdmin()
+        ? 'As reservas dos usuários aparecerão aqui assim que forem criadas.'
+        : 'As suas reservas aparecerão aqui assim que forem criadas.',
   );
 
   ngOnInit(): void {
     this.buscar();
+    this.buscarMesaAtribuida();
+  }
+
+  buscarMesaAtribuida(): void {
+    const usuario = this.auth.usuario();
+    if (usuario == null) {
+      this.erroMesaAtribuida.set('Não foi possível identificar o usuário autenticado.');
+      return;
+    }
+
+    this.carregandoMesaAtribuida.set(true);
+    this.erroMesaAtribuida.set(null);
+    this.mesasService.listar()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (mesas) => {
+          this.mesasAtribuidas.set(
+            mesas.filter((mesa) =>
+              mesa.tipo === 'FIXA' && (
+                mesa.responsavel != null
+                  ? mesa.responsavel.id === usuario.id
+                  : this.normalizarNome(mesa.ocupante ?? '') === this.normalizarNome(usuario.nome)
+              ),
+            ),
+          );
+          this.carregandoMesaAtribuida.set(false);
+        },
+        error: () => {
+          this.mesasAtribuidas.set([]);
+          this.carregandoMesaAtribuida.set(false);
+          this.erroMesaAtribuida.set('Não foi possível carregar sua mesa atribuída. Tente novamente.');
+        },
+      });
   }
 
   buscar(): void {
@@ -109,15 +153,9 @@ export class MinhasReservasPage implements OnInit {
 
     const { inicio, fim } = this.periodoFiltro();
 
-    const params: { status?: string; data?: string } = {};
-    if (inicio && !fim) {
-      params.data = inicio;
-    } else if (inicio && fim) {
-      // A API aceita dataInicio e dataFim, mas o serviço atual só aceita 'data'
-      // Vamos usar dataInicio como 'data' se não houver fim, ou não filtrar por data se houver período
-      // Para períodos, o backend filtra, mas o serviço não expõe dataInicio/dataFim
-      // Usaremos o filtro local para períodos
-    }
+    const params: { status?: string; dataInicio?: string; dataFim?: string } = {};
+    if (inicio) params.dataInicio = inicio;
+    if (fim) params.dataFim = fim;
     if (this.statusFiltro()) {
       params.status = this.statusFiltro()!;
     }
@@ -125,8 +163,10 @@ export class MinhasReservasPage implements OnInit {
     this.erroApi.set(null);
     this.carregando.set(true);
 
-    this.reservasService
-      .listarMinhas(params)
+    const consulta = this.ehAdmin()
+      ? this.reservasService.listarTodas(params)
+      : this.reservasService.listarMinhas(params);
+    consulta
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (reservas) => {
@@ -195,11 +235,22 @@ export class MinhasReservasPage implements OnInit {
   }
 
   podeCancelar(cartao: CartaoReserva): boolean {
-    return (
-      this.ehFutura(cartao.reserva) &&
-      cartao.reserva.status === 'CONFIRMADA' &&
-      cartao.reserva.id != null
+    const reserva = cartao.reserva;
+    const podeGerenciar = this.ehAdmin() || (
+      reserva.usuarioId === this.auth.usuario()?.id &&
+      (reserva.criador == null || reserva.criador.id === reserva.usuarioId) &&
+      this.ehFutura(reserva)
     );
+    return (
+      podeGerenciar &&
+      reserva.status === 'CONFIRMADA' &&
+      reserva.id != null
+    );
+  }
+
+  reservaCriadaPorAdmin(cartao: CartaoReserva): boolean {
+    const criador = cartao.reserva.criador;
+    return criador?.perfil === 'ADMIN' && criador.id !== cartao.reserva.usuarioId;
   }
 
   solicitarCancelamento(cartao: CartaoReserva): void {
@@ -266,6 +317,10 @@ export class MinhasReservasPage implements OnInit {
       .join(':');
     const dia = agora.toISOString().split('T')[0];
     return `${dia}T${hora}`;
+  }
+
+  private normalizarNome(nome: string): string {
+    return nome.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
   }
 
   private mensagemDeErro(erro: unknown): string {

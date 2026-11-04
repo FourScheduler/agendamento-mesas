@@ -1,0 +1,148 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
+import { Mesa } from '../mesas/mesa';
+import { MinhasReservasPage } from './minhas-reservas-page';
+
+const mesaDaMaria: Mesa = {
+  id: 1,
+  codigo: '001',
+  regiao: 'TAMBORÉ',
+  tipo: 'FIXA',
+  ativa: true,
+  ocupante: 'Livre',
+  ocupada: false,
+  responsavel: { id: 7, nome: 'Maria', email: 'maria@teste.com' },
+  referenciaVisual: { planta: 'TAMBORÉ', x: 10, y: 20 },
+};
+
+const mesaDeOutroUsuario: Mesa = {
+  ...mesaDaMaria,
+  id: 2,
+  codigo: '002',
+  responsavel: { id: 8, nome: 'João', email: 'joao@teste.com' },
+};
+
+describe('MinhasReservasPage', () => {
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
+    TestBed.inject(AuthService).sessao.set({
+      token: 'token',
+      tipo: 'Bearer',
+      usuario: { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUARIO' },
+    });
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    http.verify();
+    TestBed.resetTestingModule();
+  });
+
+  it('exibe a mesa fixa do usuário sem oferecer cancelamento', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+
+    http.expectOne('/api/reservas/minhas').flush([]);
+    http.expectOne('/api/mesas').flush([mesaDaMaria, mesaDeOutroUsuario]);
+    fixture.detectChanges();
+
+    const conteudo = fixture.nativeElement.textContent as string;
+    expect(conteudo).toContain('Mesa fixa atribuída');
+    expect(conteudo).toContain('Mesa 001 - TAMBORÉ');
+    expect(conteudo).not.toContain('Mesa 002 - TAMBORÉ');
+    expect(conteudo).toContain('Esta mesa é gerenciada pelo administrador.');
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa button')).toBeNull();
+  });
+
+  it('informa quando não consegue consultar as mesas atribuídas', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+
+    http.expectOne('/api/reservas/minhas').flush([]);
+    http.expectOne('/api/mesas').flush({}, { status: 500, statusText: 'Erro' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Não foi possível carregar sua mesa atribuída. Tente novamente.',
+    );
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it('reconhece mesa fixa legada pelo nome do ocupante', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+
+    http.expectOne('/api/reservas/minhas').flush([]);
+    http.expectOne('/api/mesas').flush([
+      { ...mesaDaMaria, id: 3, codigo: '003', responsavel: null, ocupante: ' maria ' },
+      { ...mesaDaMaria, id: 4, codigo: '004', responsavel: null, ocupante: 'João' },
+      { ...mesaDeOutroUsuario, id: 5, codigo: '005', ocupante: 'Maria' },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Mesa 003 - TAMBORÉ');
+    expect(fixture.nativeElement.textContent).not.toContain('Mesa 004 - TAMBORÉ');
+    expect(fixture.nativeElement.textContent).not.toContain('Mesa 005 - TAMBORÉ');
+  });
+
+  it('mostra reservas criadas pelo administrador sem permitir cancelamento ao beneficiário', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+
+    http.expectOne('/api/reservas/minhas').flush([{
+      id: 21,
+      usuarioId: 7,
+      status: 'CONFIRMADA',
+      data: '2099-01-01',
+      criadaEm: '2098-12-20T12:00:00',
+      criador: { id: 9, nome: 'Admin', perfil: 'ADMIN' },
+      mesa: { id: 9, codigo: '009', regiao: 'TAMBORÉ' },
+      solicitante: { id: 7, nome: 'Maria', email: 'maria@teste.com' },
+    }]);
+    http.expectOne('/api/mesas').flush([]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Reserva realizada pelo administrador.');
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();
+  });
+
+  it('administra a lista geral e consegue cancelar reservas de outros usuários', () => {
+    TestBed.inject(AuthService).sessao.set({
+      token: 'token-admin',
+      tipo: 'Bearer',
+      usuario: { id: 9, nome: 'Admin', email: 'admin@teste.com', perfil: 'ADMIN' },
+    });
+    const mesaAtribuidaAoAdmin: Mesa = {
+      ...mesaDaMaria,
+      responsavel: { id: 9, nome: 'Admin', email: 'admin@teste.com' },
+    };
+
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+
+    http.expectOne('/api/admin/reservas').flush([{
+      id: 22,
+      usuarioId: 8,
+      status: 'CONFIRMADA',
+      data: '2099-01-01',
+      criadaEm: '2098-12-20T12:00:00',
+      criador: { id: 9, nome: 'Admin', perfil: 'ADMIN' },
+      mesa: { id: 10, codigo: '010', regiao: 'TAMBORÉ' },
+      solicitante: { id: 8, nome: 'João', email: 'joao@teste.com' },
+    }]);
+    http.expectOne('/api/mesas').flush([mesaAtribuidaAoAdmin]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Gerenciar reservas');
+    expect(fixture.nativeElement.textContent).toContain('Para João');
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Esta mesa é gerenciada pelo administrador.');
+  });
+});

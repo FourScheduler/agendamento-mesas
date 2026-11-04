@@ -106,6 +106,7 @@ public class MesaService {
 
         mesa.setTipo(TipoMesa.FIXA);
         mesa.setResponsavel(obterUsuarioAtivo(usuarioId));
+        mesa.setOcupante(obterUsuarioAtivo(usuarioId).getNome());
         return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
     }
 
@@ -117,6 +118,7 @@ public class MesaService {
         }
 
         mesa.setTipo(TipoMesa.LIVRE);
+        mesa.setOcupante(null);
         mesa.setResponsavel(null);
         return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
     }

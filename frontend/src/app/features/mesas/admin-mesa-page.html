@@ -238,10 +238,10 @@
     <div class="modal-overlay" (click)="!confirmando() && fecharModal()" (keydown.escape)="fecharModal()" role="presentation">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" (click)="$event.stopPropagation()"
         [class.modal--ativar]="acaoEmAndamento() === 'ativar'"
-        [class.modal--perigo]="acaoEmAndamento() === 'inativar' || acaoEmAndamento() === 'desfixar'">
+      [class.modal--perigo]="acaoEmAndamento() === 'inativar' || acaoEmAndamento() === 'desfixar'"
+      [class.modal--destaque]="acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel'">
         <header class="modal__cabecalho">
           <div>
-            <p class="modal__categoria">Gestão de mesas</p>
             <h2 id="modal-titulo" class="modal__titulo">{{ getTituloModal() }}</h2>
           </div>
           <button type="button" class="modal__fechar" (click)="!confirmando() && fecharModal()" [disabled]="confirmando()" aria-label="Fechar">
@@ -253,95 +253,107 @@
         <div class="modal__conteudo">
           @if (mesaSelecionadaParaAcao(); as mesa) {
             <div class="modal__resumo">
-              <span class="admin-mesa-page__numero">{{ mesa.codigo }}</span>
-              <div>
-                <strong>Mesa {{ mesa.codigo }}</strong>
-                <span class="modal__localizacao">{{ mesa.regiao }}</span>
-              </div>
-              <span class="badge" [class.badge--ativa]="mesa.ativa" [class.badge--inativa]="!mesa.ativa">
-                {{ getAtivacaoLabel(mesa.ativa) }}
+              <span class="modal__mesa-icone" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 10V4h16v6M3 10h18v7H3zM5 17v4M19 17v4M7 10V7h10v3" />
+                </svg>
               </span>
+              <span class="modal__mesa-nome">Mesa {{ mesa.codigo }}</span>
+              <span class="modal__localizacao">{{ mesa.regiao }}</span>
             </div>
           }
-          <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
-
-          @if ((acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') && !confirmando()) {
-            <div class="modal__campo">
-              <label for="usuario-busca" class="campo__rotulo">Usuário ativo <span class="obrigatorio" aria-hidden="true">*</span></label>
-              <div class="usuario-busca">
-                <input
-                  id="usuario-busca"
-                  type="text"
-                  class="campo"
-                  placeholder="Buscar por nome ou e-mail..."
-                  [(ngModel)]="buscaUsuario"
-                  (input)="buscaUsuario.set($event.target.value)"
-                  (focus)="usuarioFocado.set(true)"
-                  (blur)="usuarioFocado.set(false)"
-                  [disabled]="carregandoUsuarios() || confirmando()"
-                  autocomplete="off"
-                  aria-describedby="usuario-busca-desc"
-                  aria-expanded="mostrarSugestoesUsuario()"
-                  aria-controls="usuario-resultados"
-                />
-                <span id="usuario-busca-desc" class="visually-hidden">Digite o nome ou e-mail do usuário para filtrar</span>
-                @if (mostrarSugestoesUsuario()) {
-                  <div
-                    id="usuario-resultados"
-                    class="usuario-busca__resultados"
-                    role="listbox"
-                    [attr.aria-label]="buscaUsuario() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
-                  >
-                    @if (buscaUsuario() && usuariosFiltrados().length > 0) {
-                      @for (usuario of usuariosFiltrados(); track usuario.id) {
-                        <button
-                          type="button"
-                          class="usuario-busca__opcao"
-                          [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
-                          (pointerdown)="$event.preventDefault()"
-                          (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
-                          role="option"
-                          [aria-selected]="usuarioSelecionado() === usuario.id"
-                        >
-                          <span class="usuario-busca__nome">{{ usuario.nome }}</span>
-                          <span class="usuario-busca__email">{{ usuario.email }}</span>
-                        </button>
+          @if (acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') {
+            @if (usuarioSelecionado() !== null && !editandoUsuario()) {
+              <div class="modal__resumo usuario-selecionado" role="status">
+                <p>{{ getMensagemConfirmacao() }}</p>
+                <button
+                  type="button"
+                  class="botao botao--contorno botao--pequeno"
+                  (click)="trocarUsuario()"
+                  [disabled]="confirmando()"
+                >
+                  Trocar
+                </button>
+              </div>
+            } @else {
+              <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
+              <div class="modal__campo">
+                <label for="usuario-busca" class="campo__rotulo">Usuário ativo <span class="obrigatorio" aria-hidden="true">*</span></label>
+                <div class="usuario-busca">
+                  <input
+                    id="usuario-busca"
+                    type="text"
+                    class="campo"
+                    placeholder="Buscar por nome ou e-mail..."
+                    [(ngModel)]="buscaUsuario"
+                    (input)="buscaUsuario.set($event.target.value)"
+                    (focus)="usuarioFocado.set(true)"
+                    (blur)="usuarioFocado.set(false)"
+                    [disabled]="carregandoUsuarios() || confirmando()"
+                    autocomplete="off"
+                    aria-describedby="usuario-busca-desc"
+                    aria-expanded="mostrarSugestoesUsuario()"
+                    aria-controls="usuario-resultados"
+                  />
+                  <span id="usuario-busca-desc" class="visually-hidden">Digite o nome ou e-mail do usuário para filtrar</span>
+                  @if (mostrarSugestoesUsuario()) {
+                    <div
+                      id="usuario-resultados"
+                      class="usuario-busca__resultados"
+                      role="listbox"
+                      [attr.aria-label]="buscaUsuario() ? 'Usuários encontrados' : 'Todos os usuários ativos'"
+                    >
+                      @if (buscaUsuario() && usuariosFiltrados().length > 0) {
+                        @for (usuario of usuariosFiltrados(); track usuario.id) {
+                          <button
+                            type="button"
+                            class="usuario-busca__opcao"
+                            [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                            (pointerdown)="$event.preventDefault()"
+                            (click)="selecionarUsuario(usuario.id)"
+                            role="option"
+                            [aria-selected]="usuarioSelecionado() === usuario.id"
+                          >
+                            <span class="usuario-busca__nome">{{ usuario.nome }}</span>
+                            <span class="usuario-busca__email">{{ usuario.email }}</span>
+                          </button>
+                        }
+                      } @else if (buscaUsuario() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
+                        <div class="usuario-busca__vazio" role="status">Nenhum usuário encontrado</div>
+                      } @else if (!buscaUsuario() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
+                        @for (usuario of usuariosAtivos(); track usuario.id) {
+                          <button
+                            type="button"
+                            class="usuario-busca__opcao"
+                            [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
+                            (pointerdown)="$event.preventDefault()"
+                            (click)="selecionarUsuario(usuario.id)"
+                            role="option"
+                            [aria-selected]="usuarioSelecionado() === usuario.id"
+                          >
+                            <span class="usuario-busca__nome">{{ usuario.nome }}</span>
+                            <span class="usuario-busca__email">{{ usuario.email }}</span>
+                          </button>
+                        }
                       }
-                    } @else if (buscaUsuario() && !carregandoUsuarios() && usuariosFiltrados().length === 0) {
-                      <div class="usuario-busca__vazio" role="status">Nenhum usuário encontrado</div>
-                    } @else if (!buscaUsuario() && usuariosAtivos().length > 0 && !carregandoUsuarios()) {
-                      @for (usuario of usuariosAtivos(); track usuario.id) {
-                        <button
-                          type="button"
-                          class="usuario-busca__opcao"
-                          [class.usuario-busca__opcao--selecionado]="usuarioSelecionado() === usuario.id"
-                          (pointerdown)="$event.preventDefault()"
-                          (click)="usuarioSelecionado.set(usuario.id); usuarioFocado.set(false); buscaUsuario.set('')"
-                          role="option"
-                          [aria-selected]="usuarioSelecionado() === usuario.id"
-                        >
-                          <span class="usuario-busca__nome">{{ usuario.nome }}</span>
-                          <span class="usuario-busca__email">{{ usuario.email }}</span>
-                        </button>
-                      }
-                    }
-                  </div>
+                    </div>
+                  }
+                </div>
+                @if (carregandoUsuarios()) {
+                  <p class="campo__erro" role="status">Carregando usuários...</p>
+                } @if (erroUsuarios()) {
+                  <p class="campo__erro" role="alert">{{ erroUsuarios() }} <button type="button" class="botao--link" (click)="carregarUsuariosAtivos()">Tentar novamente</button></p>
+                } @if (!carregandoUsuarios() && !erroUsuarios() && usuariosAtivos().length === 0) {
+                  <p class="campo__erro" role="alert">Nenhum usuário ativo disponível</p>
                 }
               </div>
-              @if (carregandoUsuarios()) {
-                <p class="campo__erro" role="status">Carregando usuários...</p>
-              } @if (erroUsuarios()) {
-                <p class="campo__erro" role="alert">{{ erroUsuarios() }} <button type="button" class="botao--link" (click)="carregarUsuariosAtivos()">Tentar novamente</button></p>
-              } @if (!carregandoUsuarios() && !erroUsuarios() && usuariosAtivos().length === 0) {
-                <p class="campo__erro" role="alert">Nenhum usuário ativo disponível</p>
-              }
-            </div>
+            }
+          } @else {
+            <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
           }
 
           @if (acaoEmAndamento() === 'alterar-responsavel' && !confirmando()) {
-            <div class="modal__info">
-              <strong>Responsável atual:</strong> {{ getResponsavelAtual() }}
-            </div>
+            <p class="modal__responsavel-atual"><strong>Atual:</strong> {{ getResponsavelAtual() }}</p>
           }
 
           @if (erroAcao()) {
@@ -360,9 +372,8 @@
           <button
             type="button"
             class="botao"
-            [class.botao--primario]="acaoEmAndamento() === 'ativar' || acaoEmAndamento() === 'fixar'"
+            [class.botao--primario]="acaoEmAndamento() === 'ativar' || acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel'"
             [class.botao--perigo]="acaoEmAndamento() === 'inativar' || acaoEmAndamento() === 'desfixar'"
-            [class.botao--secundario]="acaoEmAndamento() === 'alterar-responsavel'"
             (click)="confirmarAcao()"
             [disabled]="confirmando() || (acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') && !usuarioSelecionado()"
           >

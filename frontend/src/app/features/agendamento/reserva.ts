@@ -1,9 +1,15 @@
 export interface Reserva {
   readonly id: number;
+  readonly usuarioId: number;
   readonly status: 'PENDENTE' | 'CONFIRMADA' | 'CANCELADA';
   readonly data: string;
   readonly criadaEm: string;
   readonly confirmadaEm?: string;
+  readonly criador?: {
+    readonly id: number;
+    readonly nome: string;
+    readonly perfil: 'USUARIO' | 'ADMIN';
+  } | null;
   readonly mesa: {
     readonly id: number;
     readonly codigo: string;

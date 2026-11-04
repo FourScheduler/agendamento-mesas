@@ -95,6 +95,14 @@
   margin-top: 0.5rem;
 }
 
+.minhas-reservas__mesa-fixa-aviso{
+  font-size: 0.875rem;
+  font-weight: 400;
+  font-style: italic;
+  padding: 0.5rem 0;
+
+}
+
 .minhas-reservas__lista {
   display: grid;
   gap: 0.75rem;
