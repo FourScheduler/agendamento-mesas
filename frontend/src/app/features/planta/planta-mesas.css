@@ -229,6 +229,9 @@
   font-size: 16px;
   line-height: 1.2;
 }
+.mesa__estado {
+  font-size: 20px;
+}
 .mesa__ocupante {
   color: #4b5563;
   font-size: 15px;
@@ -449,6 +452,9 @@
 .planta--legado .mesa__ocupante,
 .planta--legado .mesa__estado {
   font-size: 11px;
+}
+.planta--legado .mesa__estado {
+  font-size: 13px;
 }
 .planta--legado .mesa__cadeira {
   width: 16px;

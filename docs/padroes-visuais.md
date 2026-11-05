@@ -73,12 +73,32 @@ visual e a marca, com componentes próprios para seus contratos de API.
   direita, mantendo a planta visível e interativa; em telas menores, o painel abre
   pela base. Mesas indisponíveis também podem ser consultadas, mas não exibem ação
   de reserva. Fechar pelo botão ou por Escape limpa a seleção sem alterar o zoom.
+  Clicar novamente na mesa com detalhes abertos fecha o painel e limpa a seleção.
+  O indicador de status no painel acompanha as cores da disponibilidade da mesa:
+  verde para livre, vermelho para fixa ou reservada e cinza tracejado para inativa.
+  Mesas fixas exibem Localização, Data selecionada e Reservado para, priorizando
+  o nome do responsável vinculado. ADMIN pode fixar ou desfixar pelo switch do
+  painel, com confirmação e seleção de usuário ativo ao fixar. A planta recarrega
+  após a operação; durante o envio, o painel permanece aberto.
+  O switch exibe “Mesa Fixa” à direita do controle. Fixar e desfixar exigem
+  confirmação em popup com Confirmar e Cancelar; Escape cancela sem fechar
+  os detalhes. Após salvar, um aviso global informa o sucesso da ação.
+  Alternar o switch preserva o solicitante escolhido, reutilizado ao fixar a mesa;
+  a seleção só é removida ao trocar o solicitante ou editar a busca.
+  O painel de detalhes usa conteúdo compacto e altura natural, sem rolagem interna.
+  No desktop, o painel ocupa entre 300 e 340px; a planta se adapta ao espaço
+  restante e mantém a altura disponível abaixo do cabeçalho, sem aumentar a
+  altura da página ao abrir os detalhes.
+  O solicitante ocupa toda a largura do painel, com quebra de nomes e e-mails
+  longos. A busca tem nome acessível sem texto duplicado acima da entrada.
+  As ações de reserva e fixação exibem “Confirmar” no rodapé do painel,
+  alinhado à base da página.
 - A paleta do mapa usa estruturas azul-acinzentadas.
   Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
   sobre fundo vermelho suave e inativa tracejada.
   Mesas disponíveis na data usam verde e mostram o rótulo "Livre"; reservadas usam
   o mesmo vermelho suave das mesas fixas, somente na data reservada, sem descrição sobre a mesa.
-  A legenda exibe somente Livre e Reservada, mantendo o botão de olho.
+  A legenda exibe Livre, Reservada e Inativa, mantendo o botão de olho.
   A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
   a disponibilidade. No agendamento, clicar novamente na mesa selecionada remove
