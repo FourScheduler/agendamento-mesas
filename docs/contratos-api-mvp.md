@@ -306,15 +306,41 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `404` | `solicitanteId` inexistente ou inativo. | `Solicitante inativo ou inexistente.` |
 | `409` | Mesa `FIXA`. | `Mesa 018 é fixa e não pode ser reservada.` |
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
-| `409` | Solicitante vinculado como responsável de uma mesa `FIXA`, ativa ou inativa. | `O solicitante possui uma mesa fixa e não pode realizar reservas.` |
+| `409` | Beneficiário vinculado como responsável de uma mesa, inclusive inativa ou com tipo legado inconsistente. | `Você já possui a mesa fixa 053 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
 | `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
 
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
 podem ser criadas se atenderem às demais regras. O bloqueio não cancela reservas
-anteriores. O backend disponibiliza o motivo do conflito em `detail`; a adequação
-da interface para apresentar esse texto fica para uma etapa posterior.
+anteriores. O bloqueio considera qualquer vínculo de responsável, mesmo se o
+tipo da mesa estiver incorretamente marcado como `LIVRE`, até revisão explícita.
+
+Esse impedimento tem código de negócio e identificação da mesa. Exemplo com
+dados fictícios, preenchidos dinamicamente a partir do vínculo:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Usuário com mesa fixa",
+  "status": 409,
+  "detail": "Você já possui a mesa fixa 053 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.",
+  "instance": "/api/reservas",
+  "code": "USUARIO_COM_MESA_FIXA",
+  "mesa": { "id": 53, "codigo": "053" }
+}
+```
+
+Quando um administrador reserva para terceiro, o `detail` usa o nome do
+beneficiário: `{nome} já possui a mesa fixa {codigo} vinculada. Remova o vínculo
+antes de realizar uma reserva para essa pessoa.` O administrador com mesa fixa
+pode reservar para outro usuário elegível; não pode reservar para si nem para
+outro beneficiário vinculado. A autorização para informar `solicitanteId` é
+validada antes da consulta do vínculo.
+
+Lista e mapa reconhecem `code` e exibem o `detail` retornado. Outros conflitos
+409 preservam seu motivo específico; não são classificados apenas pelo status.
+O endpoint mantém a validação transacional mesmo com dados antigos na interface.
 
 ---
 
@@ -524,6 +550,12 @@ Altera o responsável de uma mesa fixa para outro usuário ativo.
 A mesa deve estar ativa, inclusive no caso de fixa legada sem responsável. Mesa
 inativa retorna `409` com a mensagem de ativação prévia descrita na fixação,
 preservando o responsável anterior, quando existente.
+
+A gestão oferece **Atribuir responsável** para mesa fixa ativa sem vínculo.
+A pessoa é selecionada por cadastro, com nome e e-mail visíveis, e o request usa
+seu ID. O vínculo deve ser confirmado explicitamente; não é inferido do nome
+em `ocupante`. A atualização da interface preserva o indicador de ocupação da
+consulta, pois a resposta cadastral não contém `ocupada`.
 
 O usuário de destino não pode estar vinculado a outra mesa, sob pena de `409` com
 a mesma mensagem da fixação. Nesse caso, os dois vínculos existentes são preservados.

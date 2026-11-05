@@ -6,8 +6,10 @@ import br.com.foursys.agendamento_mesas.exceptions.EmailJaCadastradoException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioComMesaFixaException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,6 +27,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(UsuarioComMesaFixaException.class)
+    public ProblemDetail usuarioComMesaFixa(UsuarioComMesaFixaException e, HttpServletRequest request) {
+        var problema = problema(HttpStatus.CONFLICT, "Usuário com mesa fixa", e.getMessage(), request);
+        problema.setProperty("code", "USUARIO_COM_MESA_FIXA");
+        problema.setProperty("mesa", Map.of("id", e.getMesaId(), "codigo", e.getCodigoMesa()));
+        return problema;
+    }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ProblemDetail regraDeNegocio(ResponseStatusException e, HttpServletRequest request) {

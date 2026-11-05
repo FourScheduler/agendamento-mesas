@@ -257,21 +257,26 @@ public class ReservaApiTests {
     }
 
     @Test
-    void recusaSolicitanteComMesaFixaMesmoQuandoElaEstaInativa() throws Exception {
-        outraMesa.setTipo(TipoMesa.FIXA);
+    void informaMesaVinculadaMesmoInativaOuComTipoLegadoInconsistente() throws Exception {
         outraMesa.setResponsavel(maria);
+        for (var tipo : List.of(TipoMesa.FIXA, TipoMesa.LIVRE)) {
+            for (boolean ativa : List.of(true, false)) {
+                outraMesa.setTipo(tipo);
+                outraMesa.setAtiva(ativa);
+                mesas.salvarESincronizar(outraMesa);
 
-        for (boolean ativa : List.of(true, false)) {
-            outraMesa.setAtiva(ativa);
-            mesas.salvarESincronizar(outraMesa);
+                criar(maria, mesa, HOJE)
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409))
+                    .andExpect(jsonPath("$.code").value("USUARIO_COM_MESA_FIXA"))
+                    .andExpect(jsonPath("$.mesa.id").value(outraMesa.getId()))
+                    .andExpect(jsonPath("$.mesa.codigo").value(outraMesa.getCodigo()))
+                    .andExpect(jsonPath("$.detail").value(
+                        "Você já possui a mesa fixa " + outraMesa.getCodigo()
+                            + " vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo."));
 
-            criar(maria, mesa, HOJE)
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.detail").value(
-                    "O solicitante possui uma mesa fixa e não pode realizar reservas."));
-
-            assertThat(reservas.contar()).isZero();
+                assertThat(reservas.contar()).isZero();
+            }
         }
     }
 
@@ -279,17 +284,23 @@ public class ReservaApiTests {
     void administradorNaoPodeReservarParaSolicitanteComMesaFixa() throws Exception {
         outraMesa.setTipo(TipoMesa.FIXA);
         outraMesa.setResponsavel(joao);
-        mesas.salvarESincronizar(outraMesa);
-
-        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(admin))
+        for (boolean ativa : List.of(true, false)) {
+            outraMesa.setAtiva(ativa);
+            mesas.salvarESincronizar(outraMesa);
+            mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(admin))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"" + HOJE
                     + "\",\"solicitanteId\":" + joao.getId() + "}"))
             .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USUARIO_COM_MESA_FIXA"))
+            .andExpect(jsonPath("$.mesa.id").value(outraMesa.getId()))
+            .andExpect(jsonPath("$.mesa.codigo").value(outraMesa.getCodigo()))
             .andExpect(jsonPath("$.detail").value(
-                "O solicitante possui uma mesa fixa e não pode realizar reservas."));
+                joao.getNome() + " já possui a mesa fixa " + outraMesa.getCodigo()
+                    + " vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa."));
 
-        assertThat(reservas.contar()).isZero();
+            assertThat(reservas.contar()).isZero();
+        }
     }
 
     @Test
@@ -342,6 +353,57 @@ public class ReservaApiTests {
         mesas.salvarESincronizar(outraMesa);
 
         criar(maria, mesa, HOJE).andExpect(status().isCreated());
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void homonimosSaoIdentificadosPeloCadastroENaoPeloNome() throws Exception {
+        var homonima = usuarios.salvar(new Usuario(maria.getNome(), "outra.maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        outraMesa.setTipo(TipoMesa.FIXA);
+        outraMesa.setResponsavel(homonima);
+        outraMesa.setOcupante(maria.getNome());
+        mesas.salvarESincronizar(outraMesa);
+
+        criar(maria, mesa, HOJE).andExpect(status().isCreated());
+        criar(homonima, mesa, HOJE.plusDays(1))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USUARIO_COM_MESA_FIXA"))
+            .andExpect(jsonPath("$.mesa.codigo").value(outraMesa.getCodigo()));
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void regularizarFixaSemResponsavelBloqueiaReservaParaOUsuario() throws Exception {
+        outraMesa.setTipo(TipoMesa.FIXA);
+        outraMesa.setOcupante(maria.getNome());
+        mesas.salvarESincronizar(outraMesa);
+
+        mvc.perform(patch("/api/admin/mesas/{id}/responsavel", outraMesa.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"usuarioId\":" + maria.getId() + "}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.responsavel.id").value(maria.getId()));
+
+        criar(maria, mesa, HOJE).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.mesa.codigo").value(outraMesa.getCodigo()));
+        assertThat(reservas.contar()).isZero();
+    }
+
+    @Test
+    void regularizacaoRecusadaPreservaReservasExistentesESemVinculoAutomatico() throws Exception {
+        var existente = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria));
+        outraMesa.setTipo(TipoMesa.FIXA);
+        outraMesa.setOcupante(maria.getNome());
+        mesas.salvarESincronizar(outraMesa);
+
+        mvc.perform(patch("/api/admin/mesas/{id}/responsavel", outraMesa.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"usuarioId\":" + maria.getId() + "}"))
+            .andExpect(status().isConflict());
+        assertThat(mesas.buscarPorId(outraMesa.getId()).orElseThrow().getResponsavel()).isNull();
+        assertThat(reservas.buscarPorId(existente.id()).orElseThrow().getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
         assertThat(reservas.contar()).isEqualTo(1);
     }
 

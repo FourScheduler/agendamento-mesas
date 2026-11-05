@@ -86,8 +86,8 @@ public class MesaRepositoryAdapter implements MesaRepositoryPort {
     }
 
     @Override
-    public boolean existeMesaFixaPorResponsavelId(Long usuarioId) {
-        return mesaRepository.existsByResponsavel_IdAndTipo(usuarioId, TipoMesa.FIXA);
+    public Optional<Mesa> buscarPorResponsavelId(Long usuarioId) {
+        return mesaRepository.findByResponsavel_Id(usuarioId);
     }
 
     @Override

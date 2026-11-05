@@ -41,8 +41,9 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | 19 | Cancelamento libera | Cancelar reserva de `D` e re-reservar a mesa em `D` | `201` |
 | 20 | Cancelada não bloqueia usuário | Usuário com reserva `CANCELADA` em `D` cria outra em `D` | `201` |
 
-`ReservaApiTests` também verifica o bloqueio de solicitante com mesa fixa ativa ou
-inativa (`409` com `detail` específico e sem inserção), inclusive na reserva feita
+`ReservaApiTests` também verifica o bloqueio de beneficiário com mesa vinculada
+ativa, inativa ou com tipo legado `LIVRE` (`409`, código `USUARIO_COM_MESA_FIXA`,
+ID/código da mesa e mensagem específica, sem inserção), inclusive na reserva feita
 por administrador para outro usuário. A mesa fixa do administrador não impede uma
 reserva para solicitante sem vínculo. São cobertos a liberação após desfixar, nome
 em `ocupante` sem vínculo, mesa fixa de outro usuário e preservação de reservas

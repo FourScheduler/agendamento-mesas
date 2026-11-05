@@ -47,7 +47,7 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 | 11 | Estados da reserva | Novas reservas são `CONFIRMADA`. `PENDENTE` permanece compatível com dados legados; `CANCELADA` libera a data. |
 | 12 | Confirmação | Após revisar, o usuário envia um único POST. A API responde `201` somente após commit da reserva `CONFIRMADA`. |
 | 13 | Mesas fixas | Tipo `FIXA` não aparece em `/api/mesas/disponiveis` e gera `409` na tentativa de reserva. |
-| 14 | Solicitante com mesa fixa | Usuário vinculado por `mesas.responsavel_id` a uma mesa `FIXA` não pode criar reservas, inclusive quando a mesa fixa está inativa. O bloqueio considera o solicitante escolhido pelo administrador, quando informado. |
+| 14 | Solicitante com mesa vinculada | Usuário vinculado por `mesas.responsavel_id` não pode criar reservas, inclusive com mesa inativa ou tipo legado inconsistente. O bloqueio considera o beneficiário escolhido pelo administrador e identifica a mesa no erro. |
 | 15 | Uma mesa por responsável | Atribuir ou trocar responsável exige que o usuário não esteja vinculado a outra mesa. Um vínculo existente continua contando mesmo se a mesa estiver inativa. Não há transferência automática; desfixar ou trocar o responsável libera o usuário anterior. |
 | 16 | Ativar antes de fixar | Mesa inativa não pode ser fixada nem receber atribuição/troca de responsável (`409`). A alteração direta de tipo para `FIXA` também exige mesa ativa. O administrador deve ativar primeiro; a recusa preserva tipo, ativação e vínculo anterior. |
 | 17 | Remover vínculo antes de inativar | Inativação retorna `409` enquanto houver `responsavel_id`, mesmo com usuário inativo ou tipo legado inconsistente. O responsável não é removido automaticamente. Após desfixar/remover explicitamente o vínculo, a inativação é permitida e preserva o tipo da mesa. |
@@ -56,8 +56,14 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 A verificação usa o ID do responsável, não o texto de `ocupante`. Desfixar a mesa
 remove esse impedimento; as demais validações continuam aplicáveis. Reservas já
 existentes não são alteradas por esse bloqueio. O backend retorna `409` com
-`detail` específico para o impedimento; a apresentação desse texto no frontend
-será tratada em uma etapa posterior.
+`code: USUARIO_COM_MESA_FIXA`, `mesa: { id, codigo }` e `detail` específico para
+o próprio usuário ou o administrador que reserva para terceiro. Lista e mapa
+apresentam o detalhe sem convertê-lo em conflito de reserva diária duplicada.
+Minhas reservas identifica atribuições exclusivamente pelo ID do responsável,
+inclusive vínculos legados inconsistentes que precisam de revisão administrativa.
+Nome em `ocupante` não estabelece vínculo. A regularização exige conferência
+do cadastro pelo e-mail e seleção do ID correto, sem associação automática por nome.
+Ver [regularização de vínculos](regularizacao-vinculos-mesas.md).
 
 ## Regra de sobreposição: adaptação de `[início, fim)`
 

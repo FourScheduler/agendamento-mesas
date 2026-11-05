@@ -214,8 +214,8 @@
                         class="botao botao--secundario botao--pequeno"
                         (click)="abrirModalAlterarResponsavel(mesa)"
                         [disabled]="confirmando() || !podeAlterarResponsavel(mesa)"
-                        aria-label="Alterar responsável da mesa {{ mesa.codigo }}"
-                        [title]="podeAlterarResponsavel(mesa) ? 'Alterar responsável' : 'Fixe a mesa para habilitar a alteração do responsável'"
+                        [attr.aria-label]="(mesa.tipo === 'FIXA' && !mesa.responsavel ? 'Atribuir' : 'Alterar') + ' responsável da mesa ' + mesa.codigo"
+                        [title]="!mesa.ativa ? 'Ative a mesa antes de atribuir ou alterar o responsável' : podeAlterarResponsavel(mesa) ? (mesa.responsavel ? 'Alterar responsável' : 'Atribuir responsável') : 'Fixe a mesa para habilitar a alteração do responsável'"
                       >
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <path d="m16 3 5 5-12 12H4v-5ZM14 5l5 5M3 22h18" />
