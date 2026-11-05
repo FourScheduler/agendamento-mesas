@@ -2,7 +2,7 @@
 
 Cenários que o backend deve cobrir com testes automatizados. Cada cenário referencia a regra em [fluxo-mvp](fluxo-mvp.md) e o contrato em [contratos-api-mvp](contratos-api-mvp.md).
 
-A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem própria e cancelamento estão cobertos por testes; a gestão administrativa de reservas abaixo descreve cenários previstos no contrato.
+A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem própria/administrativa e cancelamento estão cobertos por testes.
 
 ## Datas inválidas (`400`)
 
@@ -93,7 +93,10 @@ inativas e reserva antiga cuja mesa passou a ser fixa. O relógio fixo confirma 
 timestamp em São Paulo. São cobertos rollback integral, dois cancelamentos
 simultâneos (um `200`, um `409`), nova reserva/inativação aguardando o commit,
 cancelamento concorrente com fixação/inativação sobre reserva antiga e nova reserva
-do mesmo usuário sem duplicação. Reserva alheia retorna `403`, sem erro interno.
+do mesmo usuário sem duplicação. São cobertas disputas entre dono e administrador
+e entre dois administradores, inclusive para beneficiário inativo e mesa fixa
+inativa, preservando sua configuração. Usuário comum recebe `403` para reserva
+alheia ou criada por um administrador em seu nome, sem erro interno.
 
 | # | Cenário | Esperado |
 | --- | --- | --- |
@@ -173,7 +176,7 @@ ativação de mesa legada sem remover responsável. Disputas de fixação/atribu
 contra inativação resultam em um `200` e um `409`, sem estado final inconsistente,
 tanto em H2 quanto em MySQL.
 
-`MigracaoResponsavelUnicoTests` aplica V8 sobre V7 com dados: verifica preservação
+`MigracaoResponsavelUnicoTests` aplica V9 sobre V8 com dados: verifica preservação
 de mesas, usuários e reservas, reaplicação sem efeito e recusa de dados duplicados
 sem remoção automática de vínculos.
 

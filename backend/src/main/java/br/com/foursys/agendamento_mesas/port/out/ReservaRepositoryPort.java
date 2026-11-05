@@ -20,10 +20,18 @@ public interface ReservaRepositoryPort {
 
     Optional<Reserva> buscarPorId(Long usuarioId);
 
+    Optional<Long> buscarUsuarioId(Long reservaId);
+
     List<Reserva> buscarTodos();
 
     List<Reserva> buscarOcupacoesNaData(LocalDate data, Collection<Long> mesaIds,
         Collection<StatusReserva> bloqueios);
+
+    List<Reserva> listarTodas(
+        @Param("inicio") LocalDate inicio,
+        @Param("fim") LocalDate fim,
+        @Param("status") StatusReserva status
+    );
 
     List<Reserva> listarMinhas(
         @Param("usuarioId") Long usuarioId,

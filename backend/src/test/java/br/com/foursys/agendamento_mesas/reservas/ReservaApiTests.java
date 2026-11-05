@@ -64,8 +64,6 @@ public class ReservaApiTests {
     void prepararBanco() {
         reservas.deletarTodos();
         mesas.deletarTodos();
-reservas.deletarTodos();
-        mesas.deletarTodos();
         usuarios.deletarTodos();
         maria = usuarios.salvar(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
         joao = usuarios.salvar(new Usuario("João", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
@@ -88,6 +86,8 @@ reservas.deletarTodos();
                 .andExpect(jsonPath("$.solicitante.id").value(maria.getId()))
                 .andExpect(jsonPath("$.solicitante.nome").value("Maria"))
                 .andExpect(jsonPath("$.solicitante.email").value("maria@teste.com"))
+                .andExpect(jsonPath("$.criador.id").value(maria.getId()))
+                .andExpect(jsonPath("$.criador.perfil").value("USUARIO"))
                 .andExpect(jsonPath("$.criadaEm").value("2026-10-26T09:00:00"))
                 .andExpect(jsonPath("$.confirmadaEm").value("2026-10-26T09:00:00"));
         // Leitura em outra transação depois da resposta HTTP.
@@ -107,11 +107,55 @@ reservas.deletarTodos();
                 .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"2026-10-26\",\"solicitanteId\":" + joao.getId() + "}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.solicitante.id").value(joao.getId()))
-            .andExpect(jsonPath("$.solicitante.nome").value("João"));
+            .andExpect(jsonPath("$.solicitante.nome").value("João"))
+            .andExpect(jsonPath("$.criador.id").value(admin.getId()))
+            .andExpect(jsonPath("$.criador.perfil").value("ADMIN"));
 
         assertThat(reservas.buscarTodos()).singleElement()
             .extracting(reserva -> reserva.getUsuario().getId())
             .isEqualTo(joao.getId());
+    }
+
+    @Test
+    void beneficiarioVeReservaCriadaPorAdminEAdminPodeListaLa() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+
+        mvc.perform(get("/api/reservas/minhas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(criada.id()))
+            .andExpect(jsonPath("$[0].usuarioId").value(joao.getId()))
+            .andExpect(jsonPath("$[0].criador.perfil").value("ADMIN"));
+
+        mvc.perform(get("/api/admin/reservas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(criada.id()))
+            .andExpect(jsonPath("$[0].solicitante.id").value(joao.getId()));
+
+        mvc.perform(get("/api/admin/reservas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void beneficiarioNaoCancelaReservaCriadaPorAdminMasAdminPode() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.status").value(403));
+
+        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getStatus())
+            .isEqualTo(StatusReserva.CONFIRMADA);
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
+            .andExpect(status().isOk());
+
+        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getStatus())
+            .isEqualTo(StatusReserva.CANCELADA);
     }
 
     @Test
@@ -433,6 +477,37 @@ reservas.deletarTodos();
     }
 
     @Test
+    void administradorAguardaCancelamentoDoDonoSemCancelarNovamente() throws Exception {
+        var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+
+        assertThat(concorrerComCancelamentoAntesDoCommit(existente,
+            () -> cancelar(existente, admin).andReturn().getResponse().getStatus())).isEqualTo(409);
+        assertThat(reservas.buscarPorId(existente.getId()).orElseThrow().getStatus())
+            .isEqualTo(StatusReserva.CANCELADA);
+    }
+
+    @Test
+    void doisAdministradoresCancelamUmaUnicaVezMesmoComBeneficiarioInativo() throws Exception {
+        var outroAdmin = usuarios.salvar(new Usuario("Admin 2", "admin2@teste.com", "hash", PerfilUsuario.ADMIN, true));
+        maria.setAtivo(false);
+        usuarios.salvarESincronizar(maria);
+        mesa.setTipo(TipoMesa.FIXA);
+        mesa.setAtiva(false);
+        mesa.setResponsavel(joao);
+        mesa.setOcupante("Texto preservado");
+        mesas.salvarESincronizar(mesa);
+        var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE.minusDays(1), StatusReserva.CONFIRMADA));
+
+        assertThat(concorrerComCancelamentoAntesDoCommit(existente, admin,
+            () -> cancelar(existente, outroAdmin).andReturn().getResponse().getStatus())).isEqualTo(409);
+        var atual = mesas.buscarPorId(mesa.getId()).orElseThrow();
+        assertThat(atual.getTipo()).isEqualTo(TipoMesa.FIXA);
+        assertThat(atual.isAtiva()).isFalse();
+        assertThat(atual.getResponsavel().getId()).isEqualTo(joao.getId());
+        assertThat(atual.getOcupante()).isEqualTo("Texto preservado");
+    }
+
+    @Test
     void novaReservaDaMesaEsperaCommitDoCancelamento() throws Exception {
         var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
 
@@ -669,11 +744,15 @@ reservas.deletarTodos();
     }
 
     int concorrerComCancelamentoAntesDoCommit(Reserva reserva, Callable<Integer> concorrente) throws Exception {
+        return concorrerComCancelamentoAntesDoCommit(reserva, maria, concorrente);
+    }
+
+    int concorrerComCancelamentoAntesDoCommit(Reserva reserva, Usuario cancelador, Callable<Integer> concorrente) throws Exception {
         var cancelada = new CountDownLatch(1);
         var liberar = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(2)) {
             var titular = executor.submit(() -> transacao().executeWithoutResult(tx -> {
-                service.cancelar(reserva.getId(), identidade(maria));
+                service.cancelar(reserva.getId(), identidade(cancelador));
                 cancelada.countDown();
                 aguardar(liberar);
             }));

@@ -13,7 +13,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 class MigracaoResponsavelUnicoTests {
     @Test
     void migracaoPreservaMesasUsuariosEReservasENaoReaplica() {
-        var ds = bancoAteV7();
+        var ds = bancoAteV8();
         var jdbc = new JdbcTemplate(ds);
         prepararDados(jdbc);
         jdbc.update("UPDATE mesas SET responsavel_id = 1 WHERE id = 1");
@@ -31,7 +31,7 @@ class MigracaoResponsavelUnicoTests {
 
     @Test
     void duplicidadesImpedemMigracaoSemRemoverOuEscolherVinculos() {
-        var ds = bancoAteV7();
+        var ds = bancoAteV8();
         var jdbc = new JdbcTemplate(ds);
         prepararDados(jdbc);
         jdbc.update("UPDATE mesas SET responsavel_id = 1 WHERE id IN (1, 2)");
@@ -44,11 +44,11 @@ class MigracaoResponsavelUnicoTests {
         assertThat(jdbc.queryForList("SELECT * FROM mesas ORDER BY id")).isEqualTo(antes);
     }
 
-    private DriverManagerDataSource bancoAteV7() {
+    private DriverManagerDataSource bancoAteV8() {
         var ds = new DriverManagerDataSource(
             "jdbc:h2:mem:responsavel_" + UUID.randomUUID() + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
             "sa", "");
-        Flyway.configure().dataSource(ds).locations("classpath:db/migration").target("7").load().migrate();
+        Flyway.configure().dataSource(ds).locations("classpath:db/migration").target("8").load().migrate();
         return ds;
     }
 

@@ -41,7 +41,7 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 | 5 | Sobreposição da mesma mesa | Uma mesa não pode ter duas reservas não canceladas na mesma data (`409`). |
 | 6 | Reservas do mesmo usuário | O usuário não pode ter duas reservas não canceladas na mesma data (`409`). Pode ter reservas em datas diferentes, inclusive na mesma mesa. |
 | 7 | Dias consecutivos | Períodos consecutivos são permitidos (dois dias seguidos na mesma mesa ou pelo usuário). |
-| 8 | Cancelamento | O dono pode cancelar a qualquer momento, inclusive após o dia reservado. Altera somente a reserva e libera a disponibilidade daquela data; preserva tipo, ativação, ocupante textual e responsável fixo da mesa. |
+| 8 | Cancelamento | O beneficiário pode cancelar reservas próprias ou legadas sem autor; reservas criadas por terceiros exigem administrador. Administradores podem cancelar qualquer reserva, inclusive de beneficiário inativo. Permitido a qualquer momento, inclusive após o dia reservado. Altera somente a reserva e libera a disponibilidade daquela data; preserva tipo, ativação, ocupante textual e responsável fixo da mesa. |
 | 9 | Solicitante | Por padrão vem do contexto autenticado. Administradores podem escolher um usuário ativo pela busca de nome/e-mail; usuários comuns não podem escolher terceiros. |
 | 10 | Autenticação | Login local com e-mail e senha (hash BCrypt). Token JWT em `Authorization: Bearer`. |
 | 11 | Estados da reserva | Novas reservas são `CONFIRMADA`. `PENDENTE` permanece compatível com dados legados; `CANCELADA` libera a data. |
@@ -116,9 +116,11 @@ Se a reserva concluir primeiro, a alteração administrativa incompatível retor
 Se a alteração concluir primeiro, a criação revalida mesa ativa/livre e vínculo fixo
 do solicitante antes de confirmar. As reservas anteriores são sempre preservadas.
 
-O cancelamento próprio usa transação `READ_COMMITTED`, bloqueando primeiro o usuário
-autenticado e depois a mesa. A reserva é lida após o lock do usuário, que serializa
-cancelamentos do mesmo dono, e a autoria/estado são validados antes de salvar.
+O cancelamento usa transação `READ_COMMITTED`, bloqueando primeiro o beneficiário
+da reserva e depois a mesa, inclusive quando solicitado por um administrador.
+O ID do beneficiário é consultado como escalar; a reserva é lida após o lock do
+usuário, que serializa cancelamentos pelo dono ou por administradores, e a
+autoria/estado são validados antes de salvar.
 Somente `status` e `canceladaEm` da reserva são alterados; o timestamp usa o relógio
 da aplicação em São Paulo. O commit ocorre antes do `200` sem corpo. Repetir o
 cancelamento retorna `409`, sem regravar o timestamp; reserva alheia retorna `403`.

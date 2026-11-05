@@ -9,8 +9,12 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
+    @Query("select r.usuario.id from Reserva r where r.id = :id")
+    Optional<Long> buscarUsuarioId(@Param("id") Long id);
+
     @Query("""
         select r from Reserva r
         join fetch r.usuario
@@ -61,6 +65,22 @@ public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
 
     List<Reserva> findByUsuarioIdOrderByDataDesc(Long usuarioId);
 
+    @Query("""
+            select r from Reserva r
+            join fetch r.mesa
+            join fetch r.usuario
+            left join fetch r.criadoPor
+            where (:inicio is null or r.data >= :inicio)
+              and (:fim is null or r.data <= :fim)
+              and (:status is null or r.status = :status)
+            order by r.data desc, r.id desc
+            """)
+    List<Reserva> listarTodas(
+        @Param("inicio") LocalDate inicio,
+        @Param("fim") LocalDate fim,
+        @Param("status") StatusReserva status
+    );
+
     List<Reserva> findByUsuarioIdAndDataAndStatusIn(Long usuarioId, LocalDate data, Collection<StatusReserva> status);
 
     List<Reserva> findByDataOrderByCriadaEmDesc(LocalDate data);
@@ -75,6 +95,7 @@ public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
             select r from Reserva r
             join fetch r.mesa
             join fetch r.usuario
+            left join fetch r.criadoPor
             where r.usuario.id = :usuarioId
               and (:inicio is null or r.data >= :inicio)
               and (:fim is null or r.data <= :fim)

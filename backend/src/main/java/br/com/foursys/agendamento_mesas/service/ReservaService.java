@@ -105,6 +105,12 @@ public class ReservaService {
         }
 
         Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
+        reserva.setCriadoPor(autenticado.perfil() == PerfilUsuario.ADMIN && !usuario.getId().equals(autenticado.id())
+            ? usuarioRepositoryPort.buscarPorId(autenticado.id())
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Administrador autenticado não encontrado."
+                ))
+            : usuario);
         reserva.setConfirmadaEm(LocalDateTime.now(relogio));
         return ReservaResponse.toResponse(reservaRepositoryPort.salvarESincronizar(reserva));
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
@@ -114,16 +120,20 @@ public class ReservaService {
         Long usuarioId, LocalDate data, LocalDate dataInicio,
         LocalDate dataFim, StatusReserva status
     ) {
-        if (data != null && (dataInicio != null || dataFim != null)) {
-            throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
-        }
-
-        if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
-            throw new DadosInvalidosException("'dataInicio' deve ser anterior ou igual a 'dataFim'.");
-        }
-
+        validarFiltrosConsulta(data, dataInicio, dataFim);
         return reservaRepositoryPort
             .listarMinhas(usuarioId, data != null ? data : dataInicio, data != null ? data : dataFim, status)
+            .stream()
+            .map(ReservaResponse::toResponse)
+            .toList();
+    }
+
+    public List<ReservaResponse> listarTodas(
+        LocalDate data, LocalDate dataInicio, LocalDate dataFim, StatusReserva status
+    ) {
+        validarFiltrosConsulta(data, dataInicio, dataFim);
+        return reservaRepositoryPort
+            .listarTodas(data != null ? data : dataInicio, data != null ? data : dataFim, status)
             .stream()
             .map(ReservaResponse::toResponse)
             .toList();
@@ -134,14 +144,23 @@ public class ReservaService {
         if (usuarioAutenticado == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticação obrigatória.");
         }
-        // A mesma ordem da criação: usuário -> mesa. O usuário serializa cancelamentos próprios.
-        usuarioRepositoryPort.buscarParaReserva(usuarioAutenticado.id())
+        usuarioRepositoryPort.buscarPorId(usuarioAutenticado.id())
             .filter(Usuario::isAtivo)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
 
+        // Consulta escalar para não carregar a reserva antes da espera pelo lock.
+        Long solicitanteId = reservaRepositoryPort.buscarUsuarioId(idReserva)
+            .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
+        // A mesma ordem da criação: solicitante -> mesa, inclusive quando um admin cancela.
+        usuarioRepositoryPort.buscarParaReserva(solicitanteId)
+            .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
         Reserva reserva = buscarReserva(idReserva);
 
-        if (!reserva.getUsuario().getId().equals(usuarioAutenticado.id())) {
+        boolean administrador = usuarioAutenticado.perfil() == PerfilUsuario.ADMIN;
+        boolean solicitante = reserva.getUsuario().getId().equals(usuarioAutenticado.id());
+        boolean criadaPeloSolicitante = reserva.getCriadoPor() == null
+            || reserva.getCriadoPor().getId().equals(usuarioAutenticado.id());
+        if (!administrador && (!solicitante || !criadaPeloSolicitante)) {
             throw new UsuarioSemPermissaoException();
         }
 
@@ -157,6 +176,18 @@ public class ReservaService {
         reserva.setStatus(StatusReserva.CANCELADA);
 
         reservaRepositoryPort.salvarESincronizar(reserva);
+    }
+
+    private void validarFiltrosConsulta(
+        LocalDate data, LocalDate dataInicio, LocalDate dataFim
+    ) {
+        if (data != null && (dataInicio != null || dataFim != null)) {
+            throw new DadosInvalidosException("Use 'data' ou 'dataInicio'/'dataFim', sem combinar os filtros.");
+        }
+
+        if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
+            throw new DadosInvalidosException("'dataInicio' deve ser anterior ou igual a 'dataFim'.");
+        }
     }
 
     //Métodos Utilitários

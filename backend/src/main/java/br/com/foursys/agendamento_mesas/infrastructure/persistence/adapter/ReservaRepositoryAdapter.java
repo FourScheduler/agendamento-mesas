@@ -35,6 +35,11 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public Optional<Long> buscarUsuarioId(Long reservaId) {
+        return reservaJpaRepository.buscarUsuarioId(reservaId);
+    }
+
+    @Override
     public List<Reserva> buscarTodos() {
         return reservaJpaRepository.findAll();
     }
@@ -43,6 +48,11 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     public List<Reserva> buscarOcupacoesNaData(LocalDate data, Collection<Long> mesaIds,
             Collection<StatusReserva> bloqueios) {
         return reservaJpaRepository.buscarOcupacoesNaData(data, mesaIds, bloqueios);
+    }
+
+    @Override
+    public List<Reserva> listarTodas(LocalDate inicio, LocalDate fim, StatusReserva status) {
+        return reservaJpaRepository.listarTodas(inicio, fim, status);
     }
 
     @Override

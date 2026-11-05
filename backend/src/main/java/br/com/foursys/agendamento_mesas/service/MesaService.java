@@ -129,6 +129,7 @@ public class MesaService {
         validarUsuarioSemReservas(usuarioId);
         mesa.setTipo(TipoMesa.FIXA);
         mesa.setResponsavel(responsavel);
+        mesa.setOcupante(responsavel.getNome());
         return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
     }
 
@@ -140,6 +141,7 @@ public class MesaService {
         }
 
         mesa.setTipo(TipoMesa.LIVRE);
+        mesa.setOcupante(null);
         mesa.setResponsavel(null);
         return MesaResponse.de(mesaRepositoryPort.salvar(mesa));
     }

@@ -194,7 +194,11 @@ export class AgendamentoPage {
 
   selecionarMesa(mesa: Mesa) {
     if (!this.confirmando() && !this.carregandoMesas() && this.estaDisponivel(mesa)) {
-      this.reserva.selecionar(mesa);
+      if (this.mesaSelecionada()?.id === mesa.id) {
+        this.reserva.limparSelecao();
+      } else {
+        this.reserva.selecionar(mesa);
+      }
     }
   }
 

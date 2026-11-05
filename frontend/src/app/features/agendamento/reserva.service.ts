@@ -9,12 +9,24 @@ import { UsuarioAdminResumo } from '../../core/auth/auth.service';
 export class ReservaService {
   private readonly http = inject(HttpClient);
 
-  listarMinhas(params?: { status?: string; data?: string }) {
+  listarMinhas(params?: { status?: string; data?: string; dataInicio?: string; dataFim?: string }) {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set('status', params.status);
     if (params?.data) searchParams.set('data', params.data);
+    if (params?.dataInicio) searchParams.set('dataInicio', params.dataInicio);
+    if (params?.dataFim) searchParams.set('dataFim', params.dataFim);
     const query = searchParams.toString();
     return this.http.get<readonly Reserva[]>(`${environment.apiUrl}/reservas/minhas${query ? `?${query}` : ''}`);
+  }
+
+  listarTodas(params?: { status?: string; data?: string; dataInicio?: string; dataFim?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.data) searchParams.set('data', params.data);
+    if (params?.dataInicio) searchParams.set('dataInicio', params.dataInicio);
+    if (params?.dataFim) searchParams.set('dataFim', params.dataFim);
+    const query = searchParams.toString();
+    return this.http.get<readonly Reserva[]>(`${environment.apiUrl}/admin/reservas${query ? `?${query}` : ''}`);
   }
 
   listarDisponiveis(data: string) {

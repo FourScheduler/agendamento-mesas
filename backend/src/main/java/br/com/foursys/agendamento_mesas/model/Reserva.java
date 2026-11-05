@@ -38,6 +38,10 @@ public class Reserva {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "criado_por_id")
+    private Usuario criadoPor;
+
     @Column(name = "data", nullable = false)
     private LocalDate data;
 

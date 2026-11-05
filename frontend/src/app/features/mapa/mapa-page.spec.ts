@@ -4,7 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
-import { provideRouter, Router } from "@angular/router";
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from "@angular/router";
 import { AuthService } from "../../core/auth/auth.service";
 import { MapaPage } from "./mapa-page";
 import { Mesa } from "../mesas/mesa";
@@ -65,8 +65,81 @@ describe("Barra de reserva do mapa", () => {
     return fixture;
   }
 
+  it("rola até a mesa recebida do agendamento e mantém o destaque sem abrir o modal", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    const rolar = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: rolar,
+    });
+    try {
+      vi.spyOn(TestBed.inject(ActivatedRoute).snapshot.queryParamMap, "get")
+        .mockImplementation(nome => convertToParamMap({ mesaId: "44" }).get(nome));
+      const fixture = TestBed.createComponent(MapaPage);
+      fixture.detectChanges();
+      const viewport = fixture.nativeElement.querySelector(".mapa__viewport") as HTMLElement;
+      const centralizar = vi.fn();
+      viewport.scrollTo = centralizar;
+      vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(10, 20, 400, 300),
+      );
+      Object.defineProperty(viewport, "clientWidth", { configurable: true, value: 400 });
+      Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 300 });
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+        return new DOMRect(710, 920, 100, 60);
+      });
+      http.expectOne("/api/mesas").flush([mesa]);
+      http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+      fixture.detectChanges();
+      const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
+      expect(botao.classList.contains("selecionada")).toBe(true);
+      expect(botao.getAttribute("aria-pressed")).toBe("true");
+      expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(44);
+      expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
+      expect(centralizar).toHaveBeenCalledExactlyOnceWith({
+        left: 550, top: 780, behavior: "instant",
+      });
+      expect(rolar).not.toHaveBeenCalled();
+      http.expectNone("/api/reservas");
+
+      botao.click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(".detalhes")).not.toBeNull();
+      fixture.nativeElement.querySelector(".detalhes__fechar").click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
+      expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
+    } finally {
+      vi.restoreAllMocks();
+      if (descriptor) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", descriptor);
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+      }
+    }
+  });
+
   it("mostra o resumo e mantém a confirmação integrada à API", () => {
     const fixture = abrir();
+    expect(fixture.nativeElement.querySelector(".page-header")).toBeNull();
+    expect(fixture.nativeElement.querySelector(".mapa__cabecalho #data-reserva")).not.toBeNull();
+    const atualizar = fixture.nativeElement.querySelector("#atualizar-disponibilidade") as HTMLButtonElement;
+    expect(atualizar.textContent?.trim()).toBe("Atualizar");
+    expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
+    const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
+    expect(tooltip.getAttribute("role")).toBe("tooltip");
+    expect(getComputedStyle(tooltip).visibility).toBe("hidden");
+    const informacao = fixture.nativeElement.querySelector(
+      '[aria-describedby="mapa-informacoes"]',
+    ) as HTMLElement;
+    expect(informacao.tagName).toBe("SPAN");
+    expect(informacao.getAttribute("tabindex")).toBe("0");
+    informacao.click();
+    fixture.detectChanges();
+    expect(getComputedStyle(tooltip).visibility).toBe("hidden");
+    expect(tooltip.textContent)
+      .toContain("A disponibilidade considera somente a data escolhida.");
     const resumo = fixture.nativeElement.querySelector(
       ".detalhes",
     ) as HTMLElement;
@@ -150,16 +223,40 @@ describe("Barra de reserva do mapa", () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector(".solicitante-selecionado")?.textContent)
       .toContain("Pessoa Solicitante");
+    expect(fixture.nativeElement.querySelector("#solicitante-busca")).toBeNull();
+
+    (fixture.nativeElement.querySelector(".solicitante-selecionado__trocar") as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector("#solicitante-busca")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".solicitante-selecionado")).toBeNull();
+
+    const buscaAtualizada = fixture.nativeElement.querySelector("#solicitante-busca") as HTMLInputElement;
+    buscaAtualizada.value = "outra pessoa";
+    buscaAtualizada.dispatchEvent(new Event("input", { bubbles: true }));
+    fixture.detectChanges();
+    await vi.advanceTimersByTimeAsync(250);
+    http.expectOne(request =>
+      request.url === "/api/admin/usuarios/busca" && request.params.get("termo") === "outra pessoa",
+    ).flush([{
+      id: 43,
+      nome: "Outra Pessoa",
+      email: "outra@example.com",
+      perfil: "USUARIO",
+      ativo: true,
+    }]);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector(".solicitante-busca__opcao") as HTMLButtonElement).click();
+    fixture.detectChanges();
 
     (fixture.nativeElement.querySelector(".confirmar") as HTMLButtonElement).click();
     const request = http.expectOne("/api/reservas");
     expect(request.request.body).toEqual({
       mesaId: 44,
       data: fixture.componentInstance.reserva.data(),
-      solicitanteId: 42,
+      solicitanteId: 43,
     });
     request.flush(
-      { id: 9, status: "CONFIRMADA", data: request.request.body.data, mesa, solicitante: { id: 42, nome: "Pessoa Solicitante", email: "pessoa@example.com" } },
+      { id: 9, status: "CONFIRMADA", data: request.request.body.data, mesa, solicitante: { id: 43, nome: "Outra Pessoa", email: "outra@example.com" } },
     );
     fixture.detectChanges();
     http.expectOne("/api/mesas").flush([mesa]);

@@ -27,8 +27,9 @@ describe('Rotas da develop integradas à issue 7', () => {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { id: 7, nome: 'Maria', email: '', perfil: 'USUARIO' } });
     const harness = await RouterTestingHarness.create('/minhas-reservas');
     http.expectOne('/api/reservas/minhas').flush([]);
+    http.expectOne('/api/mesas').flush([]);
     expect(harness.routeNativeElement?.textContent).toContain('Minhas reservas');
-    expect(harness.routeNativeElement?.textContent).toContain('Acompanhe as mesas reservadas por você');
+    expect(harness.routeNativeElement?.textContent).toContain('Acompanhe suas reservas e as mesas atribuídas a você');
   });
 
   it('preserva a data na abertura direta do mapa e consulta disponibilidade diária', async () => {
@@ -36,7 +37,8 @@ describe('Rotas da develop integradas à issue 7', () => {
     const harness = await RouterTestingHarness.create('/mapa?data=2026-10-29');
     http.expectOne('/api/mesas').flush([]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([]);
-    expect(harness.routeNativeElement?.textContent).toContain('Mapa de Mesas');
+    expect(harness.routeNativeElement?.querySelector('.mapa__cabecalho h1')?.textContent)
+      .toBe('Mapa de mesas');
     expect((harness.routeNativeElement?.querySelector('#data-reserva') as HTMLInputElement).value).toBe('2026-10-29');
   });
 });

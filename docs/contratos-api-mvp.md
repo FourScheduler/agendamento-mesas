@@ -1,6 +1,6 @@
 # Contratos da API do MVP de mesas
 
-Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, `POST /api/reservas`, listagem com filtros e cancelamento de reservas próprias estão implementados. As rotas de gestão administrativa de reservas abaixo descrevem contratos previstos.
+Contratos do backend (Spring Boot, porta `8081`, prefixo `/api`). Login, perfil, criação administrativa de usuários, catálogo, disponibilidade diária, criação e consulta de reservas próprias/administrativas e cancelamento estão implementados.
 
 ## Convenções
 
@@ -108,7 +108,10 @@ Lista o catálogo completo quando `termo` não contém números ou não é infor
 
 ### Response `200`
 
-Lista de `MesaResponse` em ordem crescente de código.
+Lista de `MesaResponse` em ordem crescente de código. O campo `responsavel` é
+`null` quando a mesa não tem uma atribuição; caso exista, contém `id`, `nome` e
+`email` do usuário responsável. A tela Minhas reservas usa essa relação para
+exibir ao usuário suas mesas fixas atribuídas; elas não são reservas por data.
 
 ## GET /api/admin/usuarios/busca
 
@@ -283,6 +286,11 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
     "id": 3,
     "nome": "Maria Souza",
     "email": "maria.souza@exemplo.com"
+  },
+  "criador": {
+    "id": 1,
+    "nome": "Administrador",
+    "perfil": "ADMIN"
   }
 }
 ```
@@ -312,7 +320,7 @@ da interface para apresentar esse texto fica para uma etapa posterior.
 
 ## GET /api/reservas/minhas
 
-Lista somente as reservas do usuário autenticado, com filtros opcionais por status e data ou período. Ordenação fixa por `data` decrescente e, em caso de empate, `id` decrescente.
+Lista as reservas em que o usuário autenticado é beneficiário, inclusive as criadas por um administrador em seu nome, com filtros opcionais por status e data ou período. Ordenação fixa por `data` decrescente e, em caso de empate, `id` decrescente.
 
 ### Query params
 
@@ -335,10 +343,21 @@ Lista somente as reservas do usuário autenticado, com filtros opcionais por sta
     "data": "2026-10-28",
     "criadaEm": "2026-10-23T14:30:00",
     "confirmadaEm": "2026-10-23T14:32:10",
+    "usuarioId": 3,
     "mesa": {
       "id": 44,
       "codigo": "044",
       "regiao": "TAMBORÉ"
+    },
+    "solicitante": {
+      "id": 3,
+      "nome": "Maria Souza",
+      "email": "maria.souza@exemplo.com"
+    },
+    "criador": {
+      "id": 1,
+      "nome": "Administrador",
+      "perfil": "ADMIN"
     }
   }
 ]
@@ -357,8 +376,11 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 
 ## PATCH /api/reservas/{id}/cancelamento
 
-Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento,
-inclusive após o dia reservado. A reserva deixa de bloquear somente a sua data.
+Cancela uma reserva não cancelada a qualquer momento, inclusive após o dia reservado.
+O beneficiário pode cancelar reservas que criou para si ou legadas, sem autor.
+Reservas criadas por outra pessoa só podem ser canceladas por um administrador.
+Administradores podem cancelar reservas de qualquer usuário.
+A reserva deixa de bloquear somente a sua data.
 O cancelamento não transforma mesa fixa em livre, não ativa mesa inativa e não
 remove responsável fixo ou ocupante textual. As regras administrativas atuais da
 mesa continuam valendo para novas reservas.
@@ -369,7 +391,8 @@ Sem corpo, após o commit. O histórico permanece em `GET /api/reservas/minhas`,
 `status: CANCELADA` e `canceladaEm` no fuso `America/Sao_Paulo`. ID, data, mesa,
 solicitante e timestamps anteriores da reserva são preservados.
 
-Duas tentativas simultâneas pelo dono resultam em um `200` e um `409`. A segunda
+Duas tentativas simultâneas autorizadas, pelo dono ou por administradores, resultam
+em um `200` e um `409`. A segunda
 não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação.
 
 ### Erros
@@ -378,7 +401,7 @@ não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação
 | --- | --- | --- |
 | `401` | Sem ou com token inválido. | |
 | `404` | Reserva inexistente. | `Reserva 999 não encontrada.` |
-| `403` | Reserva de outro usuário. | `Reserva não pertence ao usuário autenticado.` |
+| `403` | Usuário não é o beneficiário ou autor autorizado; somente admin cancela reservas criadas para terceiros. | `O usuário sem permissão para realizar essa ação.` |
 | `409` | Reserva já `CANCELADA`; repetir o cancelamento é recusado e não altera o registro. | `Reserva 10 já está cancelada.` |
 
 ---
@@ -450,19 +473,18 @@ Provisiona um usuário fictício para demonstração. Cadastro público não exi
 
 ### GET /api/admin/reservas
 
-Lista reservas de todos os usuários.
+Lista reservas de todos os usuários. A rota exige perfil `ADMIN`.
 
 | Query param | Obrigatório | Formato |
 | --- | --- | --- |
 | `data` | Não | `yyyy-MM-dd` |
-| `usuarioId` | Não | inteiro |
+| `dataInicio` | Não | `yyyy-MM-dd` |
+| `dataFim` | Não | `yyyy-MM-dd` |
 | `status` | Não | `PENDENTE` \| `CONFIRMADA` \| `CANCELADA` |
 
-`200`: lista no mesmo formato de `/api/reservas/minhas`, com o campo `solicitante` sempre presente.
+`200`: lista no mesmo formato de `/api/reservas/minhas`, incluindo `solicitante` e `criador`.
 
-### PATCH /api/admin/reservas/{id}/cancelamento
-
-Cancela a reserva de qualquer usuário (mesmas regras de estado de `PATCH /api/reservas/{id}/cancelamento`). `200` com a reserva `CANCELADA`; erros `401`, `403`, `404` e `409` como na rota do usuário.
+Administradores também cancelam reservas por `PATCH /api/reservas/{id}/cancelamento`; não há uma rota administrativa separada para essa operação.
 
 ### PATCH /api/admin/mesas/{id}/fixar
 
