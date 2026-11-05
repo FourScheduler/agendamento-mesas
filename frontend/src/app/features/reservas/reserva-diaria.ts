@@ -111,11 +111,10 @@ export class ReservaDiaria {
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
           this.sincronizarContexto(null);
           if (erro.status === 409) {
-            this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
             if (erro.error?.code === 'USUARIO_COM_MESA_FIXA') {
               this.toast.erro('Reserva não permitida', detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.');
             } else {
-              this.toast.erro(detalhe || 'Não foi possível reservar. Atualize a disponibilidade e tente novamente.');
+              this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
             }
           } else {
             this.erro.set(erro.status === 400 ? (detalhe || 'Verifique a data e a mesa selecionadas.')

@@ -15,7 +15,15 @@ describe('Rotas da develop integradas à issue 7', () => {
     TestBed.configureTestingModule({ providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
   });
-  afterEach(() => { localStorage.clear(); try { http.verify(); } finally { vi.useRealTimers(); } });
+  afterEach(() => {
+    localStorage.clear();
+    try {
+      http.verify();
+    } finally {
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
+    }
+  });
 
   it('abre o login ao acessar a rota inicial sem autenticação', async () => {
     const harness = await RouterTestingHarness.create('/');
@@ -35,7 +43,8 @@ describe('Rotas da develop integradas à issue 7', () => {
   it('preserva a data na abertura direta do mapa e consulta disponibilidade diária', async () => {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { id: 7, nome: 'Maria', email: '', perfil: 'USUARIO' } });
     const harness = await RouterTestingHarness.create('/mapa?data=2026-10-29');
-    http.expectOne('/api/mesas').flush([]);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
+      && r.params.get('data') === '2026-10-29').flush([]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([]);
     expect(harness.routeNativeElement?.querySelector('.mapa__cabecalho h1')?.textContent)
       .toBe('Mapa de mesas');

@@ -53,8 +53,12 @@ describe('Reserva diária pela planta', () => {
     }
   });
 
-  function carregar(disponiveis: readonly Mesa[] = [mesa], data = '2026-10-28') {
-    http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([mesa]);
+  function carregar(
+    disponiveis: readonly Mesa[] = [mesa],
+    data = '2026-10-28',
+    endpoint = '/api/mesas/com-ocupacao',
+  ) {
+    http.expectOne(r => r.url === endpoint).flush([mesa]);
     const consulta = http.expectOne(r => r.url === '/api/mesas/disponiveis');
     expect(consulta.request.params.get('data')).toBe(data);
     consulta.flush(disponiveis);
@@ -109,7 +113,7 @@ describe('Reserva diária pela planta', () => {
       const fixture = TestBed.createComponent(AgendamentoPage);
       TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
       fixture.detectChanges();
-      carregar([mesa], '2026-11-02');
+      carregar([mesa], '2026-11-02', '/api/mesas');
       fixture.detectChanges();
       await fixture.whenStable();
       expect(fixture.componentInstance.reserva.data()).toBe('2026-11-02');

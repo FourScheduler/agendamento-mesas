@@ -242,7 +242,7 @@ describe("Barra de reserva do mapa", () => {
     const detalhes = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
     expect(detalhes.textContent).toContain("Localização");
     expect(detalhes.textContent).toContain("Data selecionada");
-    expect(detalhes.textContent).toContain("Reservado para");
+    expect(detalhes.textContent).toContain("Responsável");
     expect(detalhes.textContent).toContain("Pessoa Responsável");
     expect(detalhes.querySelector(".detalhes__status--reservada")).not.toBeNull();
     expect(detalhes.querySelector('[role="switch"]')).toBeNull();
