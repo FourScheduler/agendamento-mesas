@@ -1,5 +1,9 @@
 # Padrões visuais
 
+Na administração de mesas, o lápis permanece visível após Ativar/Inativar,
+desabilitado até a mesa estar fixa e com responsável. Nome e e-mail do
+responsável ficam centralizados na coluna Responsável Fixo.
+
 Referência: identidade visual adotada pelo projeto agendamento-salas do Portal Foursys.
 
 | Uso | Valor |

@@ -210,7 +210,8 @@
   font-size: 1rem;
 }
 
-.admin-mesa-page__responsavel {
+.admin-mesa-page__tabela .admin-mesa-page__responsavel {
+  text-align: center;
   max-width: 280px;
   min-width: 180px;
   overflow-wrap: anywhere;
@@ -225,7 +226,6 @@
 
 .admin-mesa-page__sem-responsavel {
   display: block;
-  text-align: center;
   color: var(--muted);
   font-style: italic;
 }
