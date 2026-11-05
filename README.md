@@ -85,6 +85,8 @@ npm.cmd run build
 
 O workflow `.github/workflows/ci.yml` executa testes e empacotamento do backend e build do frontend em pushes e pull requests para `main` e `develop`, com um MySQL 8.4 isolado para repetir os testes de criação e concorrência. Consulte a aba Actions no GitHub para o resultado de cada execução. O frontend também executa seus testes automatizados.
 
+Para executar todos os testes do frontend, use `npm.cmd test -- --watch=false` dentro de `frontend/`. Os arquivos de teste rodam sequencialmente, conforme `vitest.config.ts`, para evitar sobrecarga de instâncias jsdom sem aumentar os limites de tempo dos testes.
+
 As portas 8081 e 4201 permitem executar este projeto junto do agendamento-salas, que utiliza 8080 e 4200.
 
 ## Reservas diárias e testes MySQL
