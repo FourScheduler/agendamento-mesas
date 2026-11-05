@@ -40,6 +40,8 @@ export class PlantaMesas {
   readonly mesaSelecionadaId = input<number | null>(null);
   readonly mesaSelecionada = output<{ readonly mesa: Mesa; readonly disponivel: boolean }>();
   readonly mesaInicialSelecionada = output<Mesa>();
+  readonly mesasCarregadas = output<readonly Mesa[]>();
+  readonly mesasDisponiveisCarregadas = output<ReadonlySet<number> | null>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
@@ -183,6 +185,7 @@ export class PlantaMesas {
       this.atualizacao();
       this.mesas.set([]);
       this.disponiveis.set(null);
+      this.mesasDisponiveisCarregadas.emit(null);
       this.selecionada.set(null);
       this.erro.set("");
       this.carregando.set(false);
@@ -193,7 +196,9 @@ export class PlantaMesas {
       }).subscribe({
         next: ({ mesas, disponiveis }) => {
           this.mesas.set(mesas);
+          this.mesasCarregadas.emit(mesas);
           this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
+          this.mesasDisponiveisCarregadas.emit(this.disponiveis());
           this.carregando.set(false);
           if (data) {
             this.disponibilidadeConsultada.emit(data);

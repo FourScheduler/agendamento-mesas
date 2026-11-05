@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, of, timer } from 'rxjs';
-import { catchError, distinctUntilChanged, switchMap, tap } from 'rxjs/operators';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { PlantaMesas } from '../planta/planta-mesas';
 import { Mesa } from '../mesas/mesa';
 import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
@@ -13,6 +13,7 @@ import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { formatarData } from '../reservas/data-reserva';
 import { Notificacao } from '../../shared/notificacao/notificacao';
 import { ReservaService } from '../agendamento/reserva.service';
+import { Reserva } from '../agendamento/reserva';
 
 @Component({
   selector: 'app-mapa-page',
@@ -38,6 +39,10 @@ export class MapaPage {
   readonly mesaInicialId = signal(Number(this.route.snapshot.queryParamMap.get('mesaId')) || null);
   readonly mesaSelecionada = this.reserva.selecionada;
   readonly mesaNoPainel = signal<Mesa | null>(null);
+  readonly mesasCatalogo = signal<readonly Mesa[]>([]);
+  readonly idsMesasDisponiveis = signal<ReadonlySet<number> | null>(null);
+  readonly reservaDoPainel = signal<Reserva | null>(null);
+  readonly carregandoReservaDoPainel = signal(false);
   readonly detalhesAbertos = signal(false);
   readonly formatarData = formatarData;
   readonly buscaSolicitante = signal('');
@@ -55,6 +60,7 @@ export class MapaPage {
     ),
   );
   private readonly termosBuscaSolicitante = new Subject<string>();
+  private reservaPainelRequest = 0;
 
   constructor() {
     afterNextRender(() => {
@@ -96,6 +102,7 @@ export class MapaPage {
   onMesaSelecionada(selecao: { readonly mesa: Mesa; readonly disponivel: boolean }) {
     const { mesa, disponivel } = selecao;
     this.mesaNoPainel.set(mesa);
+    this.carregarReservaDoPainel(mesa);
     if (disponivel) this.reserva.selecionar(mesa);
     else this.reserva.limparSelecao();
     if (this.mesaSelecionada()?.id !== mesa.id) this.reserva.limparSelecao();
@@ -104,22 +111,42 @@ export class MapaPage {
 
   onMesaInicialSelecionada(mesa: Mesa) {
     this.mesaNoPainel.set(mesa);
+    this.invalidarBuscaReservaDoPainel();
     this.reserva.selecionar(mesa);
     this.detalhesAbertos.set(false);
   }
 
   onDataChange(data: string) {
-    this.detalhesAbertos.set(false);
-    this.mesaNoPainel.set(null);
     this.mesaInicialId.set(null);
+    this.invalidarBuscaReservaDoPainel();
     this.reserva.alterarData(data);
+  }
+
+  onMesasCarregadas(mesas: readonly Mesa[]) {
+    this.mesasCatalogo.set(mesas);
+    const mesaAtual = this.mesaNoPainel();
+    if (!this.detalhesAbertos() || !mesaAtual) return;
+    const mesaAtualizada = mesas.find(mesa => mesa.id === mesaAtual.id);
+    if (!mesaAtualizada) return;
+    this.mesaNoPainel.set(mesaAtualizada);
+    this.carregarReservaDoPainel(mesaAtualizada);
+  }
+
+  onMesasDisponiveisCarregadas(ids: ReadonlySet<number> | null) {
+    this.idsMesasDisponiveis.set(ids);
   }
 
   onMesaInicialInvalidada() {
     this.detalhesAbertos.set(false);
     this.mesaNoPainel.set(null);
+    this.invalidarBuscaReservaDoPainel();
     this.mesaInicialId.set(null);
     this.reserva.limparSelecao();
+  }
+
+  /** Altera a data diretamente pelo input no painel de detalhes. */
+  onDataChangeNoPainel(data: string) {
+    this.onDataChange(data);
   }
 
   voltarParaAgendamento() {
@@ -127,7 +154,7 @@ export class MapaPage {
   }
 
   fecharDetalhes() {
-    if (!this.detalhesAbertos() || this.reserva.confirmando()) return;
+    if (!this.detalhesAbertos() || this.reserva.confirmando() || this.reserva.cancelando()) return;
 
     const mesaId = this.mesaNoPainel()?.id;
     if (mesaId !== undefined) {
@@ -137,17 +164,58 @@ export class MapaPage {
     }
     this.detalhesAbertos.set(false);
     this.mesaNoPainel.set(null);
+    this.invalidarBuscaReservaDoPainel();
     this.mesaInicialId.set(null);
     this.reserva.limparSelecao();
   }
 
   podeReservar(mesa: Mesa): boolean {
-    return this.reserva.disponibilidadeAtual() && this.mesaSelecionada()?.id === mesa.id;
+    return this.reserva.disponibilidadeAtual()
+      && this.mesaNoPainel()?.id === mesa.id
+      && mesa.ativa
+      && mesa.tipo === 'LIVRE'
+      && !this.mesaReservada(mesa)
+      && this.idsMesasDisponiveis()?.has(mesa.id) === true;
+  }
+
+  mesaReservada(mesa: Mesa): boolean {
+    return mesa.ocupada || mesa.ocupanteNaData != null;
+  }
+
+  /** Verifica a permissão a partir do registro da reserva carregado pela API. */
+  podeGerenciarReserva(mesa: Mesa): boolean {
+    const reservaMesa = this.reservaDoPainel();
+    if (
+      !reservaMesa ||
+      reservaMesa.status === 'CANCELADA' ||
+      reservaMesa.data !== this.reserva.data() ||
+      reservaMesa.mesa.id !== mesa.id
+    ) return false;
+    const usuarioAtual = this.usuario();
+    if (!usuarioAtual) return false;
+    if (this.isAdmin()) return true;
+    return reservaMesa.usuarioId === usuarioAtual.id
+      && (reservaMesa.criador == null || reservaMesa.criador.id === usuarioAtual.id);
+  }
+
+  /** Cancela a reserva atualmente exibida no painel. */
+  cancelarReserva() {
+    const mesa = this.mesaNoPainel();
+    const reservaMesa = this.reservaDoPainel();
+    if (!mesa || !reservaMesa || !this.podeGerenciarReserva(mesa) || this.reserva.cancelando()) return;
+    this.reserva.cancelarReserva(reservaMesa.id, mesa.id, () => {
+      this.detalhesAbertos.set(false);
+      this.mesaNoPainel.set(null);
+      this.mesaInicialId.set(null);
+      this.invalidarBuscaReservaDoPainel();
+      this.reserva.limparSelecao();
+    });
   }
 
   statusMesa(mesa: Mesa): string {
     if (!mesa.ativa) return 'Inativa';
     if (mesa.tipo === 'FIXA') return 'Mesa fixa';
+    if (this.mesaReservada(mesa)) return 'Reservada';
     if (this.podeReservar(mesa)) return 'Disponível';
     return this.reserva.disponibilidadeAtual() ? 'Indisponível nesta data' : 'Disponibilidade pendente';
   }
@@ -198,5 +266,36 @@ export class MapaPage {
     if (!(container instanceof HTMLElement) || !(proximoFoco instanceof Node) || !container.contains(proximoFoco)) {
       this.solicitanteFocado.set(false);
     }
+  }
+
+  private carregarReservaDoPainel(mesa: Mesa) {
+    this.invalidarBuscaReservaDoPainel();
+    if (!this.mesaReservada(mesa)) return;
+
+    const request = this.reservaPainelRequest;
+    const data = this.reserva.data();
+    this.carregandoReservaDoPainel.set(true);
+    this.reservas.buscarReservaPorMesaEData(mesa.id, data)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: reservaMesa => {
+          if (request !== this.reservaPainelRequest
+            || this.mesaNoPainel()?.id !== mesa.id
+            || this.reserva.data() !== data) return;
+          this.reservaDoPainel.set(reservaMesa);
+          this.carregandoReservaDoPainel.set(false);
+        },
+        error: () => {
+          if (request !== this.reservaPainelRequest) return;
+          this.carregandoReservaDoPainel.set(false);
+          this.reserva.erro.set('Não foi possível carregar os detalhes da reserva.');
+        },
+      });
+  }
+
+  private invalidarBuscaReservaDoPainel() {
+    this.reservaPainelRequest++;
+    this.reservaDoPainel.set(null);
+    this.carregandoReservaDoPainel.set(false);
   }
 }

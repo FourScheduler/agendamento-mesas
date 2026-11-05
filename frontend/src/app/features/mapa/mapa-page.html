@@ -5,21 +5,21 @@
       <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
       <input id="data-reserva" class="campo__entrada" type="date"
         [ngModel]="reserva.data()" (ngModelChange)="onDataChange($event)"
-        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando()"
+        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando() || reserva.cancelando()"
         [attr.aria-invalid]="reserva.erroData() ? true : null" aria-describedby="erro-data" required />
       @if (reserva.erroData()) {
         <p id="erro-data" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
       }
     </div>
 
-    <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando()">
+    <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando() || reserva.cancelando()">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
       <path d="M19 12H5M12 19l-7-7 7-7" />
     </svg>
     Voltar ao agendamento
   </button>
     <button id="atualizar-disponibilidade" type="button" class="botao" (click)="reserva.atualizarDisponibilidade()"
-      [disabled]="reserva.confirmando() || !reserva.data()">
+      [disabled]="reserva.confirmando() || reserva.cancelando() || !reserva.data()">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
         <path d="M21 3v5h-5" />
@@ -37,6 +37,8 @@
       [mesaSelecionadaId]="mesaNoPainel()?.id ?? null"
       (mesaSelecionada)="onMesaSelecionada($event)"
       (mesaInicialSelecionada)="onMesaInicialSelecionada($event)"
+      (mesasCarregadas)="onMesasCarregadas($event)"
+      (mesasDisponiveisCarregadas)="onMesasDisponiveisCarregadas($event)"
       (disponibilidadeConsultada)="reserva.registrarDisponibilidade($event)"
       (mesaInicialInvalidada)="onMesaInicialInvalidada()"
     >
@@ -47,7 +49,7 @@
     <p role="status">Escolha uma data válida para consultar a disponibilidade.</p>
   }
 
-  @if (detalhesAbertos() && mesaNoPainel(); as mesa) {
+  @if (detalhesAbertos() && reserva.disponibilidadeAtual() && mesaNoPainel(); as mesa) {
     <aside class="detalhes" aria-labelledby="titulo-detalhes" animate.enter="detalhes--entrando" animate.leave="detalhes--saindo">
       <header class="detalhes__cabecalho">
         <div>
@@ -55,7 +57,7 @@
           <h2 id="titulo-detalhes">Mesa {{ mesa.codigo }}</h2>
         </div>
         <button class="detalhes__fechar" type="button" aria-label="Fechar detalhes da mesa"
-          (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">&times;</button>
+          (click)="fecharDetalhes()" [disabled]="reserva.confirmando() || reserva.cancelando()">&times;</button>
       </header>
 
       <div class="detalhes__status" [class.detalhes__status--disponivel]="podeReservar(mesa)">
@@ -77,11 +79,29 @@
               <rect x="3" y="5" width="18" height="16" rx="2" />
               <path d="M16 3v4M8 3v4M3 10h18" />
             </svg>
-            <span>Data selecionada</span>
+            <span>{{ mesaReservada(mesa) ? 'Data reservada' : 'Data selecionada' }}</span>
           </dt>
-          <dd>{{ formatarData(reserva.data()) }}</dd>
-          @if (mesa.ocupante) {
+          <dd>
+            @if (podeReservar(mesa)) {
+              <input type="date" class="campo__entrada" [ngModel]="reserva.data()" (ngModelChange)="onDataChangeNoPainel($event)"
+                [min]="reserva.dataMinima" [max]="reserva.dataMaxima"
+                [disabled]="reserva.confirmando() || reserva.cancelando()" required />
+            } @else {
+              <span>{{ formatarData(reserva.data()) }}</span>
+            }
+          </dd>
+          @if (mesa.ocupante && !mesaReservada(mesa)) {
             <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
+          }
+          @if (mesa.ocupanteNaData) {
+            <dt>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21a8 8 0 0 1 16 0" />
+              </svg>
+              <span>Reservada para</span>
+            </dt>
+            <dd>{{ mesa.ocupanteNaData.nome }}</dd>
           }
           @if (podeReservar(mesa)) {
             @if (isAdmin()) {
@@ -186,6 +206,24 @@
           [disabled]="reserva.confirmando() || !usuario() || (isAdmin() && !solicitanteSelecionado())">
           {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
         </button>
+      }
+
+      @if (mesaReservada(mesa) && carregandoReservaDoPainel()) {
+        <p role="status">Carregando informações da reserva…</p>
+      }
+
+      @if (mesaReservada(mesa) && reservaDoPainel()) {
+        @if (podeGerenciarReserva(mesa)) {
+        <div class="detalhes__acoes">
+          <button class="botao botao--perigo" type="button" (click)="cancelarReserva()"
+            [disabled]="reserva.confirmando() || reserva.cancelando()">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Cancelar reserva
+          </button>
+        </div>
+        }
       }
     </aside>
   }

@@ -2,11 +2,12 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Mesa } from '../mesas/mesa';
 import { ToastService } from '../../shared/toast/toast';
 import { adicionarDias, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
+import { map } from 'rxjs/operators';
 
 /** Estado por página, compartilhando as regras de confirmação entre lista e planta. */
 @Injectable()
@@ -26,9 +27,11 @@ export class ReservaDiaria {
   readonly disponibilidadeAtual = computed(() => !this.erroData() && this.dataConsultada() === this.data());
   readonly selecionada = signal<Mesa | null>(null);
   readonly confirmando = signal(false);
+  readonly cancelando = signal(false);
   readonly erro = signal('');
   readonly sucesso = signal('');
   readonly atualizacao = signal(0);
+  private readonly reservaParaCancelar = signal<{ id: number; mesaId: number } | null>(null);
 
   fecharMensagem() {
     this.erro.set('');
@@ -36,7 +39,7 @@ export class ReservaDiaria {
   }
 
   alterarData(data: string) {
-    if (this.confirmando()) return;
+    if (this.confirmando() || this.cancelando()) return;
     this.data.set(data ?? '');
     this.iniciarConsulta();
     this.erro.set('');
@@ -45,7 +48,7 @@ export class ReservaDiaria {
   }
 
   atualizarDisponibilidade() {
-    if (this.confirmando()) return;
+    if (this.confirmando() || this.cancelando()) return;
     this.iniciarConsulta();
     this.atualizacao.update(valor => valor + 1);
   }
@@ -60,7 +63,7 @@ export class ReservaDiaria {
   }
 
   selecionar(mesa: Mesa) {
-    if (!this.confirmando() && this.disponibilidadeAtual()) {
+    if (!this.confirmando() && !this.cancelando() && this.disponibilidadeAtual()) {
       this.selecionada.set(mesa);
       this.sincronizarContexto(mesa.id);
     }
@@ -75,7 +78,7 @@ export class ReservaDiaria {
   }
 
   limparSelecao() {
-    if (this.confirmando()) return;
+    if (this.confirmando() || this.cancelando()) return;
     this.selecionada.set(null);
     this.sincronizarContexto(null);
   }
@@ -108,7 +111,7 @@ export class ReservaDiaria {
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
           this.sincronizarContexto(null);
           if (erro.status === 409) {
-            this.toast.erro('Você já possui uma reserva nessa data.');
+            this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
           } else {
             this.erro.set(erro.status === 409
               ? (detalhe || 'A mesa ou o seu dia já possui uma reserva. Revise a disponibilidade e selecione novamente.')
@@ -118,6 +121,45 @@ export class ReservaDiaria {
           this.atualizarDisponibilidade();
         },
       });
+  }
+
+  /** Cancela uma reserva pelo ID. */
+  cancelarReserva(reservaId: number, mesaId: number, aposCancelar?: () => void) {
+    if (this.cancelando() || this.confirmando()) return;
+    this.cancelando.set(true);
+    this.erro.set('');
+    this.sucesso.set('');
+    this.reservaParaCancelar.set({ id: reservaId, mesaId });
+    this.reservas.cancelar(reservaId)
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => {
+          this.cancelando.set(false);
+          this.reservaParaCancelar.set(null);
+          aposCancelar?.();
+          this.toast.sucesso('Reserva cancelada');
+          this.atualizarDisponibilidade();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.cancelando.set(false);
+          this.reservaParaCancelar.set(null);
+          const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
+          if (erro.status === 409) {
+            this.erro.set(detalhe || 'A reserva já está cancelada.');
+          } else if (erro.status === 403) {
+            this.erro.set('Você não tem permissão para cancelar esta reserva.');
+          } else if (erro.status === 404) {
+            this.erro.set('Reserva não encontrada.');
+          } else {
+            this.erro.set(detalhe || 'Não foi possível cancelar a reserva. Tente novamente.');
+          }
+          this.atualizarDisponibilidade();
+        },
+      });
+  }
+
+  /** Busca o ID da reserva para uma mesa e data (para o usuário atual ou admin). */
+  buscarReservaId(mesaId: number, data: string) {
+    return this.reservas.buscarReservaPorMesaEData(mesaId, data);
   }
 
   private dataInicial(): string {

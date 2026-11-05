@@ -224,6 +224,160 @@ describe("Barra de reserva do mapa", () => {
     http.expectNone("/api/reservas");
   });
 
+  it("envia a tentativa de reserva ao backend para usuário com mesa fixa", () => {
+    const mesaFixa: Mesa = {
+      ...mesa,
+      id: 45,
+      codigo: "045",
+      tipo: "FIXA",
+      responsavel: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa, mesaFixa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".confirmar")).not.toBeNull();
+    fixture.componentInstance.confirmarReserva();
+    const request = http.expectOne("/api/reservas");
+    expect(request.request.body).toEqual({
+      mesaId: mesa.id,
+      data: fixture.componentInstance.reserva.data(),
+    });
+    request.flush(
+      { detail: "O solicitante possui uma mesa fixa e não pode realizar reservas." },
+      { status: 409, statusText: "Conflict" },
+    );
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa, mesaFixa]);
+    http
+      .expectOne(request => request.url === "/api/mesas/disponiveis")
+      .flush([mesa]);
+  });
+
+  it("mostra apenas os dados da mesa reservada e permite ao dono cancelar", () => {
+    const mesaReservada: Mesa = {
+      ...mesa,
+      ocupada: true,
+      ocupanteNaData: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]').click();
+    fixture.detectChanges();
+
+    const detalhesReserva = http.expectOne(request =>
+      request.url.startsWith("/api/reservas/minhas?"),
+    );
+    const dataReservada = fixture.componentInstance.reserva.data();
+    detalhesReserva.flush([{
+      id: 91,
+      usuarioId: 7,
+      status: "PENDENTE",
+      data: dataReservada,
+      criadaEm: `${dataReservada}T08:00:00`,
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+      solicitante: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    }]);
+    fixture.detectChanges();
+
+    const detalhes = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
+    expect(detalhes.textContent).toContain("Localização");
+    expect(detalhes.textContent).toContain("TAMBORÉ");
+    expect(detalhes.textContent).toContain("Data reservada");
+    expect(detalhes.textContent).toContain("Pessoa Teste");
+    expect(detalhes.querySelector('input[type="date"]')).toBeNull();
+    expect(detalhes.querySelector("#solicitante-busca")).toBeNull();
+    expect(detalhes.querySelector(".confirmar")).toBeNull();
+
+    (detalhes.querySelector(".botao--perigo") as HTMLButtonElement).click();
+    const cancelamento = http.expectOne("/api/reservas/91/cancelamento");
+    expect(cancelamento.request.method).toBe("PATCH");
+    cancelamento.flush(null);
+    fixture.detectChanges();
+
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
+    expect(fixture.nativeElement.querySelector("button.mesa.ocupada")).toBeNull();
+    expect(fixture.nativeElement.querySelector("button.mesa.livre")).not.toBeNull();
+  });
+
+  it("não oferece cancelamento ao beneficiário quando um administrador criou a reserva", () => {
+    const mesaReservada: Mesa = {
+      ...mesa,
+      ocupada: true,
+      ocupanteNaData: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector("button.mesa").click();
+    fixture.detectChanges();
+
+    http.expectOne(request =>
+      request.url.startsWith("/api/reservas/minhas?"),
+    ).flush([{
+      id: 92,
+      usuarioId: 7,
+      status: "CONFIRMADA",
+      data: fixture.componentInstance.reserva.data(),
+      criadaEm: "2026-11-05T08:00:00",
+      criador: { id: 1, nome: "Admin", perfil: "ADMIN" },
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+    }]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".botao--perigo")).toBeNull();
+    expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
+  });
+
+  it("permite ao administrador cancelar a reserva de outro usuário", () => {
+    TestBed.inject(AuthService).sessao.set({
+      token: "teste",
+      tipo: "Bearer",
+      usuario: {
+        id: 1,
+        nome: "Admin",
+        email: "admin@example.com",
+        perfil: "ADMIN",
+      },
+    });
+    const mesaReservada: Mesa = {
+      ...mesa,
+      ocupada: true,
+      ocupanteNaData: { id: 8, nome: "Outra Pessoa", email: "outra@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector("button.mesa").click();
+    fixture.detectChanges();
+
+    http.expectOne(request => request.url.startsWith("/api/admin/reservas?")).flush([{
+      id: 93,
+      usuarioId: 8,
+      status: "CONFIRMADA",
+      data: fixture.componentInstance.reserva.data(),
+      criadaEm: "2026-11-05T08:00:00",
+      criador: { id: 1, nome: "Admin", perfil: "ADMIN" },
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+    }]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".botao--perigo")).not.toBeNull();
+  });
+
   it("permite limpar a seleção sem enviar reserva", () => {
     const fixture = abrir();
     fixture.nativeElement.querySelector(".detalhes__fechar").click();
