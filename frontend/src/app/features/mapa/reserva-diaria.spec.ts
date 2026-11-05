@@ -73,6 +73,36 @@ describe('Reserva diária pela planta', () => {
     return fixture;
   }
 
+  function abrirComReserva(perfil = 'USUARIO', usuarioId = 7) {
+    const fixture = TestBed.createComponent(MapaPage);
+    TestBed.inject(AuthService).sessao.set({
+      token: 'token',
+      tipo: 'Bearer',
+      usuario: { ...usuario, id: usuarioId, perfil },
+    });
+    fixture.componentInstance.reserva.alterarData('2026-10-28');
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-28').flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.mesa').click();
+    fixture.detectChanges();
+    const consulta = http.expectOne(r =>
+      r.url === '/api/reservas/mesa' &&
+      r.params.get('mesaId') === '44' &&
+      r.params.get('data') === '2026-10-28',
+    );
+    consulta.flush({
+      id: 15,
+      status: 'CONFIRMADA',
+      data: '2026-10-28',
+      mesa: { id: 44, codigo: '044', regiao: 'DEMO' },
+      solicitante: { id: 7, nome: 'Maria' },
+    });
+    fixture.detectChanges();
+    return fixture;
+  }
+
   function alterarCampo(fixture: ReturnType<typeof TestBed.createComponent<MapaPage>>, data: string) {
     const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
     campo.value = data;
@@ -110,7 +140,7 @@ describe('Reserva diária pela planta', () => {
     alterarCampo(fixture, '2026-10-28');
     carregar([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
     expect(fixture.nativeElement.querySelector('.mesa').textContent).toContain('Ocupada');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
   });
@@ -226,6 +256,47 @@ describe('Reserva diária pela planta', () => {
     expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
   });
 
+  it('mostra apenas os dados da reserva e permite cancelamento ao dono', () => {
+    const fixture = abrirComReserva();
+    const detalhes = fixture.nativeElement.querySelector('.detalhes') as HTMLElement;
+    expect(detalhes.textContent).toContain('Localização');
+    expect(detalhes.textContent).toContain('DEMO');
+    expect(detalhes.textContent).toContain('Data reservada');
+    expect(detalhes.textContent).toContain('28/10/2026');
+    expect(detalhes.textContent).toContain('Reservada para');
+    expect(detalhes.textContent).toContain('Maria');
+    expect(fixture.nativeElement.querySelector('#data-reserva')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#atualizar-disponibilidade')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.confirmar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#solicitante-busca')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.cancelar').textContent).toContain('Cancelar reserva');
+  });
+
+  it('mantém detalhes sem cancelamento para quem não é dono nem admin', () => {
+    const fixture = abrirComReserva('USUARIO', 8);
+    expect(fixture.nativeElement.querySelector('.detalhes').textContent).toContain('Maria');
+    expect(fixture.nativeElement.querySelector('.cancelar')).toBeNull();
+  });
+
+  it('permite ao admin cancelar reserva de outra pessoa e atualiza a disponibilidade', () => {
+    const fixture = abrirComReserva('ADMIN', 8);
+    const cancelar = fixture.nativeElement.querySelector('.cancelar') as HTMLButtonElement;
+    expect(cancelar).not.toBeNull();
+    cancelar.click();
+    fixture.detectChanges();
+    expect(cancelar.disabled).toBe(true);
+    const request = http.expectOne('/api/reservas/15/cancelamento');
+    expect(request.request.method).toBe('PATCH');
+    request.flush(null);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva cancelada', 'Mesa 044 foi liberada.');
+    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-28').flush([mesa]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
+  });
+
   it('cancela respostas anteriores ao alterar rapidamente a data pelo campo', () => {
     const fixture = abrir();
     alterarCampo(fixture, '2026-10-29');
@@ -243,7 +314,7 @@ describe('Reserva diária pela planta', () => {
     http.expectOne('/api/mesas').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-30').flush([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     expect(fixture.componentInstance.reserva.data()).toBe('2026-10-30');
     expect(fixture.nativeElement.textContent).toContain('Nenhuma mesa disponível para a data selecionada');

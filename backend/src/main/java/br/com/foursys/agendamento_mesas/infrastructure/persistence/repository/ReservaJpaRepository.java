@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
     @Query("select count(r) > 0 from Reserva r where r.mesa.id = :mesaId and r.data >= :data and r.status in :bloqueios")
@@ -70,5 +71,19 @@ public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
         @Param("inicio") LocalDate inicio,
         @Param("fim") LocalDate fim,
         @Param("status") StatusReserva status
+    );
+
+    @Query("""
+            select r from Reserva r
+            join fetch r.mesa
+            join fetch r.usuario
+            where r.mesa.id = :mesaId
+              and r.data = :data
+              and r.status in :status
+            """)
+    Optional<Reserva> buscarAtivaPorMesaNaData(
+        @Param("mesaId") Long mesaId,
+        @Param("data") LocalDate data,
+        @Param("status") Collection<StatusReserva> status
     );
 }

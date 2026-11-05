@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Reserva, ReservaConfirmada } from './reserva';
+import { Reserva, ReservaConfirmada, ReservaMapa } from './reserva';
 import { Mesa } from '../mesas/mesa';
 import { UsuarioAdminResumo } from '../../core/auth/auth.service';
 
@@ -15,6 +15,12 @@ export class ReservaService {
     if (params?.data) searchParams.set('data', params.data);
     const query = searchParams.toString();
     return this.http.get<readonly Reserva[]>(`${environment.apiUrl}/reservas/minhas${query ? `?${query}` : ''}`);
+  }
+
+  buscarDaMesa(mesaId: number, data: string) {
+    return this.http.get<ReservaMapa>(`${environment.apiUrl}/reservas/mesa`, {
+      params: { mesaId, data },
+    });
   }
 
   listarDisponiveis(data: string) {

@@ -32,6 +32,10 @@ export class MapaPage {
     this.reserva.selecionar(mesa);
   }
 
+  onMesaReservadaSelecionada(mesa: Mesa) {
+    this.reserva.selecionarReservada(mesa);
+  }
+
   onDataChange(data: string) {
     this.mesaInicialId.set(null);
     this.reserva.alterarData(data);
@@ -43,7 +47,12 @@ export class MapaPage {
   }
 
   voltarParaAgendamento() {
-    void this.router.navigate(['/agendamento'], { queryParams: { data: this.reserva.data(), mesaId: this.mesaSelecionada()?.id ?? null } });
+    void this.router.navigate(['/agendamento'], {
+      queryParams: {
+        data: this.reserva.data(),
+        mesaId: this.reserva.reservaSelecionada() ? null : this.mesaSelecionada()?.id ?? null,
+      },
+    });
   }
 
   fecharDetalhes() {

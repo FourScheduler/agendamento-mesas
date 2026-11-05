@@ -13,7 +13,7 @@ O frontend usa bootstrap standalone, HttpClient e tokens visuais. O componente r
 
 `AuthService` compartilha a sessão entre as telas, persiste o token em `localStorage` e carrega o perfil real por `/api/auth/perfil` antes de liberar a navegação protegida após recarregar. Logout e respostas `401` limpam a sessão e retornam ao login. `ReservaDiaria` compartilha o estado e a confirmação entre a lista de mesas e o mapa. As duas telas usam data inteira, permitem revisar o solicitante e tratam `400`, `401` e `409`, atualizando a disponibilidade. A data é preservada por query param ao alternar entre lista e planta.
 
-`PlantaMesas` consome IDs e coordenadas do catálogo completo e combina a disponibilidade da data escolhida. A confirmação no backend continua serializada por usuário e mesa em transação `READ_COMMITTED`. O proxy local encaminha `/api/**` para 8081; em produção a infraestrutura deve encaminhar `/api` ao backend no mesmo domínio.
+`PlantaMesas` consome IDs e coordenadas do catálogo completo e combina a disponibilidade da data escolhida. Mesas ocupadas podem ser selecionadas para consultar a reserva daquele dia; somente o dono ou um administrador pode cancelá-la. A confirmação no backend continua serializada por usuário e mesa em transação `READ_COMMITTED`. O proxy local encaminha `/api/**` para 8081; em produção a infraestrutura deve encaminhar `/api` ao backend no mesmo domínio.
 
 O filtro diário compartilha a validação de datas no frontend e registra em
 `ReservaDiaria` a data cuja disponibilidade terminou de carregar. Trocar a data

@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.ReservaMapaResponse;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.service.ReservaService;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +53,14 @@ public class ReservaController {
                     dataFim,
                     status
                 ));
+    }
+
+    @GetMapping("/mesa")
+    public ResponseEntity<ReservaMapaResponse> reservaDaMesa(
+        @RequestParam Long mesaId,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data
+    ) {
+        return ResponseEntity.ok(reservaService.reservaDaMesaNaData(mesaId, data));
     }
 
     @PatchMapping("/{id}/cancelamento")

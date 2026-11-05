@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.ReservaMapaResponse;
 import br.com.foursys.agendamento_mesas.exceptions.MesaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import br.com.foursys.agendamento_mesas.dto.request.CriarReservaRequest;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
+import br.com.foursys.agendamento_mesas.enums.PerfilUsuario;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
@@ -123,13 +125,30 @@ public class ReservaService {
             .toList();
     }
 
+    public ReservaMapaResponse reservaDaMesaNaData(Long mesaId, LocalDate data) {
+        if (mesaId == null || mesaId <= 0 || data == null) {
+            throw new DadosInvalidosException("Informe uma mesa e uma data válidas.");
+        }
+
+        Reserva reserva = reservaRepositoryPort.buscarAtivaPorMesaNaData(
+            mesaId,
+            data,
+            ReservaRepositoryPort.BLOQUEIA_MESA
+        ).orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.NOT_FOUND,
+            "Reserva da mesa " + mesaId + " na data " + data + " não encontrada."
+        ));
+        return ReservaMapaResponse.toResponse(reserva);
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancelar(Long idReserva, UsuarioAutenticado usuarioAutenticado) {
         usuarioRepositoryPort.buscarParaReserva(usuarioAutenticado.id()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inexistente."));
         Reserva reserva = buscarReserva(idReserva);
 
-        if (!reserva.getUsuario().getId().equals(usuarioAutenticado.id())) {
+        if (!reserva.getUsuario().getId().equals(usuarioAutenticado.id())
+                && usuarioAutenticado.perfil() != PerfilUsuario.ADMIN) {
             throw new UsuarioSemPermissaoException();
         }
 

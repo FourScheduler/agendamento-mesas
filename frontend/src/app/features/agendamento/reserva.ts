@@ -17,3 +17,15 @@ export interface ReservaConfirmada extends Reserva {
   readonly confirmadaEm: string;
   readonly solicitante: { readonly id: number; readonly nome: string; readonly email: string };
 }
+
+export interface ReservaMapa {
+  readonly id: number;
+  readonly status: 'PENDENTE' | 'CONFIRMADA';
+  readonly data: string;
+  readonly mesa: {
+    readonly id: number;
+    readonly codigo: string;
+    readonly regiao: string;
+  };
+  readonly solicitante: { readonly id: number; readonly nome: string };
+}

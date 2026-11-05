@@ -40,7 +40,10 @@ visual e a marca, com componentes próprios para seus contratos de API.
   e legenda ficam fora da escala, preservando a tipografia do Portal.
 - Seleção em `#fffaf6` com borda `#ff892e`, fixa em cinza e inativa tracejada.
   Mesas disponíveis na data usam borda verde; ocupadas usam fundo laranja suave e
-  rótulo "Ocupada". A legenda diferencia "Livre na data", "Ocupada na data", fixa,
+  rótulo "Ocupada", permanecendo selecionáveis apenas para consultar os dados da
+  reserva. O painel ocupado esconde os controles de nova reserva e mostra localização,
+  data e solicitante; o cancelamento aparece somente ao dono ou ao administrador.
+  A legenda diferencia "Livre na data", "Ocupada na data", fixa,
   inativa e selecionada. A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
   a disponibilidade. O cartão de revisão mostra mesa, data e solicitante; a confirmação

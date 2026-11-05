@@ -48,6 +48,7 @@ public class ReservaApiTests {
     @Autowired PlatformTransactionManager transactionManager;
     Usuario maria;
     Usuario joao;
+    Usuario admin;
     Mesa mesa;
     Mesa outraMesa;
 
@@ -68,6 +69,7 @@ reservas.deletarTodos();
         usuarios.deletarTodos();
         maria = usuarios.salvar(new Usuario("Maria", "maria@teste.com", "hash", PerfilUsuario.USUARIO, true));
         joao = usuarios.salvar(new Usuario("João", "joao@teste.com", "hash", PerfilUsuario.USUARIO, true));
+        admin = usuarios.salvar(new Usuario("Admin", "admin@teste.com", "hash", PerfilUsuario.ADMIN, true));
         mesa = mesas.salvar(new Mesa(null, "044", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 0, null));
         outraMesa = mesas.salvar(new Mesa(null, "053", "DEMO", TipoMesa.LIVRE, true, "DEMO", 200, 0, null));
     }
@@ -226,6 +228,61 @@ reservas.deletarTodos();
         var persistida = reservas.buscarPorId(reserva.getId()).orElseThrow();
         assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
         assertThat(persistida.getCanceladaEm()).isNull();
+    }
+
+    @Test
+    void administradorPodeCancelarReservaDeOutroUsuario() throws Exception {
+        var reserva = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+
+        mvc.perform(patch("/api/reservas/{id}/cancelamento", reserva.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
+                .andExpect(status().isOk());
+
+        var persistida = reservas.buscarPorId(reserva.getId()).orElseThrow();
+        assertThat(persistida.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(persistida.getCanceladaEm()).isNotNull();
+    }
+
+    @Test
+    void consultaReservaDaMesaEDataSemExporEmailDoSolicitante() throws Exception {
+        var reserva = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+        var token = "Bearer " + jwt.gerarToken(joao);
+
+        mvc.perform(get("/api/reservas/mesa")
+                .param("mesaId", mesa.getId().toString())
+                .param("data", HOJE.toString())
+                .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(reserva.getId()))
+                .andExpect(jsonPath("$.data").value(HOJE.toString()))
+                .andExpect(jsonPath("$.mesa.regiao").value("DEMO"))
+                .andExpect(jsonPath("$.solicitante.id").value(maria.getId()))
+                .andExpect(jsonPath("$.solicitante.nome").value("Maria"))
+                .andExpect(jsonPath("$.solicitante.email").doesNotExist());
+
+        mvc.perform(get("/api/reservas/mesa")
+                .param("mesaId", mesa.getId().toString())
+                .param("data", HOJE.plusDays(1).toString())
+                .header("Authorization", token))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void consultaReservaDaMesaExigeAutenticacaoEIgnoraCanceladas() throws Exception {
+        var reserva = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CANCELADA));
+
+        mvc.perform(get("/api/reservas/mesa")
+                .param("mesaId", mesa.getId().toString())
+                .param("data", HOJE.toString()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/reservas/mesa")
+                .param("mesaId", mesa.getId().toString())
+                .param("data", HOJE.toString())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+                .andExpect(status().isNotFound());
+
+        assertThat(reservas.buscarPorId(reserva.getId()).orElseThrow().getStatus())
+                .isEqualTo(StatusReserva.CANCELADA);
     }
 
     @Test

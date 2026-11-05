@@ -29,6 +29,12 @@ public interface ReservaRepositoryPort {
         @Param("status") StatusReserva status
     );
 
+    Optional<Reserva> buscarAtivaPorMesaNaData(
+        @Param("mesaId") Long mesaId,
+        @Param("data") LocalDate data,
+        @Param("status") Collection<StatusReserva> status
+    );
+
     void deletarTodos();
 
     boolean usuarioTemReservaNaData(

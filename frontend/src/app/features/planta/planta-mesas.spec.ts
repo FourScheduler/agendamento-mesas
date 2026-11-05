@@ -115,6 +115,43 @@ describe("PlantaMesas", () => {
     expect(fixture.componentInstance.selecionada()).toBe(731);
   });
 
+  it("permite selecionar mesa ocupada para consultar a reserva sem habilitá-la para nova reserva", () => {
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput("data", "2026-10-28");
+    fixture.detectChanges();
+    http.expectOne("/api/mesas").flush([
+      {
+        id: 731,
+        codigo: "A",
+        regiao: "DEMO",
+        tipo: "LIVRE",
+        ativa: true,
+        ocupante: null,
+        referenciaVisual: { planta: "P", x: 123, y: 87 },
+      },
+    ]);
+    http.expectOne((request) =>
+      request.url === "/api/mesas/disponiveis" &&
+      request.params.get("data") === "2026-10-28",
+    ).flush([]);
+    fixture.detectChanges();
+    const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
+    expect(botao.disabled).toBe(false);
+    expect(botao.textContent).toContain("Ocupada");
+
+    const reservada = vi.fn();
+    const disponivel = vi.fn();
+    fixture.componentInstance.mesaReservadaSelecionada.subscribe(reservada);
+    fixture.componentInstance.mesaSelecionada.subscribe(disponivel);
+    botao.focus();
+    botao.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+    expect(reservada).toHaveBeenCalledOnce();
+    expect(reservada).toHaveBeenCalledWith(expect.objectContaining({ id: 731 }));
+    expect(disponivel).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.selecionada()).toBe(731);
+  });
+
   it("mantém a geometria de Tamboré com entrada e parede sem duplicar mesas", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
     fixture.detectChanges();

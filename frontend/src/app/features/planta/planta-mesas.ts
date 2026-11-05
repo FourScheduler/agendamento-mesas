@@ -33,6 +33,7 @@ export class PlantaMesas {
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionada = output<Mesa>();
+  readonly mesaReservadaSelecionada = output<Mesa>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
@@ -47,10 +48,10 @@ export class PlantaMesas {
     viewChild.required<ElementRef<HTMLElement>>("viewport");
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Mesas disponíveis para navegação por teclado (ordenadas por planta, y, x) */
+  /** Mesas selecionáveis para navegação por teclado (ordenadas por planta, y, x) */
   private readonly mesasNavegaveis = computed(() =>
     this.mesas()
-      .filter((m) => this.estaDisponivel(m))
+      .filter((m) => this.estaDisponivel(m) || this.estaOcupada(m))
       .sort((a, b) => {
         const pa = a.referenciaVisual.planta.localeCompare(b.referenciaVisual.planta);
         if (pa !== 0) return pa;
@@ -170,7 +171,13 @@ export class PlantaMesas {
   }
 
   selecionar(mesa: Mesa) {
-    if (this.carregando() || !this.estaDisponivel(mesa)) return;
+    if (this.carregando()) return;
+    if (this.estaOcupada(mesa)) {
+      this.selecionada.set(mesa.id);
+      this.mesaReservadaSelecionada.emit(mesa);
+      return;
+    }
+    if (!this.estaDisponivel(mesa)) return;
     this.selecionada.set(mesa.id);
     this.mesaSelecionada.emit(mesa);
   }

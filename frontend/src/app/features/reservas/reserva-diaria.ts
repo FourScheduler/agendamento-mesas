@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
+import { ReservaMapa } from '../agendamento/reserva';
 import { Mesa } from '../mesas/mesa';
 import { ToastService } from '../../shared/toast/toast';
 import { adicionarDias, formatarData, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
@@ -26,9 +27,19 @@ export class ReservaDiaria {
   readonly disponibilidadeAtual = computed(() => !this.erroData() && this.dataConsultada() === this.data());
   readonly selecionada = signal<Mesa | null>(null);
   readonly confirmando = signal(false);
+  readonly reservaSelecionada = signal<ReservaMapa | null>(null);
+  readonly carregandoReserva = signal(false);
+  readonly cancelandoReserva = signal(false);
+  readonly podeCancelarReserva = computed(() => {
+    const reserva = this.reservaSelecionada();
+    const usuario = this.auth.usuario();
+    return !!reserva && !!usuario
+      && (usuario.perfil === 'ADMIN' || reserva.solicitante.id === usuario.id);
+  });
   readonly erro = signal('');
   readonly sucesso = signal('');
   readonly atualizacao = signal(0);
+  private buscaReservaSequencia = 0;
 
   fecharMensagem() {
     this.erro.set('');
@@ -51,7 +62,10 @@ export class ReservaDiaria {
   }
 
   iniciarConsulta() {
+    this.buscaReservaSequencia++;
     this.selecionada.set(null);
+    this.reservaSelecionada.set(null);
+    this.carregandoReserva.set(false);
     this.dataConsultada.set(null);
   }
 
@@ -61,9 +75,41 @@ export class ReservaDiaria {
 
   selecionar(mesa: Mesa) {
     if (!this.confirmando() && this.disponibilidadeAtual()) {
+      this.buscaReservaSequencia++;
       this.selecionada.set(mesa);
+      this.reservaSelecionada.set(null);
+      this.carregandoReserva.set(false);
       this.sincronizarContexto(mesa.id);
     }
+  }
+
+  selecionarReservada(mesa: Mesa) {
+    if (this.confirmando() || !this.disponibilidadeAtual()) return;
+
+    this.selecionada.set(mesa);
+    this.reservaSelecionada.set(null);
+    this.carregandoReserva.set(true);
+    this.sincronizarContexto(mesa.id);
+    const sequencia = ++this.buscaReservaSequencia;
+    const data = this.data();
+    this.reservas.buscarDaMesa(mesa.id, data)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: reserva => {
+          if (sequencia !== this.buscaReservaSequencia || this.data() !== data) return;
+          this.reservaSelecionada.set(reserva);
+          this.carregandoReserva.set(false);
+        },
+        error: (erro: HttpErrorResponse) => {
+          if (sequencia !== this.buscaReservaSequencia || this.data() !== data) return;
+          this.carregandoReserva.set(false);
+          this.selecionada.set(null);
+          this.sincronizarContexto(null);
+          const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
+          this.toast.erro('Não foi possível carregar a reserva', detalhe || 'Atualize a disponibilidade e tente novamente.');
+          this.atualizarDisponibilidade();
+        },
+      });
   }
 
   restaurarSelecao(mesasDisponiveis: readonly Mesa[]) {
@@ -75,9 +121,34 @@ export class ReservaDiaria {
   }
 
   limparSelecao() {
-    if (this.confirmando()) return;
+    if (this.confirmando() || this.cancelandoReserva()) return;
     this.selecionada.set(null);
+    this.reservaSelecionada.set(null);
+    this.carregandoReserva.set(false);
+    this.buscaReservaSequencia++;
     this.sincronizarContexto(null);
+  }
+
+  cancelarReservaSelecionada() {
+    const reserva = this.reservaSelecionada();
+    if (!reserva || !this.podeCancelarReserva() || this.cancelandoReserva()) return;
+
+    this.cancelandoReserva.set(true);
+    this.reservas.cancelar(reserva.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.cancelandoReserva.set(false);
+          this.toast.sucesso('Reserva cancelada', `Mesa ${reserva.mesa.codigo} foi liberada.`);
+          this.limparSelecao();
+          this.atualizarDisponibilidade();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.cancelandoReserva.set(false);
+          const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
+          this.toast.erro('Não foi possível cancelar a reserva', detalhe || 'Tente novamente.');
+        },
+      });
   }
 
   confirmar() {

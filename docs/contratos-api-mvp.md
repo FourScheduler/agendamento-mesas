@@ -281,9 +281,44 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 
 ---
 
+## GET /api/reservas/mesa
+
+Consulta a reserva não cancelada de uma mesa em um dia específico para exibir os detalhes no mapa. Requer autenticação e retorna somente o nome do solicitante (sem e-mail).
+
+### Query params
+
+| Campo | Obrigatório | Formato |
+| --- | --- | --- |
+| `mesaId` | Sim | Inteiro positivo |
+| `data` | Sim | `yyyy-MM-dd` |
+
+### Response `200`
+
+```json
+{
+  "id": 10,
+  "status": "CONFIRMADA",
+  "data": "2026-10-28",
+  "mesa": { "id": 44, "codigo": "044", "regiao": "TAMBORÉ" },
+  "solicitante": { "id": 7, "nome": "Maria" }
+}
+```
+
+Reservas `PENDENTE` e `CONFIRMADA` são retornadas; reservas `CANCELADA` não são consideradas ocupação.
+
+### Erros
+
+| Status | Situação |
+| --- | --- |
+| `400` | Mesa ou data inválida. |
+| `401` | Sem ou com token inválido. |
+| `404` | Não existe reserva não cancelada para essa mesa e data. |
+
+---
+
 ## PATCH /api/reservas/{id}/cancelamento
 
-Cancela a reserva própria, em qualquer estado não cancelado e a qualquer momento.
+Cancela a reserva própria ou, para perfil `ADMIN`, a reserva de qualquer usuário, em qualquer estado não cancelado e a qualquer momento.
 A reserva deixa de bloquear sua data; a mesa só fica disponível se continuar ativa,
 `LIVRE` e sem outros bloqueios. Não altera tipo, ativação nem responsável fixo.
 
@@ -297,6 +332,7 @@ para recuperar os dados atualizados da reserva.
 | Status | Situação | Exemplo de `detail` |
 | --- | --- | --- |
 | `401` | Sem ou com token inválido. | |
+| `403` | Usuário comum tenta cancelar reserva de outra pessoa. | |
 | `404` | Reserva inexistente. | `Reserva 999 não encontrada.` |
 | `403` | Reserva de outro usuário. | `Reserva não pertence ao usuário autenticado.` |
 | `409` | Reserva já `CANCELADA`; repetir o cancelamento é recusado e não altera o registro. | `Reserva 10 já está cancelada.` |
@@ -415,14 +451,11 @@ Lista reservas de todos os usuários.
 
 `200`: lista no mesmo formato de `/api/reservas/minhas`, com o campo `solicitante` sempre presente.
 
-### PATCH /api/admin/reservas/{id}/cancelamento (planejado)
-
-Cancela a reserva de qualquer usuário (mesmas regras de estado de `PATCH /api/reservas/{id}/cancelamento`). `200` com a reserva `CANCELADA`; erros `401`, `403`, `404` e `409` como na rota do usuário.
-
 As operações de responsável substituem o antigo contrato planejado de alteração direta de tipo.
 Não há rota para criar reservas em nome de outra pessoa. As rotas administrativas implementadas
 respondem `401` sem sessão válida e `403` para usuário comum. Violações de integridade ou
 disputa de locks são convertidas em `409`, sem exposição de detalhes do banco.
+Administradores também cancelam reservas pelo endpoint `PATCH /api/reservas/{id}/cancelamento`.
 
 ---
 
@@ -437,7 +470,8 @@ disputa de locks são convertidas em `409`, sem exposição de detalhes do banco
 | GET | `/api/mesas/minha-fixa` | Sim | Qualquer |
 | POST | `/api/reservas` | Sim | Qualquer |
 | GET | `/api/reservas/minhas` | Sim | Qualquer |
-| PATCH | `/api/reservas/{id}/cancelamento` | Sim | Dono |
+| GET | `/api/reservas/mesa` | Sim | Qualquer |
+| PATCH | `/api/reservas/{id}/cancelamento` | Sim | Dono ou ADMIN |
 | POST | `/api/admin/usuarios` | Sim | ADMIN |
 | GET | `/api/admin/usuarios?ativo=true` | Sim | ADMIN |
 | GET | `/api/admin/mesas` | Sim | ADMIN |
@@ -445,7 +479,6 @@ disputa de locks são convertidas em `409`, sem exposição de detalhes do banco
 | DELETE | `/api/admin/mesas/{id}/responsavel` | Sim | ADMIN |
 | PATCH | `/api/admin/mesas/{id}/estado` | Sim | ADMIN |
 | GET | `/api/admin/reservas` | Sim | ADMIN |
-| PATCH | `/api/admin/reservas/{id}/cancelamento` | Sim | ADMIN |
 
 ## Verificação
 

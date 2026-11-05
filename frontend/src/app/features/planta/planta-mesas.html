@@ -128,9 +128,9 @@
             [style.top.px]="mesa.referenciaVisual.y"
             [style.width.px]="planta.tamanhoMesa.largura"
             [style.height.px]="planta.tamanhoMesa.altura"
-            [disabled]="!estaDisponivel(mesa)"
+            [disabled]="!estaDisponivel(mesa) && !estaOcupada(mesa)"
             [attr.aria-pressed]="selecionada() === mesa.id"
-            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data' : 'Livre na data') + (mesa.ocupante ? ', ' + mesa.ocupante : '')"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Ocupada na data, consultar reserva' : 'Livre na data') + (mesa.ocupante ? ', ' + mesa.ocupante : '')"
             (click)="selecionar(mesa)"
             (focus)="onMesaFocus(mesa)"
           >

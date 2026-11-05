@@ -45,6 +45,15 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public Optional<Reserva> buscarAtivaPorMesaNaData(
+        Long mesaId,
+        LocalDate data,
+        Collection<StatusReserva> status
+    ) {
+        return reservaJpaRepository.buscarAtivaPorMesaNaData(mesaId, data, status);
+    }
+
+    @Override
     public void deletarTodos() {
         reservaJpaRepository.deleteAll();
     }
