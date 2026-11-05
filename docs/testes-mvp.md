@@ -2,7 +2,7 @@
 
 Cenários que o backend deve cobrir com testes automatizados. Cada cenário referencia a regra em [fluxo-mvp](fluxo-mvp.md) e o contrato em [contratos-api-mvp](contratos-api-mvp.md).
 
-A issue #7 implementa criação diária com confirmação direta, autoria e serialização. A listagem própria possui filtros e ordenação estável cobertos por testes. Cancelamento e gestão administrativa de reservas abaixo descrevem cenários previstos no contrato.
+A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem própria/administrativa e cancelamento estão cobertos por testes.
 
 ## Datas inválidas (`400`)
 
@@ -40,6 +40,13 @@ Regra de "hoje" avaliada em `America/Sao_Paulo`, independente do fuso do ambient
 | 18 | Dias consecutivos ok | Reservar `D` e `D+1` (mesa e usuário) | `201` nas duas |
 | 19 | Cancelamento libera | Cancelar reserva de `D` e re-reservar a mesa em `D` | `201` |
 | 20 | Cancelada não bloqueia usuário | Usuário com reserva `CANCELADA` em `D` cria outra em `D` | `201` |
+
+`ReservaApiTests` também verifica o bloqueio de solicitante com mesa fixa ativa ou
+inativa (`409` com `detail` específico e sem inserção), inclusive na reserva feita
+por administrador para outro usuário. A mesa fixa do administrador não impede uma
+reserva para solicitante sem vínculo. São cobertos a liberação após desfixar, nome
+em `ocupante` sem vínculo, mesa fixa de outro usuário e preservação de reservas
+existentes. Esses cenários são herdados pela suíte MySQL.
 
 ## Confirmação direta e concorrência
 
@@ -80,6 +87,17 @@ Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 
 ## Cancelamento
 
+`ReservaApiTests` e a suíte herdada `ReservaMySqlTests` verificam preservação de tipo
+`LIVRE`/`FIXA`, ativação, responsável e ocupante textual, inclusive mesas legadas
+inativas e reserva antiga cuja mesa passou a ser fixa. O relógio fixo confirma o
+timestamp em São Paulo. São cobertos rollback integral, dois cancelamentos
+simultâneos (um `200`, um `409`), nova reserva/inativação aguardando o commit,
+cancelamento concorrente com fixação/inativação sobre reserva antiga e nova reserva
+do mesmo usuário sem duplicação. São cobertas disputas entre dono e administrador
+e entre dois administradores, inclusive para beneficiário inativo e mesa fixa
+inativa, preservando sua configuração. Usuário comum recebe `403` para reserva
+alheia ou criada por um administrador em seu nome, sem erro interno.
+
 | # | Cenário | Esperado |
 | --- | --- | --- |
 | 25 | Cancelar `PENDENTE` própria | `200`, `CANCELADA`, `canceladaEm` preenchido |
@@ -114,7 +132,53 @@ Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 | 53 | Criação com senha com menos de 6 caracteres | `400` |
 | 54 | Login retorna mesmo erro para e-mail inexistente e senha errada | `401` idêntico |
 
+## Ocupante diário da mesa
+
+`OcupacaoDiariaApiTests` e `OcupacaoDiariaMySqlTests` verificam a consulta
+`/api/mesas/com-ocupacao`: identificação do solicitante real por ID, nome e e-mail,
+inclusive na reserva feita pelo administrador, sem senha/hash; usuários distintos
+em dias distintos; ausência de reserva e cancelamento retornando ocupante nulo;
+reservas legadas pendentes; preservação da identidade após desativar o usuário;
+independência entre ocupante diário, texto cadastral e responsável fixo.
+
+Também cobrem autenticação, data ISO inválida, data omitida usando o relógio de
+São Paulo, consulta histórica/futura, filtro de código, lista vazia e duplicidade
+legada apresentada por maior ID sem modificar registros. Um teste compara a
+quantidade de consultas com duas e 22 mesas para evitar uma busca de ocupação por
+mesa. Todos os cenários são repetidos em H2 e MySQL no schema exclusivo `_test`.
+
 ## Administrador
+
+`ConcorrenciaAdministrativaApiTests` e `ConcorrenciaAdministrativaMySqlTests`
+verificam fixação/inativação/tipo contra criação de reserva na mesma mesa,
+atribuição/troca contra reserva do usuário em outra mesa, bloqueio por reservas
+`PENDENTE`/`CONFIRMADA` de hoje em diante e liberação para passadas/canceladas.
+As disputas produzem um sucesso e um `409`; não há cancelamento automático.
+Testes com espera controlada verificam que desfixar preserva a ativação atual e
+recusa contexto cujo responsável mudou enquanto aguardava, sem sobrescrever o novo vínculo.
+
+`ResponsavelUnicoApiTests` cobre fixação e troca recusadas quando o usuário já tem
+outra mesa, preservação dos vínculos após erro, manutenção do próprio responsável,
+mesa vinculada inativa, liberação após desfixar/trocar, várias mesas com responsável
+`NULL`, violação direta da restrição no banco e duas disputas concorrentes entre
+administradores. `ResponsavelUnicoMySqlTests` repete a suíte no schema `_test`.
+
+A suíte também cobre recusa de fixação de mesa livre inativa, atribuição em fixa
+legada inativa, troca recusada preservando responsável anterior e alteração direta
+de tipo sem contornar o bloqueio. Ativar primeiro permite concluir a operação;
+desfixar uma mesa legada inativa continua removendo o vínculo sem ativá-la.
+
+Inativação com vínculo é recusada para responsável ativo ou inativo, inclusive
+tipos inconsistentes e mesas já inativas com vínculo legado. Os testes verificam
+preservação de ativação/tipo/responsável após erro, liberação após desfixar,
+inativação sem responsável preservando `LIVRE`/`FIXA`, repetição sem vínculo e
+ativação de mesa legada sem remover responsável. Disputas de fixação/atribuição
+contra inativação resultam em um `200` e um `409`, sem estado final inconsistente,
+tanto em H2 quanto em MySQL.
+
+`MigracaoResponsavelUnicoTests` aplica V9 sobre V8 com dados: verifica preservação
+de mesas, usuários e reservas, reaplicação sem efeito e recusa de dados duplicados
+sem remoção automática de vínculos.
 
 | # | Cenário | Esperado |
 | --- | --- | --- |

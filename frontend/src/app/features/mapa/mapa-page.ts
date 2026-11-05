@@ -21,6 +21,9 @@ import { ReservaService } from '../agendamento/reserva.service';
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
+  host: {
+    '(document:keydown.escape)': 'fecharDetalhes()',
+  },
 })
 export class MapaPage {
   private readonly auth = inject(AuthService);
@@ -33,6 +36,7 @@ export class MapaPage {
   readonly isAdmin = computed(() => this.usuario()?.perfil === 'ADMIN');
   readonly mesaInicialId = signal(Number(this.route.snapshot.queryParamMap.get('mesaId')) || null);
   readonly mesaSelecionada = this.reserva.selecionada;
+  readonly mesaNoPainel = signal<Mesa | null>(null);
   readonly detalhesAbertos = signal(false);
   readonly formatarData = formatarData;
   readonly buscaSolicitante = signal('');
@@ -82,24 +86,31 @@ export class MapaPage {
     });
   }
 
-  onMesaSelecionada(mesa: Mesa) {
-    this.reserva.selecionar(mesa);
-    this.detalhesAbertos.set(this.mesaSelecionada()?.id === mesa.id);
+  onMesaSelecionada(selecao: { readonly mesa: Mesa; readonly disponivel: boolean }) {
+    const { mesa, disponivel } = selecao;
+    this.mesaNoPainel.set(mesa);
+    if (disponivel) this.reserva.selecionar(mesa);
+    else this.reserva.limparSelecao();
+    if (this.mesaSelecionada()?.id !== mesa.id) this.reserva.limparSelecao();
+    this.detalhesAbertos.set(true);
   }
 
   onMesaInicialSelecionada(mesa: Mesa) {
+    this.mesaNoPainel.set(mesa);
     this.reserva.selecionar(mesa);
     this.detalhesAbertos.set(false);
   }
 
   onDataChange(data: string) {
     this.detalhesAbertos.set(false);
+    this.mesaNoPainel.set(null);
     this.mesaInicialId.set(null);
     this.reserva.alterarData(data);
   }
 
   onMesaInicialInvalidada() {
     this.detalhesAbertos.set(false);
+    this.mesaNoPainel.set(null);
     this.mesaInicialId.set(null);
     this.reserva.limparSelecao();
   }
@@ -109,11 +120,29 @@ export class MapaPage {
   }
 
   fecharDetalhes() {
-    if (!this.reserva.confirmando()) {
-      this.detalhesAbertos.set(false);
-      this.mesaInicialId.set(null);
-      this.reserva.limparSelecao();
+    if (!this.detalhesAbertos() || this.reserva.confirmando()) return;
+
+    const mesaId = this.mesaNoPainel()?.id;
+    if (mesaId !== undefined) {
+      this.elemento.nativeElement
+        .querySelector<HTMLButtonElement>(`button.mesa[data-mesa-id="${mesaId}"]`)
+        ?.focus();
     }
+    this.detalhesAbertos.set(false);
+    this.mesaNoPainel.set(null);
+    this.mesaInicialId.set(null);
+    this.reserva.limparSelecao();
+  }
+
+  podeReservar(mesa: Mesa): boolean {
+    return this.reserva.disponibilidadeAtual() && this.mesaSelecionada()?.id === mesa.id;
+  }
+
+  statusMesa(mesa: Mesa): string {
+    if (!mesa.ativa) return 'Inativa';
+    if (mesa.tipo === 'FIXA') return 'Mesa fixa';
+    if (this.podeReservar(mesa)) return 'Disponível';
+    return this.reserva.disponibilidadeAtual() ? 'Indisponível nesta data' : 'Disponibilidade pendente';
   }
 
   buscarSolicitantes(termo: string) {

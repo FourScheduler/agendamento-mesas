@@ -38,7 +38,7 @@ export class PlantaMesas {
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionadaId = input<number | null>(null);
-  readonly mesaSelecionada = output<Mesa>();
+  readonly mesaSelecionada = output<{ readonly mesa: Mesa; readonly disponivel: boolean }>();
   readonly mesaInicialSelecionada = output<Mesa>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
@@ -240,9 +240,9 @@ export class PlantaMesas {
   }
 
   selecionar(mesa: Mesa) {
-    if (this.carregando() || !this.estaDisponivel(mesa)) return;
+    if (this.carregando()) return;
     this.selecionada.set(mesa.id);
-    this.mesaSelecionada.emit(mesa);
+    this.mesaSelecionada.emit({ mesa, disponivel: this.estaDisponivel(mesa) });
   }
 
   estaDisponivel(mesa: Mesa): boolean {
@@ -318,8 +318,12 @@ export class PlantaMesas {
         break;
       case 'Enter':
       case ' ':
-        // Só seleciona se estiver sobre uma mesa ou viewport com foco válido
-        if (isMesa || this.focoIndex() >= 0) {
+        if (isMesa) {
+          event.preventDefault();
+          const mesaId = Number(target.dataset['mesaId']);
+          const mesa = this.mesas().find(item => item.id === mesaId);
+          if (mesa) this.selecionar(mesa);
+        } else if (this.focoIndex() >= 0) {
           event.preventDefault();
           this.selecionarFocada();
         }

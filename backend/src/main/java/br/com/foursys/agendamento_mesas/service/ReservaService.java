@@ -80,6 +80,11 @@ public class ReservaService {
 
         // Revalida também a data: o request pode ter aguardado a liberação dos locks.
         datas.validar(request.data());
+        if (mesaRepositoryPort.existeMesaFixaPorResponsavelId(usuario.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "O solicitante possui uma mesa fixa e não pode realizar reservas.");
+        }
+
         if (!mesa.isAtiva()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " está inativa.");
         }
@@ -134,10 +139,22 @@ public class ReservaService {
             .toList();
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancelar(Long idReserva, UsuarioAutenticado usuarioAutenticado) {
+        if (usuarioAutenticado == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticação obrigatória.");
+        }
+        usuarioRepositoryPort.buscarPorId(usuarioAutenticado.id())
+            .filter(Usuario::isAtivo)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inativo ou inexistente."));
+
+        // Consulta escalar para não carregar a reserva antes da espera pelo lock.
+        Long solicitanteId = reservaRepositoryPort.buscarUsuarioId(idReserva)
+            .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
+        // A mesma ordem da criação: solicitante -> mesa, inclusive quando um admin cancela.
+        usuarioRepositoryPort.buscarParaReserva(solicitanteId)
+            .orElseThrow(() -> new ReservaNaoEncontradaException(idReserva));
         Reserva reserva = buscarReserva(idReserva);
-        Mesa mesa = buscarMesa(reserva.getMesa().getId());
 
         boolean administrador = usuarioAutenticado.perfil() == PerfilUsuario.ADMIN;
         boolean solicitante = reserva.getUsuario().getId().equals(usuarioAutenticado.id());
@@ -147,6 +164,10 @@ public class ReservaService {
             throw new UsuarioSemPermissaoException();
         }
 
+        // Mantém consultas/criações/alterações administrativas coordenadas até o commit.
+        mesaRepositoryPort.buscarParaReserva(reserva.getMesa().getId())
+            .orElseThrow(MesaNaoEncontradaException::new);
+
         if (reserva.getStatus() == StatusReserva.CANCELADA) {
             throw new ReservaJaCanceladaException(idReserva);
         }
@@ -154,10 +175,7 @@ public class ReservaService {
         reserva.setCanceladaEm(LocalDateTime.now(relogio));
         reserva.setStatus(StatusReserva.CANCELADA);
 
-        mesa.setAtiva(true);
-        mesa.setTipo(TipoMesa.LIVRE);
-
-        reservaRepositoryPort.salvar(reserva);
+        reservaRepositoryPort.salvarESincronizar(reserva);
     }
 
     private void validarFiltrosConsulta(

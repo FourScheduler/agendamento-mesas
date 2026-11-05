@@ -110,7 +110,8 @@ describe('Reserva diária pela planta', () => {
     alterarCampo(fixture, '2026-10-28');
     carregar([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
+    expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-disabled')).toBe('true');
     expect(fixture.nativeElement.querySelector('.mesa').classList.contains('ocupada')).toBe(true);
     expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-label')).toContain('Reservada');
     expect(fixture.nativeElement.querySelector('.mesa__estado')).toBeNull();
@@ -238,14 +239,14 @@ describe('Reserva diária pela planta', () => {
     expect(catalogoAntigo.cancelled).toBe(true);
     // Ignora uma conclusão antiga e um evento de seleção antigo enquanto a nova data carrega.
     fixture.componentInstance.reserva.registrarDisponibilidade('2026-10-29');
-    fixture.componentInstance.onMesaSelecionada(mesa);
+    fixture.componentInstance.onMesaSelecionada({ mesa, disponivel: true });
     fixture.componentInstance.reserva.confirmar();
     http.expectNone('/api/reservas');
     expect(fixture.componentInstance.reserva.disponibilidadeAtual()).toBe(false);
     http.expectOne('/api/mesas').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-30').flush([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-disabled')).toBe('true');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     expect(fixture.componentInstance.reserva.data()).toBe('2026-10-30');
     expect(fixture.nativeElement.textContent).toContain('Nenhuma mesa disponível para a data selecionada');
@@ -266,7 +267,7 @@ describe('Reserva diária pela planta', () => {
   it('permite repetir uma consulta que falhou e só então selecionar pela planta', () => {
     const fixture = abrir();
     fixture.nativeElement.querySelector('#atualizar-disponibilidade').click();
-    fixture.componentInstance.onMesaSelecionada(mesa);
+    fixture.componentInstance.onMesaSelecionada({ mesa, disponivel: true });
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     fixture.detectChanges();
     http.expectOne('/api/mesas').flush([mesa]);

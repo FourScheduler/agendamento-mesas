@@ -109,6 +109,14 @@ describe("Barra de reserva do mapa", () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
       expect(fixture.nativeElement.querySelector(".detalhes-overlay")).toBeNull();
+
+      botao.click();
+      fixture.detectChanges();
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
+      expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+      expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
     } finally {
       vi.restoreAllMocks();
       if (descriptor) {
@@ -148,10 +156,11 @@ describe("Barra de reserva do mapa", () => {
     const resumo = fixture.nativeElement.querySelector(
       ".detalhes",
     ) as HTMLElement;
-    expect(resumo.getAttribute("role")).toBe("dialog");
-    expect(resumo.getAttribute("aria-modal")).toBe("true");
+    expect(resumo.tagName).toBe("ASIDE");
+    expect(resumo.getAttribute("aria-modal")).toBeNull();
     expect(resumo.textContent).toContain("Mesa 044");
-    expect(resumo.textContent).toContain("Disponível em");
+    expect(resumo.textContent).toContain("Disponível");
+    expect(resumo.textContent).toContain("Data selecionada");
     expect(resumo.querySelector(".detalhes__informacoes")).not.toBeNull();
     expect(resumo.querySelector("details")).toBeNull();
     expect(resumo.querySelector("dl")?.textContent).toContain(
@@ -177,10 +186,47 @@ describe("Barra de reserva do mapa", () => {
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
       .flush([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
+    expect(fixture.nativeElement.querySelector(".detalhes__status")?.textContent)
+      .toContain("Indisponível nesta data");
+    expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
     expect(fixture.componentInstance.reserva.erro()).toBe(
       "Reserva indisponível.",
     );
+  });
+
+  it("mostra detalhes de uma mesa fixa sem oferecer reserva", () => {
+    const mesaFixa: Mesa = {
+      ...mesa,
+      id: 45,
+      codigo: "045",
+      tipo: "FIXA",
+      responsavel: { id: 8, nome: "Pessoa Responsável", email: "responsavel@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne("/api/mesas").flush([mesa, mesaFixa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+
+    const botaoMesaFixa = fixture.nativeElement.querySelector(
+      'button.mesa[data-mesa-id="45"]',
+    ) as HTMLButtonElement;
+    expect(botaoMesaFixa.disabled).toBe(false);
+    expect(botaoMesaFixa.getAttribute("aria-disabled")).toBe("true");
+
+    (fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".detalhes__status")?.textContent)
+      .toContain("Disponível");
+    botaoMesaFixa.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(".mapa__viewport")).not.toBeNull();
+    expect(botaoMesaFixa.classList.contains("selecionada")).toBe(true);
+    expect(fixture.nativeElement.querySelector(".detalhes")?.textContent).toContain("Mesa fixa");
+    expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    http.expectNone("/api/reservas");
   });
 
   it("permite limpar a seleção sem enviar reserva", () => {

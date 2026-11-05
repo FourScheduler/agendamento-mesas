@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -48,6 +49,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(DadosInvalidosException.class)
     public ProblemDetail dadosInvalidos(DadosInvalidosException e, HttpServletRequest request) {
         return problema(HttpStatus.BAD_REQUEST, "Dados inválidos", e.getMessage(), request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail conflitoDeIntegridade(DataIntegrityViolationException e, HttpServletRequest request) {
+        return problema(HttpStatus.CONFLICT, "Conflito de dados",
+                "A operação conflita com os dados cadastrados. Atualize os dados e tente novamente.", request);
     }
 
     @ExceptionHandler(CredenciaisInvalidasException.class)

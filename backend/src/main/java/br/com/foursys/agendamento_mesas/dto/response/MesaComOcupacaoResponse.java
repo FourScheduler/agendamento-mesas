@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.dto.response;
 
 import br.com.foursys.agendamento_mesas.enums.TipoMesa;
+import br.com.foursys.agendamento_mesas.model.Reserva;
 
 public record MesaComOcupacaoResponse(
     Long id,
@@ -11,11 +12,15 @@ public record MesaComOcupacaoResponse(
     String ocupante,
     MesaResponse.UsuarioResponsavel responsavel,
     ReferenciaVisual referenciaVisual,
-    boolean ocupada
+    boolean ocupada,
+    OcupanteNaData ocupanteNaData
 ) {
     public record ReferenciaVisual(String planta, Integer x, Integer y) {}
+    public record OcupanteNaData(Long id, String nome, String email) {}
 
-    public static MesaComOcupacaoResponse de(MesaResponse mesa, boolean ocupada) {
+    public static MesaComOcupacaoResponse de(MesaResponse mesa, Reserva reserva) {
+        OcupanteNaData ocupanteNaData = reserva == null ? null : new OcupanteNaData(
+            reserva.getUsuario().getId(), reserva.getUsuario().getNome(), reserva.getUsuario().getEmail());
         return new MesaComOcupacaoResponse(
             mesa.id(),
             mesa.codigo(),
@@ -29,7 +34,8 @@ public record MesaComOcupacaoResponse(
                 mesa.referenciaVisual().x(),
                 mesa.referenciaVisual().y()
             ),
-            ocupada
+            reserva != null,
+            ocupanteNaData
         );
     }
 }

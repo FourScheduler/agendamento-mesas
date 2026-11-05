@@ -9,8 +9,21 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
+    @Query("select r.usuario.id from Reserva r where r.id = :id")
+    Optional<Long> buscarUsuarioId(@Param("id") Long id);
+
+    @Query("""
+        select r from Reserva r
+        join fetch r.usuario
+        where r.data = :data and r.mesa.id in :mesaIds and r.status in :bloqueios
+        order by r.id desc
+        """)
+    List<Reserva> buscarOcupacoesNaData(@Param("data") LocalDate data,
+        @Param("mesaIds") Collection<Long> mesaIds, @Param("bloqueios") Collection<StatusReserva> bloqueios);
+
     @Query("""
             select count(r) > 0
             from Reserva r
@@ -35,6 +48,20 @@ public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
         @Param("data") LocalDate data,
         @Param("bloqueios") Collection<StatusReserva> bloqueios
     );
+
+    @Query("""
+        select count(r) > 0 from Reserva r
+        where r.mesa.id = :mesaId and r.data >= :inicio and r.status in :bloqueios
+        """)
+    boolean mesaTemReservasDesde(@Param("mesaId") Long mesaId, @Param("inicio") LocalDate inicio,
+        @Param("bloqueios") Collection<StatusReserva> bloqueios);
+
+    @Query("""
+        select count(r) > 0 from Reserva r
+        where r.usuario.id = :usuarioId and r.data >= :inicio and r.status in :bloqueios
+        """)
+    boolean usuarioTemReservasDesde(@Param("usuarioId") Long usuarioId, @Param("inicio") LocalDate inicio,
+        @Param("bloqueios") Collection<StatusReserva> bloqueios);
 
     List<Reserva> findByUsuarioIdOrderByDataDesc(Long usuarioId);
 
