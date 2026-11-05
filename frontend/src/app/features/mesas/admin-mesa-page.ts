@@ -264,7 +264,7 @@ export class AdminMesaPage {
     operacao.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (mesaAtualizada: Mesa) => {
         this.mesas.update(mesas =>
-          mesas.map(m => m.id === mesaAtualizada.id ? mesaAtualizada : m)
+          mesas.map(m => m.id === mesaAtualizada.id ? { ...m, ...mesaAtualizada, ocupada: m.ocupada } : m)
         );
         this.toast.sucesso('Sucesso', this.mensagemSucesso(acao));
         this.fecharModal();
@@ -280,7 +280,8 @@ export class AdminMesaPage {
     switch (acao) {
       case 'fixar': return 'Mesa fixada com sucesso.';
       case 'desfixar': return 'Mesa desfixada com sucesso.';
-      case 'alterar-responsavel': return 'Responsável alterado com sucesso.';
+      case 'alterar-responsavel': return this.mesaSelecionadaParaAcao()?.responsavel
+        ? 'Responsável alterado com sucesso.' : 'Responsável atribuído com sucesso.';
       case 'ativar': return 'Mesa ativada com sucesso.';
       case 'inativar': return 'Mesa inativada com sucesso.';
       default: return 'Operação realizada com sucesso.';
@@ -295,7 +296,7 @@ export class AdminMesaPage {
     switch (acao) {
       case 'fixar': return `Fixar mesa ${mesa.codigo}`;
       case 'desfixar': return `Desfixar mesa ${mesa.codigo}`;
-      case 'alterar-responsavel': return `Alterar responsável da mesa ${mesa.codigo}`;
+      case 'alterar-responsavel': return `${mesa.responsavel ? 'Alterar' : 'Atribuir'} responsável da mesa ${mesa.codigo}`;
       case 'ativar': return `Ativar mesa ${mesa.codigo}`;
       case 'inativar': return `Inativar mesa ${mesa.codigo}`;
       default: return '';
@@ -340,7 +341,7 @@ export class AdminMesaPage {
   }
 
   podeFixar(mesa: Mesa): boolean {
-    return mesa.tipo === 'LIVRE' && !mesa.responsavel;
+    return mesa.ativa && mesa.tipo === 'LIVRE' && !mesa.responsavel;
   }
 
   podeDesfixar(mesa: Mesa): boolean {
@@ -348,7 +349,7 @@ export class AdminMesaPage {
   }
 
   podeAlterarResponsavel(mesa: Mesa): boolean {
-    return mesa.tipo === 'FIXA' && !!mesa.responsavel;
+    return mesa.ativa && mesa.tipo === 'FIXA';
   }
 
   getTipoLabel(tipo: string): string {

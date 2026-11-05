@@ -129,11 +129,7 @@ export class MinhasReservasPage implements OnInit {
         next: (mesas) => {
           this.mesasAtribuidas.set(
             mesas.filter((mesa) =>
-              mesa.tipo === 'FIXA' && (
-                mesa.responsavel != null
-                  ? mesa.responsavel.id === usuario.id
-                  : this.normalizarNome(mesa.ocupante ?? '') === this.normalizarNome(usuario.nome)
-              ),
+              mesa.responsavel?.id === usuario.id,
             ),
           );
           this.carregandoMesaAtribuida.set(false);
@@ -317,10 +313,6 @@ export class MinhasReservasPage implements OnInit {
       .join(':');
     const dia = agora.toISOString().split('T')[0];
     return `${dia}T${hora}`;
-  }
-
-  private normalizarNome(nome: string): string {
-    return nome.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
   }
 
   private mensagemDeErro(erro: unknown): string {

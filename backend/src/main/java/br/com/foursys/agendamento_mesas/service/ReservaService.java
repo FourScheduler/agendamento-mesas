@@ -5,6 +5,7 @@ import br.com.foursys.agendamento_mesas.exceptions.MesaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioComMesaFixaException;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.model.Usuario;
@@ -80,10 +81,17 @@ public class ReservaService {
 
         // Revalida também a data: o request pode ter aguardado a liberação dos locks.
         datas.validar(request.data());
-        if (mesaRepositoryPort.existeMesaFixaPorResponsavelId(usuario.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "O solicitante possui uma mesa fixa e não pode realizar reservas.");
-        }
+        // O lock do beneficiário coordena este vínculo com atribuição e desfixação.
+        // Mesmo um vínculo legado em mesa LIVRE bloqueia até ser removido.
+        mesaRepositoryPort.buscarPorResponsavelId(usuario.getId()).ifPresent(vinculada -> {
+            boolean reservaPropria = usuario.getId().equals(autenticado.id());
+            String mensagem = reservaPropria
+                ? "Você já possui a mesa fixa " + vinculada.getCodigo()
+                    + " vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo."
+                : usuario.getNome() + " já possui a mesa fixa " + vinculada.getCodigo()
+                    + " vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.";
+            throw new UsuarioComMesaFixaException(vinculada.getId(), vinculada.getCodigo(), mensagem);
+        });
 
         if (!mesa.isAtiva()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " está inativa.");

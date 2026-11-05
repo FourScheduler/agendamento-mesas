@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -122,10 +122,10 @@ describe('AdminMesaPage', () => {
       expect(linhas.length).toBe(3);
       linhas.forEach((linha, indice) => {
         const botoes = linha.querySelectorAll('.admin-mesa-page__acoes button') as NodeListOf<HTMLButtonElement>;
-        expect(botoes.length).toBe(3);
-        expect(botoes[1].getAttribute('aria-label')).toContain(indice === 2 ? 'Ativar' : 'Inativar');
-        expect(botoes[2].getAttribute('aria-label')).toContain('Alterar responsável');
-        expect(botoes[2].disabled).toBe(indice !== 1);
+        expect(botoes.length).toBe(indice === 2 ? 2 : 3);
+        expect(botoes[botoes.length - 2].getAttribute('aria-label')).toContain(indice === 2 ? 'Ativar' : 'Inativar');
+        expect(botoes[botoes.length - 1].getAttribute('aria-label')).toContain('Alterar responsável');
+        expect(botoes[botoes.length - 1].disabled).toBe(indice !== 1);
         const coluna = linha.querySelector('.admin-mesa-page__responsavel') as HTMLElement;
         expect(getComputedStyle(coluna).textAlign).toBe('center');
       });
@@ -134,6 +134,70 @@ describe('AdminMesaPage', () => {
       expect(fixture.componentInstance.acaoEmAndamento()).toBe('alterar-responsavel');
       expect(fixture.componentInstance.mesaSelecionadaParaAcao()?.id).toBe(45);
     } finally {
+      fixture.destroy();
+      TestBed.resetTestingModule();
+    }
+  });
+
+  it('atribui responsável por ID em fixa legada e preserva a mesa quando a API recusa', async () => {
+    TestBed.configureTestingModule({
+      imports: [AdminMesaPage],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
+    TestBed.inject(AuthService).sessao.set({
+      token: 'token-admin', tipo: 'Bearer',
+      usuario: { id: 9, nome: 'Admin', email: 'admin@teste.com', perfil: 'ADMIN' },
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const toast = TestBed.inject(ToastService);
+    const sucesso = vi.spyOn(toast, 'sucesso');
+    const legada: Mesa = { ...mesa, tipo: 'FIXA', ocupante: 'Maria' };
+    const homonimas = [
+      { id: 7, nome: 'Maria', email: 'maria.um@teste.com' },
+      { id: 8, nome: 'Maria', email: 'maria.dois@teste.com' },
+    ];
+    const fixture = TestBed.createComponent(AdminMesaPage);
+    try {
+      fixture.detectChanges();
+      await new Promise<void>(resolve => setTimeout(resolve, 300));
+      http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([
+        legada, { ...legada, id: 45, codigo: '045', ativa: false },
+      ]);
+      fixture.detectChanges();
+      const atribuir = fixture.nativeElement.querySelector('[aria-label="Atribuir responsável da mesa 044"]') as HTMLButtonElement;
+      expect(atribuir.disabled).toBe(false);
+      expect((fixture.nativeElement.querySelector('[aria-label="Atribuir responsável da mesa 045"]') as HTMLButtonElement).disabled).toBe(true);
+      atribuir.click();
+      http.expectOne('/api/admin/usuarios').flush(homonimas);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#modal-titulo').textContent).toContain('Atribuir responsável');
+      fixture.nativeElement.querySelector('#usuario-busca').dispatchEvent(new FocusEvent('focus'));
+      fixture.detectChanges();
+      const opcoes = Array.from(fixture.nativeElement.querySelectorAll('#usuario-resultados button')) as HTMLButtonElement[];
+      expect(opcoes).toHaveLength(2);
+      opcoes.find(botao => botao.textContent?.includes('maria.dois@teste.com'))!.click();
+      fixture.detectChanges();
+      const confirmar = () => (fixture.nativeElement.querySelector('.modal__rodape .botao--primario') as HTMLButtonElement).click();
+      confirmar();
+      const recusada = http.expectOne('/api/admin/mesas/44/responsavel');
+      expect(recusada.request.body).toEqual({ usuarioId: 8 });
+      recusada.flush({ detail: 'O usuário possui reservas não canceladas.' }, { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+      expect(fixture.componentInstance.mesas()[0].responsavel).toBeNull();
+      expect(fixture.nativeElement.querySelector('.modal__erro').textContent).toContain('reservas não canceladas');
+      expect(sucesso).not.toHaveBeenCalled();
+      confirmar();
+      const { ocupada, ...cadastro } = { ...legada, responsavel: homonimas[1] };
+      http.expectOne('/api/admin/mesas/44/responsavel').flush(cadastro);
+      fixture.detectChanges();
+      expect(fixture.componentInstance.mesas()[0].responsavel?.id).toBe(8);
+      expect(fixture.componentInstance.mesas()[0].ocupada).toBe(ocupada);
+      expect(fixture.nativeElement.querySelector('.admin-mesa-page__responsavel').textContent).toContain('maria.dois@teste.com');
+      expect(fixture.nativeElement.querySelector('.modal')).toBeNull();
+      expect(sucesso).toHaveBeenCalledWith('Sucesso', 'Responsável atribuído com sucesso.');
+      http.verify();
+    } finally {
+      toast.limpar();
       fixture.destroy();
       TestBed.resetTestingModule();
     }

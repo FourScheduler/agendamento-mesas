@@ -118,10 +118,10 @@
                   <p class="minhas-reservas__mesa">Mesa {{ mesa.codigo }} - {{ mesa.regiao }}</p>
                   <span class="minhas-reservas__detalhes">Atribuída a você</span>
                 </div>
-                <span class="minhas-reservas__status minhas-reservas__status--atribuida">Mesa fixa</span>
+                <span class="minhas-reservas__status minhas-reservas__status--atribuida">{{ mesa.tipo === 'FIXA' ? 'Mesa fixa' : 'Mesa vinculada' }}</span>
               </div>
               @if (!ehAdmin()) {
-                <p class="minhas-reservas__mesa-fixa-aviso">Para cancelar a reserva, entre em contato com o administrador.</p>
+                <p class="minhas-reservas__mesa-fixa-aviso">Para reservar outra mesa, solicite à administração a remoção deste vínculo.</p>
               }
             </div>
           </li>

@@ -120,6 +120,7 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.reserva.sucesso()).toBe('');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    // 409 usa toast
     expect(mockToastService.erro).toHaveBeenCalledWith('Reserva recusada.');
     expect(mockToastService.erro).toHaveBeenCalledTimes(1);
     expect(mockToastService.sucesso).not.toHaveBeenCalled();

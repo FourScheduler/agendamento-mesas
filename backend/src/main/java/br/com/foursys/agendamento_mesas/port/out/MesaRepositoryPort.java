@@ -42,7 +42,7 @@ public interface MesaRepositoryPort {
 
     boolean existePorCodigo(String codigo);
 
-    boolean existeMesaFixaPorResponsavelId(Long usuarioId);
+    Optional<Mesa> buscarPorResponsavelId(Long usuarioId);
 
     boolean existeOutraMesaPorResponsavelId(Long usuarioId, Long mesaId);
 }

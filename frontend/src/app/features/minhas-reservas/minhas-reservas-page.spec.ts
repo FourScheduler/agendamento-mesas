@@ -59,7 +59,7 @@ describe('MinhasReservasPage', () => {
     );
     expect(conteudo).toContain('Mesa 001 - TAMBORÉ');
     expect(conteudo).not.toContain('Mesa 002 - TAMBORÉ');
-    expect(conteudo).toContain('Para cancelar a reserva, entre em contato com o administrador.');
+    expect(conteudo).toContain('Para reservar outra mesa, solicite à administração a remoção deste vínculo.');
     expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa button')).toBeNull();
   });
 
@@ -77,7 +77,7 @@ describe('MinhasReservasPage', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
   });
 
-  it('reconhece mesa fixa legada pelo nome do ocupante', () => {
+  it('não atribui mesas por nome, mesmo com homônimos ou texto legado', () => {
     const fixture = TestBed.createComponent(MinhasReservasPage);
     fixture.detectChanges();
 
@@ -89,9 +89,24 @@ describe('MinhasReservasPage', () => {
     ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Mesa 003 - TAMBORÉ');
+    expect(fixture.nativeElement.textContent).not.toContain('Mesa 003 - TAMBORÉ');
     expect(fixture.nativeElement.textContent).not.toContain('Mesa 004 - TAMBORÉ');
     expect(fixture.nativeElement.textContent).not.toContain('Mesa 005 - TAMBORÉ');
+  });
+
+  it('exibe vínculo pelo ID mesmo inativo ou com nome alterado, incluindo tipo legado inconsistente', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    http.expectOne('/api/reservas/minhas').flush([]);
+    http.expectOne('/api/mesas').flush([
+      { ...mesaDaMaria, ativa: false, ocupante: 'Outro texto',
+        responsavel: { ...mesaDaMaria.responsavel!, nome: 'Nome atualizado', email: 'novo@teste.com' } },
+      { ...mesaDaMaria, id: 6, codigo: '006', tipo: 'LIVRE' },
+    ]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Mesa 001 - TAMBORÉ');
+    expect(fixture.nativeElement.textContent).toContain('Mesa 006 - TAMBORÉ');
+    expect(fixture.nativeElement.textContent).toContain('Mesa vinculada');
   });
 
   it('mostra reservas criadas pelo administrador sem permitir cancelamento ao beneficiário', () => {
