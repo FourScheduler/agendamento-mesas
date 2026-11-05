@@ -19,6 +19,9 @@ public interface MesaJpaRepository extends JpaRepository<Mesa, Long> {
     @Query("select m from Mesa m where m.id = :id")
     Optional<Mesa> buscarParaReserva(@Param("id") Long id);
 
+    @Query("select u.id from Mesa m left join m.responsavel u where m.id = :id")
+    Optional<Long> buscarResponsavelId(@Param("id") Long id);
+
     List<Mesa> findAllByOrderByCodigoAsc();
 
     List<Mesa> findAllByCodigoContainingOrderByCodigoAsc(String codigo);
@@ -31,6 +34,10 @@ public interface MesaJpaRepository extends JpaRepository<Mesa, Long> {
     Optional<Mesa> findByCodigo(String codigo);
 
     boolean existsByCodigo(String codigo);
+
+    boolean existsByResponsavel_IdAndTipo(Long responsavelId, TipoMesa tipo);
+
+    boolean existsByResponsavel_IdAndIdNot(Long responsavelId, Long mesaId);
 
     @Query("""
     SELECT m

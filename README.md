@@ -100,7 +100,7 @@ $env:TEST_MYSQL_PASSWORD = "senha-local-de-testes"
 .\mvnw.cmd -s .mvn/settings-public.xml -gs .mvn/settings-public.xml verify
 ```
 
-Crie esse schema e conceda acesso antes de executar. Sem `TEST_MYSQL_URL`, somente `ReservaMySqlTests` é ignorada. O CI sempre fornece MySQL e executa essa suíte. As migrations aplicadas continuam intactas; não houve mudança de estrutura na entrega diária.
+Crie esse schema e conceda acesso antes de executar. Sem `TEST_MYSQL_URL`, as suítes MySQL de reservas e de administração são ignoradas. O CI fornece MySQL e executa essas suítes. As migrations aplicadas continuam intactas; a unicidade de responsável é acrescentada pela V9, após a V8 de autoria das reservas, sem reescrever versões anteriores.
 
 ## Documentação
 

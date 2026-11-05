@@ -55,7 +55,7 @@ public class ReservaController {
     }
 
     @PatchMapping("/{id}/cancelamento")
-    public ResponseEntity<ReservaResponse> cancelarReserva(
+    public ResponseEntity<Void> cancelarReserva(
         @PathVariable Long id,
         @AuthenticationPrincipal UsuarioAutenticado usuario
     ) {

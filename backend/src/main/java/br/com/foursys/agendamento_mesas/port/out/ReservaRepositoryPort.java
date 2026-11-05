@@ -20,7 +20,12 @@ public interface ReservaRepositoryPort {
 
     Optional<Reserva> buscarPorId(Long usuarioId);
 
+    Optional<Long> buscarUsuarioId(Long reservaId);
+
     List<Reserva> buscarTodos();
+
+    List<Reserva> buscarOcupacoesNaData(LocalDate data, Collection<Long> mesaIds,
+        Collection<StatusReserva> bloqueios);
 
     List<Reserva> listarTodas(
         @Param("inicio") LocalDate inicio,
@@ -48,6 +53,10 @@ public interface ReservaRepositoryPort {
         @Param("data") LocalDate data,
         @Param("bloqueios") Collection<StatusReserva> bloqueios
     );
+
+    boolean mesaTemReservasDesde(Long mesaId, LocalDate inicio, Collection<StatusReserva> bloqueios);
+
+    boolean usuarioTemReservasDesde(Long usuarioId, LocalDate inicio, Collection<StatusReserva> bloqueios);
 
     void sincronizar();
 

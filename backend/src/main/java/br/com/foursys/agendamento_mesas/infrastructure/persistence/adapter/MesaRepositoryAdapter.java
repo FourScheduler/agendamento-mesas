@@ -41,6 +41,11 @@ public class MesaRepositoryAdapter implements MesaRepositoryPort {
     }
 
     @Override
+    public Optional<Long> buscarResponsavelId(Long mesaId) {
+        return mesaRepository.buscarResponsavelId(mesaId);
+    }
+
+    @Override
     public List<Mesa> buscarTodosPorCodigoAsc() {
         return mesaRepository.findAllByOrderByCodigoAsc();
     }
@@ -78,5 +83,15 @@ public class MesaRepositoryAdapter implements MesaRepositoryPort {
     @Override
     public boolean existePorCodigo(String codigo) {
         return mesaRepository.existsByCodigo(codigo);
+    }
+
+    @Override
+    public boolean existeMesaFixaPorResponsavelId(Long usuarioId) {
+        return mesaRepository.existsByResponsavel_IdAndTipo(usuarioId, TipoMesa.FIXA);
+    }
+
+    @Override
+    public boolean existeOutraMesaPorResponsavelId(Long usuarioId, Long mesaId) {
+        return mesaRepository.existsByResponsavel_IdAndIdNot(usuarioId, mesaId);
     }
 }

@@ -12,7 +12,7 @@ Parte do MVP: issue #1.
 4. Usuário **revisa** o resumo (mesa, data e solicitante).
 5. Usuário **autentica** quando ainda não estiver logado (`POST /api/auth/login`).
 6. Usuário **confirma**: uma única chamada `POST /api/reservas` cria a reserva diretamente em estado `CONFIRMADA`.
-7. Evolução futura: usuário **consulta** suas reservas (`GET /api/reservas/minhas`) e pode **cancelar** a qualquer momento (`PATCH /api/reservas/{id}/cancelamento`).
+7. Usuário **consulta** suas reservas (`GET /api/reservas/minhas`) e pode **cancelar** a qualquer momento (`PATCH /api/reservas/{id}/cancelamento`).
 
 Todas as rotas, inclusive a consulta, exigem token de autenticação. Sem token a resposta é `401`.
 
@@ -41,12 +41,23 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 | 5 | Sobreposição da mesma mesa | Uma mesa não pode ter duas reservas não canceladas na mesma data (`409`). |
 | 6 | Reservas do mesmo usuário | O usuário não pode ter duas reservas não canceladas na mesma data (`409`). Pode ter reservas em datas diferentes, inclusive na mesma mesa. |
 | 7 | Dias consecutivos | Períodos consecutivos são permitidos (dois dias seguidos na mesma mesa ou pelo usuário). |
-| 8 | Cancelamento | O dono pode cancelar a qualquer momento, mesmo depois do início do dia reservado. Cancelamento libera a mesa. |
+| 8 | Cancelamento | O beneficiário pode cancelar reservas próprias ou legadas sem autor; reservas criadas por terceiros exigem administrador. Administradores podem cancelar qualquer reserva, inclusive de beneficiário inativo. Permitido a qualquer momento, inclusive após o dia reservado. Altera somente a reserva e libera a disponibilidade daquela data; preserva tipo, ativação, ocupante textual e responsável fixo da mesa. |
 | 9 | Solicitante | Por padrão vem do contexto autenticado. Administradores podem escolher um usuário ativo pela busca de nome/e-mail; usuários comuns não podem escolher terceiros. |
 | 10 | Autenticação | Login local com e-mail e senha (hash BCrypt). Token JWT em `Authorization: Bearer`. |
 | 11 | Estados da reserva | Novas reservas são `CONFIRMADA`. `PENDENTE` permanece compatível com dados legados; `CANCELADA` libera a data. |
 | 12 | Confirmação | Após revisar, o usuário envia um único POST. A API responde `201` somente após commit da reserva `CONFIRMADA`. |
 | 13 | Mesas fixas | Tipo `FIXA` não aparece em `/api/mesas/disponiveis` e gera `409` na tentativa de reserva. |
+| 14 | Solicitante com mesa fixa | Usuário vinculado por `mesas.responsavel_id` a uma mesa `FIXA` não pode criar reservas, inclusive quando a mesa fixa está inativa. O bloqueio considera o solicitante escolhido pelo administrador, quando informado. |
+| 15 | Uma mesa por responsável | Atribuir ou trocar responsável exige que o usuário não esteja vinculado a outra mesa. Um vínculo existente continua contando mesmo se a mesa estiver inativa. Não há transferência automática; desfixar ou trocar o responsável libera o usuário anterior. |
+| 16 | Ativar antes de fixar | Mesa inativa não pode ser fixada nem receber atribuição/troca de responsável (`409`). A alteração direta de tipo para `FIXA` também exige mesa ativa. O administrador deve ativar primeiro; a recusa preserva tipo, ativação e vínculo anterior. |
+| 17 | Remover vínculo antes de inativar | Inativação retorna `409` enquanto houver `responsavel_id`, mesmo com usuário inativo ou tipo legado inconsistente. O responsável não é removido automaticamente. Após desfixar/remover explicitamente o vínculo, a inativação é permitida e preserva o tipo da mesa. |
+| 18 | Preservar reservas em alterações administrativas | Reservas `PENDENTE`/`CONFIRMADA` de hoje em diante impedem fixação, nova atribuição/troca de responsável e inativação da mesa. O usuário de destino também não pode ter reservas não canceladas de hoje em diante. Retorna `409`, sem cancelar, transferir ou alterar reservas existentes. Passadas e canceladas não impedem a alteração. |
+
+A verificação usa o ID do responsável, não o texto de `ocupante`. Desfixar a mesa
+remove esse impedimento; as demais validações continuam aplicáveis. Reservas já
+existentes não são alteradas por esse bloqueio. O backend retorna `409` com
+`detail` específico para o impedimento; a apresentação desse texto no frontend
+será tratada em uma etapa posterior.
 
 ## Regra de sobreposição: adaptação de `[início, fim)`
 
@@ -76,13 +87,45 @@ Registradas para validação com o negócio. **Nenhuma restrição foi inventada
 | Interpretação da janela de 15 dias | Adotado "15 dias corridos". Se o negócio quiser "15 dias úteis", ajustar a regra. |
 | Horário de expediente de referência | Sem validação de expediente no MVP (regra aprovada). Exibição de expediente futuro fica pendente. |
 | Feriados e recesso | Não tratados. Reserva em feriado local é aceita se cair em dia útil. |
-| Tornar `FIXA` uma mesa com reservas futuras | Efeito sobre reservas existentes não definido; a implementação deve validar com o produto antes de alterar dados reais. |
 | Papel de administrador além dos endpoints do MVP | Gestão de usuários (criar/desativar) fora do MVP; seed no banco. |
 | Cancelamento por administrador de reserva com dia já passado | Permitido pela regra "a qualquer momento"; se o negócio quiser restrição, registrar decisão. |
 
 ## Confirmação concorrente
 
 `ReservaService.criar` usa uma transação `READ_COMMITTED`, bloqueando primeiro a linha do usuário e depois a linha da mesa (`PESSIMISTIC_WRITE` / `SELECT ... FOR UPDATE`). A mesa já existe mesmo quando não há reservas; o bloqueio protege a primeira inserção. Após esperar, as consultas de mesa/data e usuário/data enxergam o commit anterior. Canceladas são ignoradas pelo status. Todos os caminhos futuros de escrita devem respeitar essa ordem de locks e revalidar conflitos dentro da transação. Falhas desfazem a escrita e liberam os locks.
+
+Fixação, troca, desfixação e alteração direta de tipo usam `READ_COMMITTED`.
+Os responsáveis anterior e novo são bloqueados por ID crescente, sem duplicatas,
+antes da mesa. O responsável anterior é consultado como ID escalar para não carregar
+uma entidade Mesa obsoleta no contexto JPA. Após os locks, o vínculo é conferido
+novamente: se mudou durante a espera, a operação retorna `409` para atualização
+e nova tentativa, sem adquirir mais usuários depois da mesa nem sobrescrever o vínculo.
+A consulta de unicidade exclui a própria mesa; manter o mesmo responsável ativo
+continua sendo uma operação sem nova atribuição. A restrição única de `responsavel_id`
+complementa a validação, inclusive para gravações diretas no banco.
+
+Ativação/inativação usa `READ_COMMITTED` e bloqueia a linha da mesa antes de avaliar
+o vínculo e gravar `ativa`. Isso coordena a operação com fixação e troca de
+responsável: em uma disputa entre atribuição e inativação, somente uma pode
+concluir, sem produzir mesa inativa com um responsável novo. Ativar uma mesa
+legada preserva seu tipo e responsável, inclusive quando o usuário está inativo.
+
+Após esperar pelos locks, as consultas de reservas usam o dia atual do relógio da
+aplicação em `America/Sao_Paulo`, sem limitar a pesquisa à janela de 15 dias da criação.
+Se a reserva concluir primeiro, a alteração administrativa incompatível retorna `409`.
+Se a alteração concluir primeiro, a criação revalida mesa ativa/livre e vínculo fixo
+do solicitante antes de confirmar. As reservas anteriores são sempre preservadas.
+
+O cancelamento usa transação `READ_COMMITTED`, bloqueando primeiro o beneficiário
+da reserva e depois a mesa, inclusive quando solicitado por um administrador.
+O ID do beneficiário é consultado como escalar; a reserva é lida após o lock do
+usuário, que serializa cancelamentos pelo dono ou por administradores, e a
+autoria/estado são validados antes de salvar.
+Somente `status` e `canceladaEm` da reserva são alterados; o timestamp usa o relógio
+da aplicação em São Paulo. O commit ocorre antes do `200` sem corpo. Repetir o
+cancelamento retorna `409`, sem regravar o timestamp; reserva alheia retorna `403`.
+Falha na transação desfaz o cancelamento e libera os locks. Criação e operações
+administrativas aguardam o lock da mesa para revalidar disponibilidade/reservas.
 
 ## Fora do escopo do MVP
 
