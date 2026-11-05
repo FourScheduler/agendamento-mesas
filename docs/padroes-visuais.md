@@ -1,5 +1,17 @@
 # Padrões visuais
 
+Na administração de mesas, o lápis permanece visível após Ativar/Inativar,
+desabilitado até a mesa estar fixa e com responsável. Nome e e-mail do
+responsável ficam centralizados na coluna Responsável Fixo.
+O modal de fixação não tem rolagem interna; o responsável selecionado aparece
+com iniciais, nome, e-mail e ação Trocar, seguindo o resumo da reserva.
+As sugestões ficam no fluxo do modal, sem sobrepor o rodapé, em uma lista
+com altura máxima de 192px (cerca de três usuários) e rolagem própria.
+Os filtros de gestão se combinam com a busca por número e atualizam a tabela
+e a contagem. Fixas considera o tipo da mesa; Inativas considera a ativação.
+Livres e Reservadas consideram apenas mesas ativas não fixas, sem ou com
+reserva no dia consultado, respectivamente. Clicar novamente limpa o filtro.
+
 Referência: identidade visual adotada pelo projeto agendamento-salas do Portal Foursys.
 
 | Uso | Valor |

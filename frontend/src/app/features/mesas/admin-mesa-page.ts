@@ -34,6 +34,18 @@ export class AdminMesaPage {
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
   readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
+  readonly mesasFiltradas = computed(() => {
+    const filtro = this.filtroTipo();
+    return this.mesas().filter(mesa => {
+      switch (filtro) {
+        case 'fixa': return mesa.tipo === 'FIXA';
+        case 'livre': return mesa.ativa && mesa.tipo === 'LIVRE' && !mesa.ocupada;
+        case 'inativa': return !mesa.ativa;
+        case 'reservada': return mesa.ativa && mesa.tipo === 'LIVRE' && mesa.ocupada;
+        default: return true;
+      }
+    });
+  });
   readonly carregando = signal(false);
   readonly erroConsulta = signal('');
 
@@ -198,6 +210,10 @@ export class AdminMesaPage {
 
   getUsuarioSelecionado(): UsuarioAtivo | undefined {
     return this.usuariosAtivos().find(usuario => usuario.id === this.usuarioSelecionado());
+  }
+
+  iniciaisUsuario(nome: string): string {
+    return nome.trim().split(/\s+/).slice(0, 2).map(parte => parte[0]).join('').toLocaleUpperCase('pt-BR');
   }
 
   confirmarAcao() {
