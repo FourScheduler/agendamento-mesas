@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, ElementRef, afterNextRender, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -28,7 +28,6 @@ export class MapaPage {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly reservas = inject(ReservaService);
-  private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
   readonly isAdmin = computed(() => this.usuario()?.perfil === 'ADMIN');
@@ -53,12 +52,6 @@ export class MapaPage {
   private readonly termosBuscaSolicitante = new Subject<string>();
 
   constructor() {
-    afterNextRender(() => {
-      const pagina = this.elemento.nativeElement.ownerDocument.scrollingElement;
-      if (pagina) {
-        pagina.scrollTop += this.elemento.nativeElement.getBoundingClientRect().top;
-      }
-    });
     const usuarioAtual = this.usuario();
     if (this.isAdmin() && usuarioAtual) {
       this.solicitanteSelecionado.set({ ...usuarioAtual, ativo: true });

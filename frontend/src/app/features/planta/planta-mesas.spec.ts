@@ -396,6 +396,8 @@ describe("PlantaMesas", () => {
     expect(botoes[0].disabled).toBe(false);
     expect(botoes[1].disabled).toBe(true);
     expect(botoes[1].classList.contains('ocupada')).toBe(true);
+    expect(getComputedStyle(botoes[1]).borderColor).toBe('rgb(241, 181, 181)');
+    expect(getComputedStyle(botoes[1]).color).toBe('rgb(168, 61, 61)');
     expect(botoes[0].querySelectorAll('.mesa__cadeira').length).toBe(2);
     const cadeira = botoes[0].querySelector('.mesa__cadeira') as HTMLElement;
     expect(getComputedStyle(cadeira).left).toBe('0px');
@@ -407,6 +409,16 @@ describe("PlantaMesas", () => {
     fixture.componentInstance.mesaSelecionada.subscribe(emitir);
     botoes[0].click();
     expect(emitir).toHaveBeenCalledExactlyOnceWith(mesas[0]);
+    fixture.componentRef.setInput('data', '2026-11-02');
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush(mesas);
+    http.expectOne(request => request.url === '/api/mesas/disponiveis'
+      && request.params.get('data') === '2026-11-02').flush(mesas);
+    fixture.detectChanges();
+    const mesaNoOutroDia = fixture.nativeElement.querySelector('button.mesa[data-mesa-id="2"]') as HTMLButtonElement;
+    expect(mesaNoOutroDia.classList.contains('ocupada')).toBe(false);
+    expect(mesaNoOutroDia.classList.contains('livre')).toBe(true);
+    expect(mesaNoOutroDia.disabled).toBe(false);
   });
 
   it("exibe somente o rótulo Livre e mantém nomes opcionais dos ocupantes", () => {

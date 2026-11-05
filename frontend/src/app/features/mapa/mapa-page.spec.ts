@@ -124,9 +124,14 @@ describe("Barra de reserva do mapa", () => {
     expect(fixture.nativeElement.querySelector(".page-header")).toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__cabecalho #data-reserva")).not.toBeNull();
     const atualizar = fixture.nativeElement.querySelector("#atualizar-disponibilidade") as HTMLButtonElement;
-    expect(atualizar.textContent?.trim()).toBe("Atualizar");
+    expect(atualizar.textContent?.trim()).toBe("");
+    expect(atualizar.getAttribute("aria-label")).toBe("Atualizar disponibilidade");
     expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
+    const itensLegenda = fixture.nativeElement.querySelectorAll(".legenda__itens li:not(.legenda__visibilidade)") as NodeListOf<HTMLElement>;
+    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada"]);
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--ocupada")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--inativa")).toBeNull();
     const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
     expect(tooltip.getAttribute("role")).toBe("tooltip");
     expect(getComputedStyle(tooltip).visibility).toBe("hidden");

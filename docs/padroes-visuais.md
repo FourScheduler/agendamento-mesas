@@ -39,6 +39,9 @@ visual e a marca, com componentes próprios para seus contratos de API.
   para acomodar a circulação, escala proporcional
   e largura mínima de 1000px, com rolagem restrita ao desenho e altura de até 70dvh. Cabeçalho
   e legenda ficam fora da escala, preservando a tipografia do Portal.
+  Na rota do mapa, o conteúdo ocupa a altura restante abaixo da navegação,
+  sem rolagem externa da página. A escala do desenho é preservada; arraste,
+  rolagem interna e zoom continuam disponíveis para percorrer a planta.
 - O mapa aproxima a referência de escritório com piso cinza-claro liso,
   janelas laterais, superiores e inferiores e mesas de tampo claro com cadeiras cinza-claro,
   sem plantas ou jardineiras decorativas.
@@ -70,8 +73,9 @@ visual e a marca, com componentes próprios para seus contratos de API.
   Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
   sobre fundo vermelho suave e inativa tracejada.
   Mesas disponíveis na data usam verde e mostram o rótulo "Livre"; reservadas usam
-  lilás suave sem descrição sobre a mesa. A legenda diferencia "Livre na data", "Reservada", fixa,
-  inativa e selecionada. A ocupação vem da consulta diária da API.
+  o mesmo vermelho suave das mesas fixas, somente na data reservada, sem descrição sobre a mesa.
+  A legenda exibe somente Livre e Reservada, mantendo o botão de olho.
+  A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
   a disponibilidade. No agendamento, clicar novamente na mesa selecionada remove
   a seleção; Enter e Espaço têm o mesmo comportamento.
