@@ -124,7 +124,10 @@ visual e a marca, com componentes próprios para seus contratos de API.
   ao chegar por Ver mapa do agendamento, a mesa fica somente destacada, sem abrir
   o modal automaticamente. A rolagem leva diretamente à mesa selecionada,
   centralizando-a na área visível. Clicar na mesa na planta abre os detalhes;
-  a página enquadra cabeçalho, planta e rodapé na janela; a centralização da mesa
+  mesas reservadas exibem localização, data e beneficiário, sem formulário de
+  nova reserva; somente o beneficiário autorizado ou um administrador pode
+  cancelar. Após cancelamento, o mapa atualiza a disponibilidade da data.
+  A página enquadra cabeçalho, planta e rodapé na janela; a centralização da mesa
   altera somente a rolagem interna, preservando a visibilidade dos controles.
   administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
   e resultados acessíveis (`role=status`/`role=alert`).

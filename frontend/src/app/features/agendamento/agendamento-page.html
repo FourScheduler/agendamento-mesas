@@ -154,12 +154,24 @@
   @if (temMesaSelecionada()) {
   <aside class="resumo-reserva cartao" aria-labelledby="resumo-titulo">
     <div class="resumo__conteudo">
-      <!-- Título do card -->
-      <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
-      <p class="resumo__subtitulo">Confira os detalhes da sua reserva.</p>
-      <!-- Cabeçalho com a data da reserva de dia inteiro -->
-
-
+      <header class="resumo__cabecalho">
+        <div>
+          <h2 id="resumo-titulo" class="resumo__titulo">Resumo da reserva</h2>
+          <p class="resumo__subtitulo">Confira os detalhes da sua reserva.</p>
+        </div>
+        <button
+          type="button"
+          class="resumo__fechar"
+          aria-label="Fechar resumo da reserva"
+          title="Fechar resumo"
+          [disabled]="confirmando()"
+          (click)="reserva.limparSelecao()"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </header>
       <div class="resumo__divider"></div>
 
       <!-- Linhas de informação com ícones (incluindo Data) -->

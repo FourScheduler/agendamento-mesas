@@ -361,10 +361,12 @@
 
 .resumo__titulo{
     color: var(--orange);
-    padding: 0.5rem 0;
+    margin: 0;
+    padding: 0.5rem 0 0;
 }
 
 .resumo__subtitulo{
+    margin: 0;
     padding-bottom: 0.5rem;
 }
 
@@ -410,6 +412,41 @@
     padding: 1.5rem;
     display: flex;
     flex-direction: column
+}
+
+.resumo__cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem
+}
+
+.resumo__fechar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer
+}
+
+.resumo__fechar:hover:not(:disabled) {
+    color: var(--orange)
+}
+
+.resumo__fechar:focus-visible {
+    outline: 2px solid var(--orange);
+    outline-offset: 2px
+}
+
+.resumo__fechar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed
 }
 
 .resumo__header {

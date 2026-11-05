@@ -223,9 +223,6 @@
                 {{ formatarData(cartao.reserva.data) }}
               </span>
               <span class="minhas-reservas__separador" aria-hidden="true">·</span>
-              <span class="minhas-reservas__detalhes">
-                Criada em {{ formatarData(cartao.reserva.criadaEm.split('T')[0]) }}
-              </span>
             </p>
             @if (!ehAdmin() && reservaCriadaPorAdmin(cartao)) {
               <p class="minhas-reservas__aviso-admin">

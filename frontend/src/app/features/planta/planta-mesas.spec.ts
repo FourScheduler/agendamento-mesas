@@ -392,7 +392,7 @@ describe("PlantaMesas", () => {
       ocupante: '',
       referenciaVisual: { planta: 'P', x: id * 200, y: 80 },
     }));
-    http.expectOne('/api/mesas').flush(mesas);
+    http.expectOne('/api/mesas/com-ocupacao?data=2026-10-30').flush(mesas);
     http.expectOne(request => request.url === '/api/mesas/disponiveis'
       && request.params.get('data') === '2026-10-30').flush([mesas[0]]);
     fixture.detectChanges();
@@ -420,7 +420,7 @@ describe("PlantaMesas", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
     fixture.componentRef.setInput('data', '2026-11-03');
     fixture.detectChanges();
-    http.expectOne('/api/mesas').flush([
+    http.expectOne('/api/mesas/com-ocupacao?data=2026-11-03').flush([
       {
         id: 65,
         codigo: '065',
@@ -428,6 +428,7 @@ describe("PlantaMesas", () => {
         tipo: 'FIXA',
         ativa: true,
         ocupante: 'Pessoa Exemplo',
+        responsavel: { id: 5, nome: 'Pessoa Exemplo', email: 'fixa@example.com' },
         referenciaVisual: { planta: 'DEMO', x: 200, y: 80 },
       },
       {
@@ -446,6 +447,7 @@ describe("PlantaMesas", () => {
         tipo: 'LIVRE',
         ativa: true,
         ocupante: '',
+        ocupanteNaData: { id: 8, nome: 'Pessoa Reservada', email: 'reservada@example.com' },
         referenciaVisual: { planta: 'DEMO', x: 600, y: 80 },
       },
     ]);
@@ -463,8 +465,10 @@ describe("PlantaMesas", () => {
     fixture.detectChanges();
 
     expect(mesaFixa.querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Exemplo');
+    expect(mesas[2].querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Reservada');
     expect(getComputedStyle(mesaFixa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
     expect(mesaFixa.querySelector('.mesa__estado')).toBeNull();
+    expect(mesas[2].getAttribute('aria-label')).toContain('Pessoa Reservada');
   });
 
   it("arrasta somente o fundo e libera a captura ao finalizar", () => {

@@ -40,6 +40,8 @@ export class PlantaMesas {
   readonly mesaSelecionadaId = input<number | null>(null);
   readonly mesaSelecionada = output<{ readonly mesa: Mesa; readonly disponivel: boolean }>();
   readonly mesaInicialSelecionada = output<Mesa>();
+  readonly mesasCarregadas = output<readonly Mesa[]>();
+  readonly mesasDisponiveisCarregadas = output<ReadonlySet<number> | null>();
   readonly disponibilidadeConsultada = output<string>();
   readonly mesaInicialInvalidada = output<void>();
   readonly mesas = signal<readonly Mesa[]>([]);
@@ -183,17 +185,20 @@ export class PlantaMesas {
       this.atualizacao();
       this.mesas.set([]);
       this.disponiveis.set(null);
+      this.mesasDisponiveisCarregadas.emit(null);
       this.selecionada.set(null);
       this.erro.set("");
       this.carregando.set(false);
       this.carregando.set(true);
       const consulta = forkJoin({
-        mesas: this.catalogo.listar(),
+        mesas: data ? this.catalogo.listarComOcupacao(data) : this.catalogo.listar(),
         disponiveis: data ? this.catalogo.listarDisponiveis(data) : of(null),
       }).subscribe({
         next: ({ mesas, disponiveis }) => {
           this.mesas.set(mesas);
+          this.mesasCarregadas.emit(mesas);
           this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
+          this.mesasDisponiveisCarregadas.emit(this.disponiveis());
           this.carregando.set(false);
           if (data) {
             this.disponibilidadeConsultada.emit(data);
@@ -253,6 +258,10 @@ export class PlantaMesas {
   estaOcupada(mesa: Mesa): boolean {
     return mesa.ativa && mesa.tipo === 'LIVRE' && !!this.data()
       && this.disponiveis() !== null && !this.disponiveis()!.has(mesa.id);
+  }
+
+  nomeOcupante(mesa: Mesa): string | null {
+    return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
   }
 
   alternarNomes() {

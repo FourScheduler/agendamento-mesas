@@ -56,7 +56,7 @@ describe("Barra de reserva do mapa", () => {
   function abrir(mesaExibida: Mesa = mesa) {
     const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesaExibida]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
       .flush(mesaExibida.tipo === "LIVRE" ? [mesaExibida] : []);
@@ -99,7 +99,7 @@ describe("Barra de reserva do mapa", () => {
       vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
         return new DOMRect(710, 920, 100, 60);
       });
-      http.expectOne("/api/mesas").flush([mesa]);
+      http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
       http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
       fixture.detectChanges();
       const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
@@ -195,7 +195,7 @@ describe("Barra de reserva do mapa", () => {
       { status: 400, statusText: "Bad Request" },
     );
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
       .flush([]);
@@ -219,7 +219,7 @@ describe("Barra de reserva do mapa", () => {
     };
     const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa, mesaFixa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa, mesaFixa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
 
@@ -242,7 +242,7 @@ describe("Barra de reserva do mapa", () => {
     const detalhes = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
     expect(detalhes.textContent).toContain("Localização");
     expect(detalhes.textContent).toContain("Data selecionada");
-    expect(detalhes.textContent).toContain("Reservado para");
+    expect(detalhes.textContent).toContain("Responsável");
     expect(detalhes.textContent).toContain("Pessoa Responsável");
     expect(detalhes.querySelector(".detalhes__status--reservada")).not.toBeNull();
     expect(detalhes.querySelector('[role="switch"]')).toBeNull();
@@ -251,181 +251,158 @@ describe("Barra de reserva do mapa", () => {
     http.expectNone("/api/reservas");
   });
 
-  it("permite ao ADMIN desfixar com confirmação, atualiza a planta e bloqueia fechamento durante envio", () => {
-    autenticarAdmin();
-    const fixa: Mesa = {
-      ...mesa, tipo: "FIXA", responsavel: { id: 8, nome: "Pessoa Responsável", email: "responsavel@example.com" },
+  it("envia a tentativa de reserva ao backend para usuário com mesa fixa", () => {
+    const mesaFixa: Mesa = {
+      ...mesa,
+      id: 45,
+      codigo: "045",
+      tipo: "FIXA",
+      responsavel: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
     };
-    const fixture = abrir(fixa);
-    const controle = fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement;
-    expect(controle.checked).toBe(true);
-    expect(controle.getAttribute("aria-label")).toBe("Mesa fixa");
-    expect(controle.nextElementSibling?.textContent).toBe("Mesa Fixa");
-    const painel = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
-    expect(getComputedStyle(painel).overflow).toBe("visible");
-    controle.click();
+    const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    http.expectNone("/api/admin/mesas/44/desfixar");
-    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
-    expect(dialogo.open).toBe(true);
-    expect(dialogo.textContent).toContain("Confirmar desfixação");
-    (dialogo.querySelector(".fixacao-dialogo__acoes button:last-child") as HTMLButtonElement).click();
-    fixture.detectChanges();
-    const request = http.expectOne("/api/admin/mesas/44/desfixar");
-    expect(request.request.method).toBe("PATCH");
-    expect(controle.disabled).toBe(true);
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    fixture.detectChanges();
-    expect(fixture.componentInstance.detalhesAbertos()).toBe(true);
-    request.flush({ ...mesa, responsavel: null });
-    fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa, mesaFixa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
-    expect(fixture.componentInstance.mesaNoPainel()?.tipo).toBe("LIVRE");
-    expect((fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement).checked).toBe(false);
-    expect(dialogo.open).toBe(false);
-    expect(TestBed.inject(ToastService).toasts().at(-1)?.titulo).toBe("Mesa desfixada com sucesso.");
-    expect(fixture.nativeElement.querySelector(".detalhes__fixacao [role='status']")).toBeNull();
-    http.expectNone("/api/reservas");
+
+    fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".confirmar")).not.toBeNull();
+    fixture.componentInstance.confirmarReserva();
+    const request = http.expectOne("/api/reservas");
+    expect(request.request.body).toEqual({
+      mesaId: mesa.id,
+      data: fixture.componentInstance.reserva.data(),
+    });
+    request.flush(
+      { detail: "O solicitante possui uma mesa fixa e não pode realizar reservas." },
+      { status: 409, statusText: "Conflict" },
+    );
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa, mesaFixa]);
+    http
+      .expectOne(request => request.url === "/api/mesas/disponiveis")
+      .flush([mesa]);
   });
 
-  it("permite fixar para usuário ativo e mantém o estado ao falhar antes de tentar novamente", async () => {
-    vi.useFakeTimers();
-    autenticarAdmin();
-    const fixture = abrir();
-    fixture.componentInstance.trocarSolicitante();
-    const controle = fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement;
-    controle.click();
+  it("mostra apenas os dados da mesa reservada e permite ao dono cancelar", () => {
+    const mesaReservada: Mesa = {
+      ...mesa,
+      ocupada: true,
+      ocupanteNaData: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    const confirmar = fixture.nativeElement.querySelector(".detalhes__rodape .confirmar-fixacao") as HTMLButtonElement;
-    expect(confirmar.textContent.trim()).toBe("Confirmar");
-    const rotulo = fixture.nativeElement.querySelector(".detalhes__solicitante-rotulo") as HTMLElement;
-    expect(rotulo.textContent).toContain("Fixar para");
-    expect(getComputedStyle(rotulo).gridColumn).toBe("1 / -1");
-    expect(rotulo.nextElementSibling?.querySelector("#solicitante-busca")).not.toBeNull();
-    expect(confirmar.disabled).toBe(true);
+
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]').click();
+    fixture.detectChanges();
+
+    const detalhesReserva = http.expectOne(request =>
+      request.url.startsWith("/api/reservas/minhas?"),
+    );
+    const dataReservada = fixture.componentInstance.reserva.data();
+    detalhesReserva.flush([{
+      id: 91,
+      usuarioId: 7,
+      status: "PENDENTE",
+      data: dataReservada,
+      criadaEm: `${dataReservada}T08:00:00`,
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+      solicitante: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    }]);
+    fixture.detectChanges();
+
+    const detalhes = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
+    expect(detalhes.textContent).toContain("Localização");
+    expect(detalhes.textContent).toContain("TAMBORÉ");
+    expect(detalhes.textContent).toContain("Data reservada");
+    expect(detalhes.textContent).toContain("Pessoa Teste");
+    expect(detalhes.querySelector('input[type="date"]')).toBeNull();
+    expect(detalhes.querySelector("#solicitante-busca")).toBeNull();
+    expect(detalhes.querySelector(".confirmar")).toBeNull();
+
+    (detalhes.querySelector(".botao--perigo") as HTMLButtonElement).click();
+    const cancelamento = http.expectOne("/api/reservas/91/cancelamento");
+    expect(cancelamento.request.method).toBe("PATCH");
+    cancelamento.flush(null);
+    fixture.detectChanges();
+
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
+    expect(fixture.nativeElement.querySelector("button.mesa.ocupada")).toBeNull();
+    expect(fixture.nativeElement.querySelector("button.mesa.livre")).not.toBeNull();
+  });
+
+  it("não oferece cancelamento ao beneficiário quando um administrador criou a reserva", () => {
+    const mesaReservada: Mesa = {
+      ...mesa,
+      ocupada: true,
+      ocupanteNaData: { id: 7, nome: "Pessoa Teste", email: "pessoa@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector("button.mesa").click();
+    fixture.detectChanges();
+
+    http.expectOne(request =>
+      request.url.startsWith("/api/reservas/minhas?"),
+    ).flush([{
+      id: 92,
+      usuarioId: 7,
+      status: "CONFIRMADA",
+      data: fixture.componentInstance.reserva.data(),
+      criadaEm: "2026-11-05T08:00:00",
+      criador: { id: 1, nome: "Admin", perfil: "ADMIN" },
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+    }]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".botao--perigo")).toBeNull();
     expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
-    const busca = fixture.nativeElement.querySelector("#solicitante-busca") as HTMLInputElement;
-    expect(busca.getAttribute("aria-label")).toBe("Buscar por nome ou e-mail");
-    expect(fixture.nativeElement.querySelector('label[for="solicitante-busca"]')).toBeNull();
-    busca.value = "responsavel";
-    busca.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  it("permite ao administrador cancelar a reserva de outro usuário", () => {
+    TestBed.inject(AuthService).sessao.set({
+      token: "teste",
+      tipo: "Bearer",
+      usuario: {
+        id: 1,
+        nome: "Admin",
+        email: "admin@example.com",
+        perfil: "ADMIN",
+      },
+    });
+    const mesaReservada: Mesa = {
+      ...mesa,
+      ocupada: true,
+      ocupanteNaData: { id: 8, nome: "Outra Pessoa", email: "outra@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    await vi.advanceTimersByTimeAsync(250);
-    const pessoa = { id: 8, nome: "Pessoa Responsável", email: "responsavel@example.com", perfil: "USUARIO", ativo: true };
-    http.expectOne(request => request.url === "/api/admin/usuarios/busca"
-      && request.params.get("termo") === "responsavel").flush([pessoa]);
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector(".solicitante-busca__opcao") as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(confirmar.disabled).toBe(false);
-    confirmar.click();
-    fixture.detectChanges();
-    http.expectNone("/api/admin/mesas/44/fixar");
-    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
-    expect(dialogo.open).toBe(true);
-    expect(dialogo.textContent).toContain("Pessoa Responsável");
-    const salvar = dialogo.querySelector(".fixacao-dialogo__acoes button:last-child") as HTMLButtonElement;
-    salvar.click();
-    const request = http.expectOne("/api/admin/mesas/44/fixar");
-    expect(request.request.body).toEqual({ usuarioId: 8 });
-    request.flush({ detail: "Mesa já está fixa." }, { status: 409, statusText: "Conflict" });
-    fixture.detectChanges();
-    expect(dialogo.querySelector("[role='alert']")?.textContent).toContain("Mesa já está fixa.");
-    expect(dialogo.open).toBe(true);
-    expect(fixture.componentInstance.mesaNoPainel()?.tipo).toBe("LIVRE");
-    salvar.click();
-    const fixa = { ...mesa, tipo: "FIXA", responsavel: pessoa };
-    http.expectOne("/api/admin/mesas/44/fixar").flush(fixa);
-    fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([fixa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector(".detalhes__informacoes")?.textContent).toContain("Pessoa Responsável");
-    expect(fixture.componentInstance.mesaNoPainel()?.tipo).toBe("FIXA");
-    expect((fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement).checked).toBe(true);
-    expect(dialogo.open).toBe(false);
-    expect(TestBed.inject(ToastService).toasts().at(-1)?.titulo).toBe("Mesa fixada com sucesso.");
-    http.expectNone("/api/reservas");
-  });
+    fixture.nativeElement.querySelector("button.mesa").click();
+    fixture.detectChanges();
 
-  it("preserva o solicitante ao ligar e desligar o switch e o utiliza para fixar", () => {
-    autenticarAdmin();
-    const fixture = abrir();
-    const pessoa = { id: 8, nome: "Pessoa Solicitante", email: "pessoa@example.com", perfil: "USUARIO", ativo: true };
-    fixture.componentInstance.selecionarSolicitante(pessoa);
+    http.expectOne(request => request.url.startsWith("/api/admin/reservas?")).flush([{
+      id: 93,
+      usuarioId: 8,
+      status: "CONFIRMADA",
+      data: fixture.componentInstance.reserva.data(),
+      criadaEm: "2026-11-05T08:00:00",
+      criador: { id: 1, nome: "Admin", perfil: "ADMIN" },
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+    }]);
     fixture.detectChanges();
-    const controle = fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement;
-    for (let clique = 0; clique < 3; clique++) {
-      controle.click();
-      fixture.detectChanges();
-      expect(fixture.componentInstance.solicitanteSelecionado()).toEqual(pessoa);
-      expect(fixture.nativeElement.querySelector(".solicitante-selecionado")?.textContent)
-        .toContain(pessoa.nome);
-      expect(fixture.nativeElement.querySelector("#solicitante-busca")).toBeNull();
-    }
-    (fixture.nativeElement.querySelector(".confirmar-fixacao") as HTMLButtonElement).click();
-    fixture.detectChanges();
-    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
-    expect(dialogo.textContent).toContain(pessoa.nome);
-    (dialogo.querySelector("button:last-child") as HTMLButtonElement).click();
-    const request = http.expectOne("/api/admin/mesas/44/fixar");
-    expect(request.request.body).toEqual({ usuarioId: pessoa.id });
-    request.flush({ ...mesa, tipo: "FIXA", responsavel: pessoa });
-    fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([{ ...mesa, tipo: "FIXA", responsavel: pessoa }]);
-    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
-    fixture.detectChanges();
-  });
-
-  it("cancela a fixação pelo popup sem alterar a mesa nem fechar os detalhes", () => {
-    autenticarAdmin();
-    const fixture = abrir({ ...mesa, tipo: "FIXA" });
-    const controle = fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement;
-    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
-    controle.click();
-    fixture.detectChanges();
-    (dialogo.querySelector("button") as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(dialogo.open).toBe(false);
-    expect(controle.checked).toBe(true);
-    expect(fixture.componentInstance.detalhesAbertos()).toBe(true);
-    controle.click();
-    fixture.detectChanges();
-    const evento = new Event("cancel", { cancelable: true });
-    dialogo.dispatchEvent(evento);
-    fixture.detectChanges();
-    expect(evento.defaultPrevented).toBe(true);
-    expect(dialogo.open).toBe(false);
-    expect(controle.checked).toBe(true);
-    expect(fixture.componentInstance.detalhesAbertos()).toBe(true);
-    http.expectNone("/api/admin/mesas/44/desfixar");
-  });
-
-  it.each(["LIVRE", "FIXA"] as const)("fecha os detalhes e limpa a seleção ao clicar novamente na mesa %s", tipo => {
-    const fixture = abrir({ ...mesa, tipo });
-    const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
-    expect(botao.classList.contains("selecionada")).toBe(true);
-    botao.click();
-    fixture.detectChanges();
-    expect(fixture.componentInstance.detalhesAbertos()).toBe(false);
-    expect(fixture.componentInstance.mesaNoPainel()).toBeNull();
-    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-    expect(botao.classList.contains("selecionada")).toBe(false);
-    botao.click();
-    fixture.detectChanges();
-    expect(fixture.componentInstance.detalhesAbertos()).toBe(true);
-    expect(botao.classList.contains("selecionada")).toBe(true);
-    http.expectNone("/api/reservas");
-  });
-
-  it("mostra status cinza para mesa inativa sem aplicar cores de livre ou reservada", () => {
-    const fixture = abrir({ ...mesa, ativa: false });
-    const status = fixture.nativeElement.querySelector(".detalhes__status") as HTMLElement;
-    expect(status.classList.contains("detalhes__status--inativa")).toBe(true);
-    expect(status.classList.contains("detalhes__status--reservada")).toBe(false);
-    expect(status.classList.contains("detalhes__status--disponivel")).toBe(false);
+    expect(fixture.nativeElement.querySelector(".botao--perigo")).not.toBeNull();
   });
 
   it("permite limpar a seleção sem enviar reserva", () => {
@@ -532,7 +509,7 @@ describe("Barra de reserva do mapa", () => {
       { id: 9, status: "CONFIRMADA", data: request.request.body.data, mesa, solicitante: { id: 43, nome: "Outra Pessoa", email: "outra@example.com" } },
     );
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
   });

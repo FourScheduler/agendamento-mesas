@@ -127,25 +127,74 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
   });
 
-  it.each(['USUARIO', 'ADMIN'])('informa a mesa vinculada sem falso sucesso para %s', perfil => {
-    const fixture = abrir(perfil);
-    if (perfil === 'ADMIN') {
-      fixture.componentInstance.selecionarSolicitante({ id: 8, nome: 'Outra Pessoa', email: 'outra@teste.com', perfil: 'USUARIO', ativo: true });
-    }
+  it('envia a tentativa para o backend quando o usuário possui mesa fixa', () => {
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+    const fixture = TestBed.createComponent(AgendamentoPage);
+    const mesaFixa: Mesa = {
+      ...mesa,
+      id: 45,
+      codigo: '045',
+      tipo: 'FIXA',
+      responsavel: { id: usuario.id, nome: usuario.nome, email: usuario.email },
+    };
+    http.expectOne('/api/mesas').flush([mesa, mesaFixa]);
+    fixture.componentInstance.onDataChange('2026-10-28');
+    fixture.detectChanges();
+    consulta().flush([mesa]);
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector('.mesa-card') as HTMLElement;
+    expect(card.getAttribute('aria-disabled')).toBe('false');
+    card.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(mesa.id);
     fixture.componentInstance.confirmarReserva();
     const request = http.expectOne('/api/reservas');
-    expect(request.request.body.solicitanteId).toBe(perfil === 'ADMIN' ? 8 : undefined);
-    const detalhe = perfil === 'ADMIN'
-      ? 'Outra Pessoa já possui a mesa fixa 091 vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.'
-      : 'Você já possui a mesa fixa 091 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.';
-    request.flush({ code: 'USUARIO_COM_MESA_FIXA', detail: detalhe, mesa: { id: 91, codigo: '091' } },
-      { status: 409, statusText: 'Conflict' });
+    expect(request.request.body).toEqual({ mesaId: mesa.id, data: '2026-10-28' });
+    request.flush(
+      { detail: 'O solicitante possui uma mesa fixa e não pode realizar reservas.' },
+      { status: 409, statusText: 'Conflict' },
+    );
     fixture.detectChanges();
-    consulta().flush([]);
-    expect(mockToastService.erro).toHaveBeenCalledWith('Reserva não permitida', detalhe);
-    expect(mockToastService.erro).toHaveBeenCalledTimes(1);
-    expect(mockToastService.sucesso).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    consulta().flush([mesa]);
+  });
+
+  it('envia a tentativa administrativa ao backend quando o solicitante possui mesa fixa', () => {
+    TestBed.inject(AuthService).sessao.set({
+      token: 'token',
+      tipo: 'Bearer',
+      usuario: { ...usuario, perfil: 'ADMIN' },
+    });
+    const fixture = TestBed.createComponent(AgendamentoPage);
+    const responsavel = { id: 8, nome: 'João', email: 'joao@example.com' };
+    const mesaFixa: Mesa = {
+      ...mesa,
+      id: 45,
+      codigo: '045',
+      tipo: 'FIXA',
+      responsavel,
+    };
+    http.expectOne('/api/mesas').flush([mesa, mesaFixa]);
+    fixture.componentInstance.onDataChange('2026-10-28');
+    fixture.detectChanges();
+    consulta().flush([mesa]);
+    fixture.detectChanges();
+
+    fixture.componentInstance.solicitanteSelecionado.set(responsavel.id);
+    fixture.componentInstance.selecionarMesa(mesa);
+    fixture.componentInstance.confirmarReserva();
+    const request = http.expectOne('/api/reservas');
+    expect(request.request.body).toEqual({
+      mesaId: mesa.id,
+      data: '2026-10-28',
+      solicitanteId: responsavel.id,
+    });
+    request.flush(
+      { detail: 'O solicitante possui uma mesa fixa e não pode realizar reservas.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+    fixture.detectChanges();
+    consulta().flush([mesa]);
   });
 
   it('encerra a sessão e retorna ao login quando a confirmação recebe 401', () => {
@@ -194,6 +243,22 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.mesaSelecionada()?.id).toBe(44);
     expect(card.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('fecha o resumo e limpa a seleção sem confirmar a reserva', () => {
+    const fixture = abrir();
+    const fechar = fixture.nativeElement.querySelector(
+      'button[aria-label="Fechar resumo da reserva"]',
+    ) as HTMLButtonElement;
+
+    expect(fechar).not.toBeNull();
+    expect(fechar.disabled).toBe(false);
+    fechar.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.resumo-reserva')).toBeNull();
+    http.expectNone('/api/reservas');
   });
 
   it('alterna a seleção da mesa pelo teclado', () => {

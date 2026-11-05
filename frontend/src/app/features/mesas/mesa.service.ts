@@ -16,4 +16,10 @@ export class MesaService {
   listar() {
     return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas`);
   }
+
+  listarComOcupacao(data: string) {
+    return this.http.get<readonly Mesa[]>(`${environment.apiUrl}/mesas/com-ocupacao`, {
+      params: { data },
+    });
+  }
 }

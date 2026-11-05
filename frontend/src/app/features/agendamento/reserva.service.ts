@@ -4,10 +4,13 @@ import { environment } from '../../../environments/environment';
 import { Reserva, ReservaConfirmada } from './reserva';
 import { Mesa } from '../mesas/mesa';
 import { UsuarioAdminResumo } from '../../core/auth/auth.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { map } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class ReservaService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
   listarMinhas(params?: { status?: string; data?: string; dataInicio?: string; dataFim?: string }) {
     const searchParams = new URLSearchParams();
@@ -50,5 +53,14 @@ export class ReservaService {
 
   cancelar(id: number) {
     return this.http.patch<Reserva>(`${environment.apiUrl}/reservas/${id}/cancelamento`, {});
+  }
+
+  /** Busca a reserva do usuário atual (ou de qualquer usuário se admin) para uma mesa e data específicas. */
+  buscarReservaPorMesaEData(mesaId: number, data: string) {
+    const isAdmin = this.auth.usuario()?.perfil === 'ADMIN';
+    const lista$ = isAdmin ? this.listarTodas({ data }) : this.listarMinhas({ data });
+    return lista$.pipe(
+      map(reservas => reservas.find(r => r.mesa.id === mesaId && r.status !== 'CANCELADA') ?? null)
+    );
   }
 }

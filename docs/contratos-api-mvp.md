@@ -313,6 +313,8 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
 podem ser criadas se atenderem às demais regras. O bloqueio não cancela reservas
+anteriores. O backend é a validação autoritativa e retorna o motivo do conflito
+em `detail`; a interface o apresenta quando uma tentativa é recusada.
 anteriores. O bloqueio considera qualquer vínculo de responsável, mesmo se o
 tipo da mesa estiver incorretamente marcado como `LIVRE`, até revisão explícita.
 

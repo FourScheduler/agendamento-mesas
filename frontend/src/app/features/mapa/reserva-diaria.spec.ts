@@ -53,8 +53,12 @@ describe('Reserva diária pela planta', () => {
     }
   });
 
-  function carregar(disponiveis: readonly Mesa[] = [mesa], data = '2026-10-28') {
-    http.expectOne('/api/mesas').flush([mesa]);
+  function carregar(
+    disponiveis: readonly Mesa[] = [mesa],
+    data = '2026-10-28',
+    endpoint = '/api/mesas/com-ocupacao',
+  ) {
+    http.expectOne(r => r.url === endpoint).flush([mesa]);
     const consulta = http.expectOne(r => r.url === '/api/mesas/disponiveis');
     expect(consulta.request.params.get('data')).toBe(data);
     consulta.flush(disponiveis);
@@ -109,7 +113,7 @@ describe('Reserva diária pela planta', () => {
       const fixture = TestBed.createComponent(AgendamentoPage);
       TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
       fixture.detectChanges();
-      carregar([mesa], '2026-11-02');
+      carregar([mesa], '2026-11-02', '/api/mesas');
       fixture.detectChanges();
       await fixture.whenStable();
       expect(fixture.componentInstance.reserva.data()).toBe('2026-11-02');
@@ -120,7 +124,7 @@ describe('Reserva diária pela planta', () => {
 
   it('envia só mesa e data, bloqueia duplo clique e só exibe sucesso após resposta', async () => {
     const fixture = abrir();
-    expect(fixture.nativeElement.querySelector('.detalhes').textContent).toContain('28/10/2026');
+    expect(fixture.componentInstance.reserva.data()).toBe('2026-10-28');
     expect(fixture.nativeElement.querySelector('.detalhes').textContent).toContain('Maria');
     fixture.nativeElement.querySelector('.confirmar').click();
     fixture.componentInstance.reserva.confirmar();
@@ -227,7 +231,7 @@ describe('Reserva diária pela planta', () => {
     const fixture = abrir();
     alterarCampo(fixture, '2026-10-29');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([mesa]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
@@ -239,7 +243,7 @@ describe('Reserva diária pela planta', () => {
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
     fixture.componentInstance.reserva.alterarData('2026-10-28');
     fixture.detectChanges();
-    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([mesa]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa')).toBeNull();
     http.expectOne(r => r.url === '/api/mesas/disponiveis').flush({ detail: 'Data inválida.' }, { status: 400, statusText: 'Bad Request' });
@@ -292,7 +296,7 @@ describe('Reserva diária pela planta', () => {
   it('cancela respostas anteriores ao alterar rapidamente a data pelo campo', () => {
     const fixture = abrir();
     alterarCampo(fixture, '2026-10-29');
-    const catalogoAntigo = http.expectOne('/api/mesas');
+    const catalogoAntigo = http.expectOne(r => r.url === '/api/mesas/com-ocupacao');
     const antiga = http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29');
     alterarCampo(fixture, '2026-10-30');
     expect(antiga.cancelled).toBe(true);
@@ -303,7 +307,7 @@ describe('Reserva diária pela planta', () => {
     fixture.componentInstance.reserva.confirmar();
     http.expectNone('/api/reservas');
     expect(fixture.componentInstance.reserva.disponibilidadeAtual()).toBe(false);
-    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-30').flush([]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-disabled')).toBe('true');
@@ -330,7 +334,7 @@ describe('Reserva diária pela planta', () => {
     fixture.componentInstance.onMesaSelecionada({ mesa, disponivel: true });
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     fixture.detectChanges();
-    http.expectOne('/api/mesas').flush([mesa]);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([mesa]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis').flush({}, { status: 503, statusText: 'Service Unavailable' });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Não foi possível carregar a disponibilidade');
