@@ -73,6 +73,21 @@ public class ReservaApiTests {
     }
 
     @Test
+    void bloqueiaFinaisDeSemanaParaUsuarioEAdministradorSemPersistirReserva() throws Exception {
+        for (var usuario : List.of(maria, admin)) {
+            for (var data : List.of("2026-10-31", "2026-11-01")) {
+                mvc.perform(post("/api/reservas")
+                        .header("Authorization", "Bearer " + jwt.gerarToken(usuario))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"" + data + "\"}"))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.detail").value("Reservas são permitidas apenas de segunda a sexta."));
+            }
+        }
+        assertThat(reservas.contar()).isZero();
+    }
+
+    @Test
     void confirmaAutoriaDoTokenMesmoComRequestManipuladoEPersisteAntesDoSucesso() throws Exception {
         mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
                 .contentType(MediaType.APPLICATION_JSON)

@@ -140,7 +140,7 @@ export class PlantaMesas {
 
   iniciarArraste(event: PointerEvent) {
     if (event.pointerType === 'touch' || this.arraste || event.button !== 0 || !(event.target instanceof HTMLElement)
-      || event.target.closest('button:not(.mesa.fixa)')) return;
+      || event.target.closest('button')) return;
     const viewport = this.viewport().nativeElement;
     this.arraste = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft,
       top: viewport.scrollTop, pointerId: event.pointerId };

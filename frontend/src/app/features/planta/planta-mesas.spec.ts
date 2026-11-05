@@ -108,20 +108,21 @@ describe("PlantaMesas", () => {
     expect(buttons.length).toBe(3);
     expect(buttons[0].style.left).toBe("123px");
     expect(buttons[0].style.top).toBe("87px");
-    expect(buttons[0].getAttribute("aria-disabled")).toBe("false");
     expect(buttons[1].disabled).toBe(false);
-    expect(buttons[1].getAttribute("aria-disabled")).toBe("true");
     expect(buttons[2].disabled).toBe(false);
-    expect(buttons[2].getAttribute("aria-disabled")).toBe("true");
+    expect(buttons[1].getAttribute('aria-disabled')).toBe('true');
+    expect(buttons[2].getAttribute('aria-disabled')).toBe('true');
     const emit = vi.fn();
     fixture.componentInstance.mesaSelecionada.subscribe(emit);
     buttons[0].click();
-    fixture.componentInstance.selecionar(mesas[1]);
-    fixture.componentInstance.selecionar(mesas[2]);
-    expect(emit).toHaveBeenNthCalledWith(1, { mesa: mesas[0], disponivel: true });
-    expect(emit).toHaveBeenNthCalledWith(2, { mesa: mesas[1], disponivel: false });
-    expect(emit).toHaveBeenNthCalledWith(3, { mesa: mesas[2], disponivel: false });
-    expect(fixture.componentInstance.selecionada()).toBe(117);
+    buttons[1].click();
+    buttons[2].click();
+    expect(emit.mock.calls).toEqual([
+      [{ mesa: mesas[0], disponivel: true }],
+      [{ mesa: mesas[1], disponivel: false }],
+      [{ mesa: mesas[2], disponivel: false }],
+    ]);
+    expect(fixture.componentInstance.selecionada()).toBe(mesas[2].id);
   });
 
   it("mantém a geometria de Tamboré com entrada e parede sem duplicar mesas", () => {
@@ -495,15 +496,14 @@ describe("PlantaMesas", () => {
     expect(componente.arrastando()).toBe(false);
     const mesaFixa = document.createElement('button');
     mesaFixa.className = 'mesa fixa';
-    mesaFixa.disabled = true;
     viewport.appendChild(mesaFixa);
     viewport.scrollLeft = 100;
     viewport.scrollTop = 200;
     mesaFixa.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse', button: 0, pointerId: 3, clientX: 50, clientY: 60 }));
-    expect(componente.arrastando()).toBe(true);
+    expect(componente.arrastando()).toBe(false);
     viewport.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX: 30, clientY: 20 }));
-    expect(viewport.scrollLeft).toBe(120);
-    expect(viewport.scrollTop).toBe(240);
+    expect(viewport.scrollLeft).toBe(100);
+    expect(viewport.scrollTop).toBe(200);
     viewport.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3 }));
     expect(componente.arrastando()).toBe(false);
   });

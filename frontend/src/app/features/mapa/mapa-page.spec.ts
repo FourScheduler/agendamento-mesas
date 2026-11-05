@@ -8,6 +8,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter, Router } from "@angul
 import { AuthService } from "../../core/auth/auth.service";
 import { MapaPage } from "./mapa-page";
 import { Mesa } from "../mesas/mesa";
+import { ToastService } from "../../shared/toast/toast";
 
 const mesa: Mesa = {
   id: 44,
@@ -52,17 +53,27 @@ describe("Barra de reserva do mapa", () => {
     vi.useRealTimers();
   });
 
-  function abrir() {
+  function abrir(mesaExibida: Mesa = mesa) {
     const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
     http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
-      .flush([mesa]);
+      .flush(mesaExibida.tipo === "LIVRE" ? [mesaExibida] : []);
     fixture.detectChanges();
+    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
+    dialogo.showModal = vi.fn(() => dialogo.setAttribute("open", ""));
+    dialogo.close = vi.fn(() => dialogo.removeAttribute("open"));
     fixture.nativeElement.querySelector("button.mesa").click();
     fixture.detectChanges();
     return fixture;
+  }
+
+  function autenticarAdmin() {
+    TestBed.inject(AuthService).sessao.set({
+      token: "teste", tipo: "Bearer",
+      usuario: { id: 1, nome: "Admin", email: "admin@example.com", perfil: "ADMIN" },
+    });
   }
 
   it("rola até a mesa recebida do agendamento e mantém o destaque sem abrir o modal", () => {
@@ -132,9 +143,14 @@ describe("Barra de reserva do mapa", () => {
     expect(fixture.nativeElement.querySelector(".page-header")).toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__cabecalho #data-reserva")).not.toBeNull();
     const atualizar = fixture.nativeElement.querySelector("#atualizar-disponibilidade") as HTMLButtonElement;
-    expect(atualizar.textContent?.trim()).toBe("Atualizar");
+    expect(atualizar.textContent?.trim()).toBe("");
+    expect(atualizar.getAttribute("aria-label")).toBe("Atualizar disponibilidade");
     expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
+    const itensLegenda = fixture.nativeElement.querySelectorAll(".legenda__itens li:not(.legenda__visibilidade)") as NodeListOf<HTMLElement>;
+    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada", "Inativa"]);
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--ocupada")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--inativa")).not.toBeNull();
     const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
     expect(tooltip.getAttribute("role")).toBe("tooltip");
     expect(getComputedStyle(tooltip).visibility).toBe("hidden");
@@ -155,6 +171,7 @@ describe("Barra de reserva do mapa", () => {
     expect(resumo.getAttribute("aria-modal")).toBeNull();
     expect(resumo.textContent).toContain("Mesa 044");
     expect(resumo.textContent).toContain("Disponível");
+    expect(resumo.querySelector(".detalhes__status--disponivel")).not.toBeNull();
     expect(resumo.textContent).toContain("Data selecionada");
     expect(resumo.querySelector(".detalhes__informacoes")).not.toBeNull();
     expect(resumo.querySelector("details")).toBeNull();
@@ -162,6 +179,8 @@ describe("Barra de reserva do mapa", () => {
       "Pessoa Teste",
     );
     const confirmar = resumo.querySelector(".confirmar") as HTMLButtonElement;
+    expect(confirmar.textContent.trim()).toBe("Confirmar");
+    expect(confirmar.closest("footer")?.classList.contains("detalhes__rodape")).toBe(true);
     expect(confirmar.disabled).toBe(false);
     confirmar.click();
     fixture.detectChanges();
@@ -183,6 +202,7 @@ describe("Barra de reserva do mapa", () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector(".detalhes__status")?.textContent)
       .toContain("Indisponível nesta data");
+    expect(fixture.nativeElement.querySelector(".detalhes__status--reservada")).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
     expect(fixture.componentInstance.reserva.erro()).toBe(
       "Reserva indisponível.",
@@ -219,6 +239,13 @@ describe("Barra de reserva do mapa", () => {
     expect(fixture.nativeElement.querySelector(".mapa__viewport")).not.toBeNull();
     expect(botaoMesaFixa.classList.contains("selecionada")).toBe(true);
     expect(fixture.nativeElement.querySelector(".detalhes")?.textContent).toContain("Mesa fixa");
+    const detalhes = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
+    expect(detalhes.textContent).toContain("Localização");
+    expect(detalhes.textContent).toContain("Data selecionada");
+    expect(detalhes.textContent).toContain("Reservado para");
+    expect(detalhes.textContent).toContain("Pessoa Responsável");
+    expect(detalhes.querySelector(".detalhes__status--reservada")).not.toBeNull();
+    expect(detalhes.querySelector('[role="switch"]')).toBeNull();
     expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     http.expectNone("/api/reservas");
@@ -386,6 +413,29 @@ describe("Barra de reserva do mapa", () => {
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     expect(fixture.nativeElement.querySelector(".mesa.selecionada")).toBeNull();
     http.expectNone("/api/reservas");
+  });
+
+  it("acomoda solicitante com nome e e-mail longos na largura completa do painel", () => {
+    autenticarAdmin();
+    const fixture = abrir();
+    const nome = "Pessoa com nome completo muito extenso para o painel de detalhes";
+    const email = "endereco.muito.longo.sem.espacos.para.verificar.responsividade@example.com";
+    fixture.componentInstance.selecionarSolicitante({
+      id: 8, nome, email, perfil: "USUARIO", ativo: true,
+    });
+    fixture.detectChanges();
+    const solicitante = fixture.nativeElement.querySelector(".detalhes__solicitante") as HTMLElement;
+    expect(getComputedStyle(solicitante).gridColumn).toBe("1 / -1");
+    for (const [seletor, texto] of [
+      [".solicitante-selecionado__nome", nome],
+      [".solicitante-selecionado__email", email],
+    ]) {
+      const campo = solicitante.querySelector(seletor) as HTMLElement;
+      expect(campo.textContent).toBe(texto);
+      expect(getComputedStyle(campo).overflowWrap).toBe("anywhere");
+    }
+    expect(getComputedStyle(solicitante.querySelector(".solicitante-selecionado")!).gridTemplateColumns)
+      .toBe("auto minmax(0, 1fr)");
   });
 
   it("permite ao administrador escolher outro solicitante na busca e envia o ID", async () => {

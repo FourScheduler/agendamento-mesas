@@ -9,10 +9,13 @@
     <div class="filtro-data__linha">
       <div class="filtro-campo">
         <label class="filtro-data__rotulo" for="data-reserva">Data da reserva</label>
+        <app-calendario-reserva [data]="dataSelecionada()" [minima]="todayISO" [maxima]="maxDateISO"
+          [desabilitado]="confirmando()" (dataSelecionada)="onDataChange($event)">
         <input
           class="filtro-data__entrada"
           id="data-reserva"
           type="date"
+          readonly aria-haspopup="dialog"
           [ngModel]="dataSelecionada()"
           (ngModelChange)="onDataChange($event)"
           [min]="todayISO"
@@ -22,6 +25,7 @@
           aria-describedby="erro-data"
           required
         />
+        </app-calendario-reserva>
         @if (reserva.erroData()) {
           <p id="erro-data" class="filtro-data__erro" role="alert">{{ reserva.erroData() }}</p>
         }

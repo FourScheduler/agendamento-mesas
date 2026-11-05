@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
 import { provideRouter, Router } from '@angular/router';
 import { ToastService } from '../../shared/toast/toast';
+import { AgendamentoPage } from '../agendamento/agendamento-page';
 
 const mesa: Mesa = {
   id: 44, codigo: '044', regiao: 'DEMO', tipo: 'LIVRE', ativa: true,
@@ -79,6 +80,43 @@ describe('Reserva diária pela planta', () => {
     campo.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
   }
+
+  it.each(['2026-10-31T12:00:00Z', '2026-11-01T12:00:00Z'])(
+    'abre o mapa no próximo dia útil em %s e mantém essa data após reservar', instante => {
+      vi.setSystemTime(new Date(instante));
+      const fixture = TestBed.createComponent(MapaPage);
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-02');
+      fixture.detectChanges();
+      expect(fixture.componentInstance.reserva.data()).toBe('2026-11-02');
+      expect(fixture.componentInstance.reserva.erroData()).toBe('');
+      fixture.nativeElement.querySelector('.mesa').click();
+      fixture.detectChanges();
+      fixture.nativeElement.querySelector('.confirmar').click();
+      http.expectOne('/api/reservas').flush({ id: 1 });
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-02');
+      fixture.detectChanges();
+      expect(fixture.componentInstance.reserva.data()).toBe('2026-11-02');
+      expect(fixture.componentInstance.reserva.erroData()).toBe('');
+    },
+  );
+
+  it.each(['2026-10-31T12:00:00Z', '2026-11-01T12:00:00Z'])(
+    'abre o agendamento no próximo dia útil em %s', async instante => {
+      vi.setSystemTime(new Date(instante));
+      const fixture = TestBed.createComponent(AgendamentoPage);
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-02');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(fixture.componentInstance.reserva.data()).toBe('2026-11-02');
+      expect(fixture.componentInstance.reserva.erroData()).toBe('');
+      expect((fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement).value).toBe('2026-11-02');
+    },
+  );
 
   it('envia só mesa e data, bloqueia duplo clique e só exibe sucesso após resposta', async () => {
     const fixture = abrir();

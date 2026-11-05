@@ -11,11 +11,12 @@ import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { Mesa } from '../mesas/mesa';
 import { Notificacao } from '../../shared/notificacao/notificacao';
 import { ReservaService } from './reserva.service';
+import { CalendarioReserva } from '../reservas/calendario-reserva';
 
 @Component({
   selector: 'app-agendamento-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Notificacao],
+  imports: [CommonModule, FormsModule, Notificacao, CalendarioReserva],
   providers: [ReservaDiaria],
   templateUrl: './agendamento-page.html',
   styleUrl: './agendamento-page.css',

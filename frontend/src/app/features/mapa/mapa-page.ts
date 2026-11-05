@@ -1,4 +1,5 @@
-import { Component, computed, DestroyRef, ElementRef, afterNextRender, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -18,7 +19,7 @@ import { Reserva } from '../agendamento/reserva';
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao],
+  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao, CalendarioReserva],
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
@@ -32,6 +33,9 @@ export class MapaPage {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly reservas = inject(ReservaService);
+  private readonly adminMesas = inject(AdminMesaService);
+  private readonly toast = inject(ToastService);
+  private readonly dialogoFixacao = viewChild.required<ElementRef<HTMLDialogElement>>('dialogoFixacao');
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
@@ -44,6 +48,10 @@ export class MapaPage {
   readonly reservaDoPainel = signal<Reserva | null>(null);
   readonly carregandoReservaDoPainel = signal(false);
   readonly detalhesAbertos = signal(false);
+  readonly fixacaoPretendida = signal<boolean | null>(null);
+  readonly enviandoFixacao = signal(false);
+  readonly erroFixacao = signal('');
+  readonly sucessoFixacao = signal('');
   readonly formatarData = formatarData;
   readonly buscaSolicitante = signal('');
   readonly solicitanteFocado = signal(false);
@@ -63,12 +71,6 @@ export class MapaPage {
   private reservaPainelRequest = 0;
 
   constructor() {
-    afterNextRender(() => {
-      const pagina = this.elemento.nativeElement.ownerDocument.scrollingElement;
-      if (pagina) {
-        pagina.scrollTop += this.elemento.nativeElement.getBoundingClientRect().top;
-      }
-    });
     const usuarioAtual = this.usuario();
     if (this.isAdmin() && usuarioAtual) {
       this.solicitanteSelecionado.set({ ...usuarioAtual, ativo: true });
@@ -100,6 +102,12 @@ export class MapaPage {
   }
 
   onMesaSelecionada(selecao: { readonly mesa: Mesa; readonly disponivel: boolean }) {
+    if (this.enviandoFixacao() || this.reserva.confirmando()) return;
+    if (this.detalhesAbertos() && this.mesaNoPainel()?.id === selecao.mesa.id) {
+      this.fecharDetalhes();
+      return;
+    }
+    this.limparFixacao();
     const { mesa, disponivel } = selecao;
     this.mesaNoPainel.set(mesa);
     this.carregarReservaDoPainel(mesa);
@@ -167,6 +175,72 @@ export class MapaPage {
     this.invalidarBuscaReservaDoPainel();
     this.mesaInicialId.set(null);
     this.reserva.limparSelecao();
+    this.limparFixacao();
+  }
+
+  alterarFixacao() {
+    const mesa = this.mesaNoPainel();
+    if (!this.isAdmin() || !mesa || !mesa.ativa || this.enviandoFixacao() || this.reserva.confirmando()) return;
+    const fixar = !(this.fixacaoPretendida() ?? mesa.tipo === 'FIXA');
+    this.fixacaoPretendida.set(fixar === (mesa.tipo === 'FIXA') ? null : fixar);
+    this.erroFixacao.set('');
+    this.sucessoFixacao.set('');
+    if (!fixar && this.fixacaoPretendida() !== null) this.abrirConfirmacaoFixacao();
+  }
+
+  abrirConfirmacaoFixacao() {
+    if (this.fixacaoPretendida() === null || this.enviandoFixacao()
+      || (this.fixacaoPretendida() && !this.solicitanteSelecionado())) return;
+    this.dialogoFixacao().nativeElement.showModal();
+  }
+
+  cancelarFixacao(event?: Event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (this.enviandoFixacao()) return;
+    this.dialogoFixacao().nativeElement.close();
+    this.fixacaoPretendida.set(null);
+    this.erroFixacao.set('');
+  }
+
+  confirmarFixacao() {
+    const mesa = this.mesaNoPainel();
+    const fixar = this.fixacaoPretendida();
+    if (!this.isAdmin() || !mesa || fixar === null || !this.dialogoFixacao().nativeElement.open
+      || this.enviandoFixacao() || this.reserva.confirmando()) return;
+    const usuarioId = this.solicitanteSelecionado()?.id;
+    if (fixar && !usuarioId) {
+      this.erroFixacao.set('Selecione um usuário ativo para fixar a mesa.');
+      return;
+    }
+    this.enviandoFixacao.set(true);
+    this.erroFixacao.set('');
+    const operacao = fixar && usuarioId !== undefined
+      ? this.adminMesas.fixarMesa(mesa.id, { usuarioId })
+      : this.adminMesas.desfixarMesa(mesa.id);
+    operacao.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: atualizada => {
+        this.mesaNoPainel.set({ ...mesa, ...atualizada });
+        this.enviandoFixacao.set(false);
+        this.fixacaoPretendida.set(null);
+        this.sucessoFixacao.set(fixar ? 'Mesa fixada com sucesso.' : 'Mesa desfixada com sucesso.');
+        this.dialogoFixacao().nativeElement.close();
+        this.toast.sucesso(this.sucessoFixacao());
+        this.mesaInicialId.set(null);
+        this.reserva.atualizarDisponibilidade();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.enviandoFixacao.set(false);
+        this.erroFixacao.set(typeof erro.error?.detail === 'string'
+          ? erro.error.detail : 'Não foi possível alterar a fixação da mesa. Tente novamente.');
+      },
+    });
+  }
+
+  private limparFixacao() {
+    this.fixacaoPretendida.set(null);
+    this.erroFixacao.set('');
+    this.sucessoFixacao.set('');
   }
 
   podeReservar(mesa: Mesa): boolean {
@@ -240,7 +314,7 @@ export class MapaPage {
   }
 
   trocarSolicitante() {
-    if (this.reserva.confirmando()) return;
+    if (this.reserva.confirmando() || this.enviandoFixacao()) return;
 
     this.solicitanteSelecionado.set(null);
     this.editandoSolicitante.set(true);
