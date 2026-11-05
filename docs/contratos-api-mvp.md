@@ -436,6 +436,30 @@ não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação
 
 Exigem perfil `ADMIN`. Usuário comum recebe `403`.
 
+Nas cinco rotas `PATCH /api/admin/mesas/{id}/...`, as respostas de sucesso
+continuam sendo `200` com `MesaResponse`. Os erros preservam o formato padrão
+(`type`, `title`, `status`, `detail`, `instance`). Sem token válido retorna `401`;
+usuário sem perfil `ADMIN` recebe `403` antes da leitura do corpo. Mesa inexistente
+com uma entrada válida retorna `404`.
+
+O serializador de `ProblemDetail` pode omitir `type` quando seu valor padrão é
+`about:blank`; a ausência tem esse mesmo significado. As respostas de segurança
+incluem esse campo explicitamente.
+
+Erros de leitura do corpo dessas rotas retornam `400` com orientação específica
+quando o campo é identificado: `Campo 'usuarioId' deve ser um inteiro positivo.`,
+`Campo 'tipo' deve ser FIXA ou LIVRE.` ou `Campo 'ativa' deve ser true ou false.`
+Corpo ausente, `null`, estrutura incompatível ou JSON malformado sem campo
+identificável retorna `Corpo JSON ausente ou inválido. Verifique os campos e os
+tipos dos valores enviados.` Desfixar não exige corpo.
+
+Os campos ausentes ou `null` mantêm as validações do service: `usuarioId` usa a
+mensagem de inteiro positivo; `tipo` e `ativa` retornam, respectivamente,
+`Campo 'tipo' é obrigatório.` e `Campo 'ativa' é obrigatório.` ID de rota que não
+pode ser convertido em inteiro retorna `400`: `Campo 'id' deve ser um inteiro.`
+Usuário inexistente ou inativo na atribuição retorna `404`. Recusas não alteram
+tipo, ativação, ocupante, responsável nem os demais dados da mesa.
+
 Fixação, nova atribuição/troca de responsável e alteração de tipo para `FIXA`
 recusam mesas com reservas `PENDENTE`/`CONFIRMADA` de hoje em diante (`409`):
 `Mesa 044 possui reservas não canceladas de hoje em diante. Revise as reservas antes de alterar a mesa.`
@@ -631,7 +655,8 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 
 | Status | Situação | Exemplo de `detail` |
 | --- | --- | --- |
-| `400` | `tipo` ausente ou diferente de `FIXA`/`LIVRE`. | `Campo 'tipo' deve ser FIXA ou LIVRE.` |
+| `400` | `tipo` ausente ou `null`. | `Campo 'tipo' é obrigatório.` |
+| `400` | `tipo` inválido. | `Campo 'tipo' deve ser FIXA ou LIVRE.` |
 | `401` | Sem ou com token inválido. | |
 | `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
 | `404` | Mesa inexistente. | `Mesa 999 não encontrada.` |
