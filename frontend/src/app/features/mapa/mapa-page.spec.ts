@@ -61,7 +61,7 @@ describe("Barra de reserva do mapa", () => {
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
       .flush(mesaExibida.tipo === "LIVRE" ? [mesaExibida] : []);
     fixture.detectChanges();
-    const dialogo = fixture.nativeElement.querySelector("dialog") as HTMLDialogElement;
+    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
     dialogo.showModal = vi.fn(() => dialogo.setAttribute("open", ""));
     dialogo.close = vi.fn(() => dialogo.removeAttribute("open"));
     fixture.nativeElement.querySelector("button.mesa").click();
@@ -266,7 +266,7 @@ describe("Barra de reserva do mapa", () => {
     controle.click();
     fixture.detectChanges();
     http.expectNone("/api/admin/mesas/44/desfixar");
-    const dialogo = fixture.nativeElement.querySelector("dialog") as HTMLDialogElement;
+    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
     expect(dialogo.open).toBe(true);
     expect(dialogo.textContent).toContain("Confirmar desfixação");
     (dialogo.querySelector(".fixacao-dialogo__acoes button:last-child") as HTMLButtonElement).click();
@@ -323,7 +323,7 @@ describe("Barra de reserva do mapa", () => {
     confirmar.click();
     fixture.detectChanges();
     http.expectNone("/api/admin/mesas/44/fixar");
-    const dialogo = fixture.nativeElement.querySelector("dialog") as HTMLDialogElement;
+    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
     expect(dialogo.open).toBe(true);
     expect(dialogo.textContent).toContain("Pessoa Responsável");
     const salvar = dialogo.querySelector(".fixacao-dialogo__acoes button:last-child") as HTMLButtonElement;
@@ -367,7 +367,7 @@ describe("Barra de reserva do mapa", () => {
     }
     (fixture.nativeElement.querySelector(".confirmar-fixacao") as HTMLButtonElement).click();
     fixture.detectChanges();
-    const dialogo = fixture.nativeElement.querySelector("dialog") as HTMLDialogElement;
+    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
     expect(dialogo.textContent).toContain(pessoa.nome);
     (dialogo.querySelector("button:last-child") as HTMLButtonElement).click();
     const request = http.expectOne("/api/admin/mesas/44/fixar");
@@ -383,7 +383,7 @@ describe("Barra de reserva do mapa", () => {
     autenticarAdmin();
     const fixture = abrir({ ...mesa, tipo: "FIXA" });
     const controle = fixture.nativeElement.querySelector('[role="switch"]') as HTMLInputElement;
-    const dialogo = fixture.nativeElement.querySelector("dialog") as HTMLDialogElement;
+    const dialogo = fixture.nativeElement.querySelector(".fixacao-dialogo") as HTMLDialogElement;
     controle.click();
     fixture.detectChanges();
     (dialogo.querySelector("button") as HTMLButtonElement).click();

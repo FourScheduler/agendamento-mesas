@@ -8,6 +8,17 @@ import org.junit.jupiter.api.Test;
 
 class DataReservaValidatorTests {
     @Test
+    void rejeitaSabadoEDomingoDentroDaJanela() {
+        var relogio = Clock.fixed(Instant.parse("2026-10-26T12:00:00Z"), ZoneId.of("America/Sao_Paulo"));
+        var validator = new DataReservaValidator(relogio);
+        for (var data : new LocalDate[] { LocalDate.of(2026, 10, 31), LocalDate.of(2026, 11, 1) }) {
+            assertThatThrownBy(() -> validator.validar(data))
+                    .isInstanceOf(DadosInvalidosException.class)
+                    .hasMessage("Reservas são permitidas apenas de segunda a sexta.");
+        }
+    }
+
+    @Test
     void hojeEJanelaSaoCalculadosNoFusoDeSaoPaulo() {
         // Em UTC já é terça; em São Paulo ainda é segunda-feira.
         var relogio = Clock.fixed(Instant.parse("2026-10-27T01:30:00Z"), ZoneId.of("America/Sao_Paulo"));

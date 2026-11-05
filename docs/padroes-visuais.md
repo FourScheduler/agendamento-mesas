@@ -101,7 +101,12 @@ visual e a marca, com componentes próprios para seus contratos de API.
   A legenda exibe Livre, Reservada e Inativa, mantendo o botão de olho.
   A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
-  a disponibilidade. No agendamento, clicar novamente na mesa selecionada remove
+  a disponibilidade. O calendário do agendamento e do mapa desabilita sábados, domingos
+  e datas fora da janela para todos os perfis; a API mantém a mesma validação.
+  O calendário abre em popup compacto junto ao campo de data, sem escurecer a página.
+  Ao abrir sem uma data na URL durante sábado ou domingo, a seleção inicial usa
+  a próxima segunda-feira, mantendo esse padrão após confirmar uma reserva.
+  No agendamento, clicar novamente na mesa selecionada remove
   a seleção; Enter e Espaço têm o mesmo comportamento.
   No mapa, selecionar uma mesa abre modal com detalhes já expandidos;
   ao chegar por Ver mapa do agendamento, a mesa fica somente destacada, sem abrir

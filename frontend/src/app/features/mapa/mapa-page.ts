@@ -15,12 +15,13 @@ import { formatarData } from '../reservas/data-reserva';
 import { Notificacao } from '../../shared/notificacao/notificacao';
 import { ReservaService } from '../agendamento/reserva.service';
 import { AdminMesaService } from '../mesas/admin-mesa.service';
+import { CalendarioReserva } from '../reservas/calendario-reserva';
 import { ToastService } from '../../shared/toast/toast';
 
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao],
+  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao, CalendarioReserva],
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',

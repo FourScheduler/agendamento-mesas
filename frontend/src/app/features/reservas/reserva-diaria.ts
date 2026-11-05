@@ -97,7 +97,7 @@ export class ReservaDiaria {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
           this.toast.sucesso('Reserva Confirmada');
-          this.data.set(this.dataMinima);
+          this.data.set(proximoDiaUtil(this.dataMinima));
           this.iniciarConsulta();
           this.sincronizarContexto(null);
           this.atualizarDisponibilidade();
