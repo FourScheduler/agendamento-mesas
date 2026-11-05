@@ -66,6 +66,10 @@ visual e a marca, com componentes próprios para seus contratos de API.
   Arrastar o fundo com mouse move o mapa; no toque, usar a rolagem
   nativa. Arrastar não interfere nos botões de mesa. A planta permanece em vista
   superior 2D, com sombras CSS de relevo sempre ativas e sem controles de modo.
+- Ao selecionar uma mesa, os detalhes aparecem em um painel lateral não modal à
+  direita, mantendo a planta visível e interativa; em telas menores, o painel abre
+  pela base. Mesas indisponíveis também podem ser consultadas, mas não exibem ação
+  de reserva. Fechar pelo botão ou por Escape limpa a seleção sem alterar o zoom.
 - A paleta do mapa usa estruturas azul-acinzentadas.
   Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
   sobre fundo vermelho suave e inativa tracejada.

@@ -286,6 +286,9 @@
 .mesa:disabled {
   cursor: not-allowed;
 }
+.mesa[aria-disabled="true"]:not(:disabled) {
+  cursor: help;
+}
 .mesa.selecionada {
   z-index: 2;
   outline: 3px solid #ff9418;
