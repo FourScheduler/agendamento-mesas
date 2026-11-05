@@ -5,28 +5,28 @@
       <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
       <input id="data-reserva" class="campo__entrada" type="date"
         [ngModel]="reserva.data()" (ngModelChange)="onDataChange($event)"
-        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando()"
+        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando() || enviandoFixacao()"
         [attr.aria-invalid]="reserva.erroData() ? true : null" aria-describedby="erro-data" required />
       @if (reserva.erroData()) {
         <p id="erro-data" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
       }
     </div>
 
-    <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando()">
+    <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando() || enviandoFixacao()">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
       <path d="M19 12H5M12 19l-7-7 7-7" />
     </svg>
     Voltar ao agendamento
   </button>
     <button id="atualizar-disponibilidade" type="button" class="botao" (click)="reserva.atualizarDisponibilidade()"
-      [disabled]="reserva.confirmando() || !reserva.data()">
+      aria-label="Atualizar disponibilidade" title="Atualizar disponibilidade"
+      [disabled]="reserva.confirmando() || enviandoFixacao() || !reserva.data()">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
         <path d="M21 3v5h-5" />
         <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
         <path d="M8 16H3v5" />
       </svg>
-      Atualizar
     </button>
   </section>
   </ng-template>
@@ -55,10 +55,12 @@
           <h2 id="titulo-detalhes">Mesa {{ mesa.codigo }}</h2>
         </div>
         <button class="detalhes__fechar" type="button" aria-label="Fechar detalhes da mesa"
-          (click)="fecharDetalhes()" [disabled]="reserva.confirmando()">&times;</button>
+          (click)="fecharDetalhes()" [disabled]="reserva.confirmando() || enviandoFixacao()">&times;</button>
       </header>
 
-      <div class="detalhes__status" [class.detalhes__status--disponivel]="podeReservar(mesa)">
+      <div class="detalhes__status" [class.detalhes__status--disponivel]="podeReservar(mesa)"
+        [class.detalhes__status--reservada]="mesa.ativa && (mesa.tipo === 'FIXA' || (reserva.disponibilidadeAtual() && !podeReservar(mesa)))"
+        [class.detalhes__status--inativa]="!mesa.ativa">
         <span aria-hidden="true"></span>{{ statusMesa(mesa) }}
       </div>
 
@@ -80,19 +82,21 @@
             <span>Data selecionada</span>
           </dt>
           <dd>{{ formatarData(reserva.data()) }}</dd>
-          @if (mesa.ocupante) {
+          @if (mesa.tipo === 'FIXA') {
+            <dt>Reservado para</dt><dd>{{ mesa.responsavel?.nome || mesa.ocupante || 'Responsável não informado' }}</dd>
+          } @else if (mesa.ocupante) {
             <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
           }
-          @if (podeReservar(mesa)) {
+          @if (podeReservar(mesa) || fixacaoPretendida() === true) {
             @if (isAdmin()) {
-              <dt>
+              <dt class="detalhes__solicitante-rotulo">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <circle cx="12" cy="8" r="4" />
                   <path d="M4 21a8 8 0 0 1 16 0" />
                 </svg>
-                <span>Solicitante</span>
+                <span>{{ fixacaoPretendida() === true ? 'Fixar para' : 'Solicitante' }}</span>
               </dt>
-              <dd>
+              <dd class="detalhes__solicitante">
                 @if (solicitanteSelecionado(); as solicitante) {
                   @if (!editandoSolicitante()) {
                     <div class="solicitante-selecionado" role="status">
@@ -106,7 +110,7 @@
                         type="button"
                         class="solicitante-selecionado__trocar"
                         (click)="trocarSolicitante()"
-                        [disabled]="reserva.confirmando()"
+                        [disabled]="reserva.confirmando() || enviandoFixacao()"
                       >Trocar</button>
                     </div>
                   } @else {
@@ -117,16 +121,16 @@
                 }
                 <ng-template #buscaSolicitanteTemplate>
                   <div class="solicitante-busca" (focusout)="fecharSugestoesSeFora($event)">
-                    <label class="visually-hidden" for="solicitante-busca">Buscar por nome ou e-mail</label>
                     <input
                       id="solicitante-busca"
                       class="campo"
                       type="text"
+                      aria-label="Buscar por nome ou e-mail"
                       placeholder="Buscar por nome ou e-mail"
                       [ngModel]="buscaSolicitante()"
                       (ngModelChange)="buscarSolicitantes($event)"
                       (focus)="solicitanteFocado.set(true)"
-                      [disabled]="reserva.confirmando()"
+                      [disabled]="reserva.confirmando() || enviandoFixacao()"
                       autocomplete="off"
                       [attr.aria-expanded]="mostrarSugestoesSolicitante()"
                       aria-controls="solicitante-resultados"
@@ -180,16 +184,59 @@
         </dl>
       </section>
 
-      @if (podeReservar(mesa)) {
-        <p class="detalhes__nota">A reserva ocupa somente este dia.</p>
-        <button class="botao confirmar" type="button" (click)="confirmarReserva()"
-          [disabled]="reserva.confirmando() || !usuario() || (isAdmin() && !solicitanteSelecionado())">
-          {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar reserva' }}
-        </button>
+      @if (isAdmin() && mesa.ativa && (mesa.tipo === 'FIXA' || podeReservar(mesa) || fixacaoPretendida() !== null || sucessoFixacao())) {
+        <section class="detalhes__fixacao" aria-label="Fixação da mesa">
+          <label class="fixacao-switch">
+            <input type="checkbox" role="switch" aria-label="Mesa fixa"
+              [checked]="fixacaoPretendida() ?? mesa.tipo === 'FIXA'"
+              [disabled]="enviandoFixacao() || reserva.confirmando()"
+              (change)="alterarFixacao()" />
+            <span>Mesa Fixa</span>
+          </label>
+        </section>
+      }
+
+      @if (fixacaoPretendida() !== null || podeReservar(mesa)) {
+        <footer class="detalhes__rodape">
+          @if (fixacaoPretendida() !== null) {
+            <button type="button" class="botao confirmar-fixacao" (click)="abrirConfirmacaoFixacao()"
+              [disabled]="enviandoFixacao() || (fixacaoPretendida() && !solicitanteSelecionado())">
+              {{ enviandoFixacao() ? 'Salvando…' : 'Confirmar' }}
+            </button>
+          } @else {
+            <p class="detalhes__nota">A reserva ocupa somente este dia.</p>
+            <button class="botao confirmar" type="button" (click)="confirmarReserva()"
+              [disabled]="reserva.confirmando() || !usuario() || (isAdmin() && !solicitanteSelecionado())">
+              {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar' }}
+            </button>
+          }
+        </footer>
       }
     </aside>
   }
 </main>
+
+<dialog #dialogoFixacao class="fixacao-dialogo" aria-labelledby="fixacao-titulo"
+  aria-describedby="fixacao-descricao" (cancel)="cancelarFixacao($event)">
+  <h2 id="fixacao-titulo">{{ fixacaoPretendida() ? 'Fixar mesa' : 'Desafixar mesa' }}</h2>
+  <p id="fixacao-descricao">
+    @if (fixacaoPretendida()) {
+      Confirmar fixação da mesa {{ mesaNoPainel()?.codigo }} para {{ solicitanteSelecionado()?.nome }}?
+    } @else {
+      Confirmar desfixação da mesa {{ mesaNoPainel()?.codigo }}?
+      O responsável será removido e a mesa passará a ser livre.
+    }
+  </p>
+  @if (erroFixacao()) {
+    <p class="campo__erro" role="alert">{{ erroFixacao() }}</p>
+  }
+  <div class="fixacao-dialogo__acoes">
+    <button type="button" class="botao" (click)="cancelarFixacao()" [disabled]="enviandoFixacao()" autofocus>Cancelar</button>
+    <button type="button" class="botao" (click)="confirmarFixacao()" [disabled]="enviandoFixacao()">
+      {{ enviandoFixacao() ? 'Salvando…' : 'Confirmar' }}
+    </button>
+  </div>
+</dialog>
 
 <app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
   [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

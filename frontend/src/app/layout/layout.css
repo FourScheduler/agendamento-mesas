@@ -1,8 +1,14 @@
 :host {
-  display: block;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
   background: var(--page-bg);
 }
 .layout__conteudo {
-  min-height: calc(100vh - 6vh);
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+app-topbar {
+  flex-shrink: 0;
 }
