@@ -54,7 +54,7 @@
         />
         <span id="busca-desc" class="visually-hidden">Digite um número, por exemplo mesa 10, para filtrar a lista. Sem números, todas as mesas são exibidas.</span>
       </div>
-      <div class="admin-mesa-page__filtros-tipo" role="radiogroup" aria-label="Filtrar por tipo ou status">
+      <div class="admin-mesa-page__filtros-tipo" role="group" aria-label="Filtrar por tipo ou status">
         <button
           type="button"
           class="admin-mesa-page__filtro-botao"
@@ -111,15 +111,15 @@
         </button>
       </div>
       <span class="admin-mesa-page__contagem" role="status">
-        <strong>{{ mesas().length }}</strong>
-        {{ mesas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
+        <strong>{{ mesasFiltradas().length }}</strong>
+        {{ mesasFiltradas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
       </span>
       </div>
 
-      @if (mesas().length === 0) {
+      @if (mesasFiltradas().length === 0) {
         <app-vazio
           titulo="Nenhuma mesa encontrada"
-          [mensagem]="busca() ? 'Nenhuma mesa corresponde à busca.' : 'Nenhuma mesa cadastrada.'"
+          [mensagem]="busca() || filtroTipo() ? 'Nenhuma mesa corresponde aos filtros selecionados.' : 'Nenhuma mesa cadastrada.'"
         />
       } @else {
         <div class="admin-mesa-page__tabela-container">
@@ -135,7 +135,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (mesa of mesas(); track mesa.id) {
+              @for (mesa of mesasFiltradas(); track mesa.id) {
                 <tr [class.admin-mesa-page__linha--inativa]="!mesa.ativa">
                   <td class="admin-mesa-page__codigo"><span class="admin-mesa-page__numero">{{ mesa.codigo }}</span></td>
                   <td>{{ mesa.regiao }}</td>
@@ -263,7 +263,14 @@
           @if (acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel') {
             @if (usuarioSelecionado() !== null && !editandoUsuario()) {
               <div class="modal__resumo usuario-selecionado" role="status">
-                <p>{{ getMensagemConfirmacao() }}</p>
+                @if (getUsuarioSelecionado(); as usuario) {
+                  <span class="modal__mesa-icone" aria-hidden="true">{{ iniciaisUsuario(usuario.nome) }}</span>
+                  <span class="usuario-selecionado__dados">
+                    <span class="admin-mesa-page__email">Fixar para</span>
+                    <strong>{{ usuario.nome }}</strong>
+                    <span class="admin-mesa-page__email">{{ usuario.email }}</span>
+                  </span>
+                }
                 <button
                   type="button"
                   class="botao botao--contorno botao--pequeno"
@@ -276,7 +283,7 @@
             } @else {
               <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
               <div class="modal__campo">
-                <label for="usuario-busca" class="campo__rotulo">Usuário ativo <span class="obrigatorio" aria-hidden="true">*</span></label>
+                <label for="usuario-busca" class="campo__rotulo">Fixar para <span class="obrigatorio" aria-hidden="true">*</span></label>
                 <div class="usuario-busca">
                   <input
                     id="usuario-busca"
@@ -290,7 +297,7 @@
                     [disabled]="carregandoUsuarios() || confirmando()"
                     autocomplete="off"
                     aria-describedby="usuario-busca-desc"
-                    aria-expanded="mostrarSugestoesUsuario()"
+                    [attr.aria-expanded]="mostrarSugestoesUsuario()"
                     aria-controls="usuario-resultados"
                   />
                   <span id="usuario-busca-desc" class="visually-hidden">Digite o nome ou e-mail do usuário para filtrar</span>
