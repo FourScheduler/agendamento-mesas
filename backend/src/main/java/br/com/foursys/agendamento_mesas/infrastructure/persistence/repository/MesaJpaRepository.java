@@ -35,7 +35,7 @@ public interface MesaJpaRepository extends JpaRepository<Mesa, Long> {
 
     boolean existsByCodigo(String codigo);
 
-    boolean existsByResponsavel_IdAndTipo(Long responsavelId, TipoMesa tipo);
+    Optional<Mesa> findByResponsavel_Id(Long responsavelId);
 
     boolean existsByResponsavel_IdAndIdNot(Long responsavelId, Long mesaId);
 

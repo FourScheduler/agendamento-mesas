@@ -103,7 +103,7 @@ autorizar uma alteração incompatível. Reservas existentes são preservadas.
 - `usuario_id` identifica o beneficiário da reserva; `criado_por_id` identifica seu autor. O beneficiário vê reservas criadas pelo administrador em seu nome, mas somente um administrador pode cancelá-las. O próprio usuário pode cancelar as reservas que criou para si; reservas legadas sem autor permanecem canceláveis pelo beneficiário.
 - `/api/admin/reservas` lista todas as reservas e exige perfil `ADMIN`. Administradores cancelam qualquer reserva pela rota autenticada de cancelamento.
 - Minhas reservas também consulta `/api/mesas` para exibir mesas fixas cujo `responsavel_id` corresponde ao usuário autenticado. Essas atribuições não entram no histórico nem nos filtros de reservas por data/status.
-- Para mesas fixas legadas sem `responsavel_id`, a tela também reconhece a atribuição pelo nome registrado em `ocupante`.
+- A atribuição ao usuário exige `responsavel_id` correspondente ao seu ID. Texto em `ocupante`, inclusive para mesas fixas legadas, não comprova identidade. A tela não associa homônimos nem preenche vínculos automaticamente.
 
 ## Seed de demonstração
 

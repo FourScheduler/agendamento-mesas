@@ -185,7 +185,7 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.componentInstance.reserva.erro()).toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-      expect(mockToastService.erro).toHaveBeenCalledWith('Você já possui uma reserva nessa data.');
+      expect(mockToastService.erro).toHaveBeenCalledWith('Reserva recusada.');
       expect(mockToastService.erro).toHaveBeenCalledTimes(1);
       expect(mockToastService.sucesso).not.toHaveBeenCalled();
       expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
@@ -265,6 +265,28 @@ describe('Reserva diária pela planta', () => {
     expect(mockToastService.erro).toHaveBeenCalledTimes(1);
     expect(mockToastService.sucesso).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
+  });
+
+  it.each(['USUARIO', 'ADMIN'])('informa a mesa vinculada no mapa para %s sem falso sucesso', perfil => {
+    const fixture = abrir();
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { ...usuario, perfil } });
+    if (perfil === 'ADMIN') {
+      fixture.componentInstance.selecionarSolicitante({ id: 8, nome: 'Outra Pessoa', email: 'outra@teste.com', perfil: 'USUARIO', ativo: true });
+    }
+    fixture.componentInstance.confirmarReserva();
+    const request = http.expectOne('/api/reservas');
+    expect(request.request.body.solicitanteId).toBe(perfil === 'ADMIN' ? 8 : undefined);
+    const detalhe = perfil === 'ADMIN'
+      ? 'Outra Pessoa já possui a mesa fixa 067 vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.'
+      : 'Você já possui a mesa fixa 067 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.';
+    request.flush({ code: 'USUARIO_COM_MESA_FIXA', detail: detalhe, mesa: { id: 67, codigo: '067' } },
+      { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar();
+    fixture.detectChanges();
+    expect(mockToastService.erro).toHaveBeenCalledWith('Reserva não permitida', detalhe);
+    expect(mockToastService.erro).toHaveBeenCalledTimes(1);
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
   });
 
   it('cancela respostas anteriores ao alterar rapidamente a data pelo campo', () => {
