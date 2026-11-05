@@ -3,10 +3,13 @@
   <section class="consulta" aria-labelledby="titulo-data">
     <div class="campo">
       <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
-      <input id="data-reserva" class="campo__entrada" type="date"
+      <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima" [maxima]="reserva.dataMaxima"
+        [desabilitado]="reserva.confirmando() || enviandoFixacao()" (dataSelecionada)="onDataChange($event)">
+      <input id="data-reserva" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
         [ngModel]="reserva.data()" (ngModelChange)="onDataChange($event)"
         [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando() || enviandoFixacao()"
         [attr.aria-invalid]="reserva.erroData() ? true : null" aria-describedby="erro-data" required />
+      </app-calendario-reserva>
       @if (reserva.erroData()) {
         <p id="erro-data" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
       }
