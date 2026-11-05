@@ -55,7 +55,7 @@ describe("Barra de reserva do mapa", () => {
   function abrir() {
     const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
       .flush([mesa]);
@@ -88,7 +88,7 @@ describe("Barra de reserva do mapa", () => {
       vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
         return new DOMRect(710, 920, 100, 60);
       });
-      http.expectOne("/api/mesas").flush([mesa]);
+      http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
       http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
       fixture.detectChanges();
       const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
@@ -176,7 +176,7 @@ describe("Barra de reserva do mapa", () => {
       { status: 400, statusText: "Bad Request" },
     );
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http
       .expectOne((request) => request.url === "/api/mesas/disponiveis")
       .flush([]);
@@ -199,7 +199,7 @@ describe("Barra de reserva do mapa", () => {
     };
     const fixture = TestBed.createComponent(MapaPage);
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa, mesaFixa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa, mesaFixa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
 
@@ -305,7 +305,7 @@ describe("Barra de reserva do mapa", () => {
       { id: 9, status: "CONFIRMADA", data: request.request.body.data, mesa, solicitante: { id: 43, nome: "Outra Pessoa", email: "outra@example.com" } },
     );
     fixture.detectChanges();
-    http.expectOne("/api/mesas").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
   });

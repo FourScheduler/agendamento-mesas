@@ -188,7 +188,7 @@ export class PlantaMesas {
       this.carregando.set(false);
       this.carregando.set(true);
       const consulta = forkJoin({
-        mesas: this.catalogo.listar(),
+        mesas: data ? this.catalogo.listarComOcupacao(data) : this.catalogo.listar(),
         disponiveis: data ? this.catalogo.listarDisponiveis(data) : of(null),
       }).subscribe({
         next: ({ mesas, disponiveis }) => {
@@ -253,6 +253,10 @@ export class PlantaMesas {
   estaOcupada(mesa: Mesa): boolean {
     return mesa.ativa && mesa.tipo === 'LIVRE' && !!this.data()
       && this.disponiveis() !== null && !this.disponiveis()!.has(mesa.id);
+  }
+
+  nomeOcupante(mesa: Mesa): string | null {
+    return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
   }
 
   alternarNomes() {

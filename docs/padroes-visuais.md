@@ -74,8 +74,10 @@ visual e a marca, com componentes próprios para seus contratos de API.
   Seleção com contorno laranja e fundo pêssego, fixa com borda e texto vermelhos
   sobre fundo vermelho suave e inativa tracejada.
   Mesas disponíveis na data usam verde e mostram o rótulo "Livre"; reservadas usam
-  lilás suave sem descrição sobre a mesa. A legenda diferencia "Livre na data", "Reservada", fixa,
-  inativa e selecionada. A ocupação vem da consulta diária da API.
+  lilás suave sem descrição sobre a mesa. O botão de olho exibe opcionalmente
+  o nome do responsável da mesa fixa ou de quem reservou na data selecionada.
+  A legenda diferencia "Livre na data", "Reservada", fixa, inativa e selecionada.
+  A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
   a disponibilidade. No agendamento, clicar novamente na mesa selecionada remove
   a seleção; Enter e Espaço têm o mesmo comportamento.
