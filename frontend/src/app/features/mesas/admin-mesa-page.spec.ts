@@ -22,6 +22,48 @@ const mesa: Mesa = {
 };
 
 describe('AdminMesaPage', () => {
+  it('consulta o dia de São Paulo e atualiza ocupação na virada preservando busca e filtro', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-07T01:30:00Z'));
+    TestBed.configureTestingModule({
+      imports: [AdminMesaPage],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
+    const fixture = TestBed.createComponent(AdminMesaPage);
+    const http = TestBed.inject(HttpTestingController);
+    try {
+      fixture.detectChanges();
+      vi.advanceTimersByTime(250);
+      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
+        && r.params.get('data') === '2026-11-06').flush([mesa]);
+      fixture.detectChanges();
+      const pagina = fixture.componentInstance;
+      pagina.filtroTipo.set('reservada');
+      const busca = fixture.nativeElement.querySelector('#busca') as HTMLInputElement;
+      busca.value = '044';
+      busca.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(250);
+      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
+        && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-06')
+        .flush([{ ...mesa, ocupada: true }]);
+      fixture.detectChanges();
+      expect(pagina.mesasFiltradas()).toHaveLength(1);
+      vi.advanceTimersByTime(90 * 60 * 1000 - 500);
+      fixture.detectChanges();
+      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
+        && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-07')
+        .flush([mesa]);
+      expect(pagina.busca()).toBe('044');
+      expect(pagina.filtroTipo()).toBe('reservada');
+      expect(pagina.mesasFiltradas()).toHaveLength(0);
+      http.verify();
+    } finally {
+      fixture.destroy();
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
+    }
+  });
+
   it('aplica cada filtro, combina com a busca e atualiza contagem e estado vazio', async () => {
     const mesas: Mesa[] = [
       mesa,

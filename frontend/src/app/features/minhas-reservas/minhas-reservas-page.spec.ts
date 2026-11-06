@@ -41,8 +41,66 @@ describe('MinhasReservasPage', () => {
   });
 
   afterEach(() => {
-    http.verify();
-    TestBed.resetTestingModule();
+    try {
+      http.verify();
+    } finally {
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
+    }
+  });
+
+  it('mantém hoje nas futuras após 21h e reclassifica na virada sem recarregar nem perder filtros', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-07T01:30:00Z'));
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    const reserva = {
+      id: 31, usuarioId: 7, status: 'CONFIRMADA', data: '2026-11-06',
+      criadaEm: '2026-11-05T12:00:00',
+      mesa: { id: 44, codigo: '044', regiao: 'TAMBORÉ' },
+    };
+    http.expectOne('/api/reservas/minhas').flush([
+      reserva, { ...reserva, id: 32, data: '2026-11-09' },
+      { ...reserva, id: 30, data: '2026-11-05' },
+    ]);
+    http.expectOne('/api/mesas').flush([]);
+    fixture.detectChanges();
+    const pagina = fixture.componentInstance;
+    expect(pagina.visiveis().map(r => r.data)).toEqual(['2026-11-06', '2026-11-09']);
+    const cartaoHoje = pagina.cartoes()[0];
+    expect(pagina.podeCancelar(cartaoHoje)).toBe(true);
+    pagina.statusFiltro.set('CONFIRMADA');
+    vi.advanceTimersByTime(90 * 60 * 1000);
+    fixture.detectChanges();
+    expect(pagina.visiveis().map(r => r.data)).toEqual(['2026-11-09']);
+    expect(pagina.statusFiltro()).toBe('CONFIRMADA');
+    expect(pagina.filtro()).toBe('futuras');
+    expect(pagina.podeCancelar(cartaoHoje)).toBe(false);
+    pagina.trocarFiltro('passadas');
+    expect(pagina.visiveis().map(r => r.data)).toEqual(['2026-11-06', '2026-11-05']);
+    http.expectNone('/api/reservas/minhas');
+  });
+
+  it('preserva período personalizado e revalida a data antes de confirmar cancelamento em aba suspensa', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-07T02:59:59Z'));
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    http.expectOne('/api/reservas/minhas').flush([{
+      id: 31, usuarioId: 7, status: 'CONFIRMADA', data: '2026-11-06',
+      criadaEm: '2026-11-05T12:00:00', mesa: { id: 44, codigo: '044', regiao: 'TAMBORÉ' },
+    }]);
+    http.expectOne('/api/mesas').flush([]);
+    fixture.detectChanges();
+    const pagina = fixture.componentInstance;
+    const cartao = pagina.cartoes()[0];
+    pagina.periodoFiltro.set({ inicio: '2026-11-01', fim: '2026-11-09' });
+    pagina.solicitarCancelamento(cartao);
+    vi.setSystemTime(new Date('2026-11-07T03:00:01Z'));
+    pagina.cancelarReserva(cartao);
+    http.expectNone('/api/reservas/31/cancelamento');
+    expect(pagina.periodoFiltro()).toEqual({ inicio: '2026-11-01', fim: '2026-11-09' });
+    expect(pagina.visiveis()).toHaveLength(1);
   });
 
   it('exibe a mesa fixa do usuário sem oferecer cancelamento', () => {

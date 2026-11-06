@@ -81,6 +81,7 @@ A reserva ocupa exclusivamente sua data. No dia seguinte a mesa está disponíve
 - Datas de reserva são enviadas e retornadas como **data local sem offset**, no formato ISO `yyyy-MM-dd` (ex.: `2026-10-28`).
 - Campos de data/hora (criação, confirmação, cancelamento) usam data/hora local sem offset, no formato ISO `yyyy-MM-dd'T'HH:mm:ss` (ex.: `2026-10-23T14:30:00`).
 - Regras de "hoje", janela de 15 dias e dia útil são avaliadas no fuso `America/Sao_Paulo`, nunca no fuso do servidor nem no do cliente.
+- No frontend, gestão, lista, mapa e Minhas reservas compartilham a referência de dia de São Paulo. Reservas de hoje permanecem atuais até a meia-noite nesse fuso. A referência é atualizada na virada, ao retornar à aba e antes das operações, sem trocar a data consultada nem limpar filtros. Uma data escolhida que ficou no passado é invalidada; a interface não escolhe outro dia automaticamente. Isso não altera as permissões ou prazos de cancelamento da API.
 - O contrato não usa offset (`-03:00`) para manter o payload simples e porque o fuso é fixo e único.
 
 ## Decisões pendências de negócio
