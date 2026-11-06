@@ -50,12 +50,21 @@ export class PlantaMesas {
   readonly erro = signal("");
   readonly selecionada = signal<number | null>(null);
   readonly mostrarNomes = signal(false);
+  readonly mostrarDataMapa = signal(false);
   readonly zoom = signal(1);
+  readonly mapaAmpliado = signal(false);
+  readonly zoomMapaAmpliado = signal(1);
   readonly relevo = true;
   readonly layoutTambore = PLANTA_TAMBORE_EXIBICAO;
   private readonly larguraViewport = signal(0);
   private readonly viewport =
     viewChild.required<ElementRef<HTMLElement>>("viewport");
+  private readonly modalMapa =
+    viewChild.required<ElementRef<HTMLElement>>("modalMapa");
+  private readonly botaoAmpliarMapa =
+    viewChild.required<ElementRef<HTMLButtonElement>>("botaoAmpliarMapa");
+  private readonly botaoFecharMapa =
+    viewChild<ElementRef<HTMLButtonElement>>("botaoFecharMapa");
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
 
@@ -122,12 +131,31 @@ export class PlantaMesas {
   readonly larguraDesenho = computed(() =>
     Math.max(1000, ...this.plantas().map((planta) => planta.largura)),
   );
-  // Escala todo o desenho junto; cabeçalho e legenda mantêm a fonte do Portal.
-  readonly escala = computed(() =>
-    Math.min(1, Math.max(1000, this.larguraViewport()) / this.larguraDesenho()) * 0.72 * this.zoom(),
+  readonly alturaDesenho = computed(() =>
+    this.plantas().reduce(
+      (altura, planta) => altura + planta.altura + (this.plantas().length > 1 ? 50 : 0),
+      0,
+    ),
   );
+  // Escala todo o desenho junto; cabeçalho e legenda mantêm a fonte do Portal.
+  readonly escala = computed(() => {
+    if (this.mapaAmpliado() && this.alturaDesenho() > 0) {
+      const larguraDisponivel = this.larguraViewport();
+      const alturaDisponivel = this.alturaViewport();
+      if (larguraDisponivel > 0 && alturaDisponivel > 0) {
+        return this.zoomMapaAmpliado() * 2.6 * Math.min(
+          larguraDisponivel / (this.larguraDesenho() + 132),
+          alturaDisponivel / (this.alturaDesenho() + 132),
+        );
+      }
+    }
+
+    return Math.min(1, Math.max(1000, this.larguraViewport()) / this.larguraDesenho()) * 0.72 * this.zoom();
+  });
   private arraste: { x: number; y: number; left: number; top: number; pointerId: number } | null = null;
   readonly arrastando = signal(false);
+
+  private readonly alturaViewport = signal(0);
 
   ajustarZoom(delta: number) {
     this.zoom.update(valor => Math.max(0.5, Math.min(1.5, Math.round((valor + delta) * 10) / 10)));
@@ -136,6 +164,70 @@ export class PlantaMesas {
   centralizarMapa() {
     this.zoom.set(1);
     this.viewport().nativeElement.scrollTo({ left: 0, top: 0 });
+  }
+
+  ampliarMapa() {
+    this.zoomMapaAmpliado.set(1);
+    this.mostrarDataMapa.set(false);
+    this.mapaAmpliado.set(true);
+    afterNextRender(() => this.botaoFecharMapa()?.nativeElement.focus(), {
+      injector: this.injector,
+    });
+  }
+
+  ajustarZoomMapaAmpliado(delta: number) {
+    this.zoomMapaAmpliado.update(valor =>
+      Math.max(0.5, Math.min(2.5, Math.round((valor + delta) * 10) / 10)),
+    );
+  }
+
+  restaurarZoomMapaAmpliado() {
+    this.zoomMapaAmpliado.set(1);
+    this.viewport().nativeElement.scrollTo({ left: 0, top: 0 });
+  }
+
+  alternarDataMapa() {
+    this.mostrarDataMapa.update(visible => !visible);
+  }
+
+  fecharMapaAmpliado() {
+    if (!this.mapaAmpliado()) return;
+    this.mapaAmpliado.set(false);
+    afterNextRender(() => this.botaoAmpliarMapa().nativeElement.focus(), {
+      injector: this.injector,
+    });
+  }
+
+  onMapaModalKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.fecharMapaAmpliado();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+    const modal = this.modalMapa().nativeElement;
+    const elementosFocaveis = modal.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (elementosFocaveis.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const primeiro = elementosFocaveis[0];
+    const ultimo = elementosFocaveis[elementosFocaveis.length - 1];
+    if (event.shiftKey && (document.activeElement === primeiro || !modal.contains(document.activeElement))) {
+      event.preventDefault();
+      ultimo.focus();
+    } else if (!event.shiftKey && (document.activeElement === ultimo || !modal.contains(document.activeElement))) {
+      event.preventDefault();
+      primeiro.focus();
+    }
+  }
+
+  fecharMapaAoClicarFora(event: MouseEvent) {
+    if (event.target === event.currentTarget) this.fecharMapaAmpliado();
   }
 
   iniciarArraste(event: PointerEvent) {
@@ -168,13 +260,14 @@ export class PlantaMesas {
     effect(() => this.selecionada.set(this.mesaSelecionadaId()));
     afterNextRender(() => {
       const elemento = this.viewport().nativeElement;
-      const ajustar = (largura: number) => {
+      const ajustar = (largura: number, altura: number) => {
         if (largura > 0) this.larguraViewport.set(largura);
+        if (altura > 0) this.alturaViewport.set(altura);
       };
-      ajustar(elemento.clientWidth);
+      ajustar(elemento.clientWidth, elemento.clientHeight);
       if (typeof ResizeObserver !== "undefined") {
         const observador = new ResizeObserver(([entrada]) =>
-          ajustar(entrada.contentRect.width),
+          ajustar(entrada.contentRect.width, entrada.contentRect.height),
         );
         observador.observe(elemento);
         this.destroyRef.onDestroy(() => observador.disconnect());

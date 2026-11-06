@@ -77,7 +77,7 @@
   box-sizing: border-box;
   max-width: 1800px;
   margin: 0 auto;
-  padding: 1.25rem clamp(1rem, 2vw, 2rem);
+  padding: 0.25rem clamp(1rem, 2vw, 2rem);
 }
 .consulta {
   display: flex;
@@ -85,8 +85,58 @@
   flex-wrap: wrap;
   gap: 1rem;
 }
-.campo__rotulo {
+
+.mapa__data-modal--sobreposto {
+  min-width: 0;
+  padding: 0 0.125rem 0 0.25rem;
+}
+.mapa__data-modal--sobreposto .campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  width: min(210px, calc(100vw - 9rem));
+}
+.mapa__data-modal--sobreposto .campo__rotulo {
   color: var(--orange);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+}
+.mapa__data-modal--sobreposto .mapa__data-controle {
+  position: relative;
+  display: block;
+}
+.mapa__data-modal--sobreposto .mapa__data-controle > svg {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  z-index: 1;
+  color: var(--orange-dark);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.mapa__data-modal--sobreposto .campo__entrada {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0.5rem 0.625rem 0.5rem 2.5rem;
+  border-color: #e3e7ed;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--navy);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mapa__data-modal--sobreposto .campo__entrada:hover:not(:disabled) {
+  border-color: #f3b69e;
+  background: #fff;
+}
+.mapa__data-modal--sobreposto .campo__entrada:focus-visible {
+  border-color: var(--orange);
+  outline: 3px solid rgb(255 83 21 / 18%);
+  outline-offset: 1px;
+  background: #fff;
 }
 app-planta-mesas {
   display: block;

@@ -1,20 +1,34 @@
 <main class="page-conteudo" [class.page-conteudo--com-detalhes]="detalhesAbertos()">
-  <ng-template #consulta>
-  <section class="consulta" aria-labelledby="titulo-data">
-    <div class="campo">
-      <label id="titulo-data" class="campo__rotulo" for="data-reserva">Dia da reserva</label>
-      <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima" [maxima]="reserva.dataMaxima"
-        [desabilitado]="reserva.confirmando() || enviandoFixacao()" (dataSelecionada)="onDataChange($event)">
-      <input id="data-reserva" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
-        [ngModel]="reserva.data()" (ngModelChange)="onDataChange($event)"
-        [min]="reserva.dataMinima" [max]="reserva.dataMaxima" [disabled]="reserva.confirmando() || reserva.cancelando()"
-        [attr.aria-invalid]="reserva.erroData() ? true : null" aria-describedby="erro-data" required />
-      </app-calendario-reserva>
-      @if (reserva.erroData()) {
-        <p id="erro-data" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
-      }
+  <ng-template #calendarioReserva let-identificador="identificador">
+    <div class="mapa__data-modal" [class.mapa__data-modal--sobreposto]="identificador === 'mapa-modal-data-reserva'">
+      <div class="campo">
+        <label class="campo__rotulo" [id]="identificador + '-rotulo'" [for]="identificador">Dia da reserva</label>
+        <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima" [maxima]="reserva.dataMaxima"
+          [desabilitado]="reserva.confirmando() || enviandoFixacao()" (dataSelecionada)="onDataChange($event)">
+          <span class="mapa__data-controle">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M16 3v4M8 3v4M3 10h18" />
+            </svg>
+            <input [id]="identificador" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
+              [ngModel]="reserva.data()" (ngModelChange)="onDataChange($event)"
+              [min]="reserva.dataMinima" [max]="reserva.dataMaxima"
+              [disabled]="reserva.confirmando() || reserva.cancelando()"
+              [attr.aria-invalid]="reserva.erroData() ? true : null"
+              [attr.aria-describedby]="identificador + '-erro'" required />
+          </span>
+        </app-calendario-reserva>
+        @if (reserva.erroData()) {
+          <p [id]="identificador + '-erro'" class="campo__erro" role="alert">{{ reserva.erroData() }}</p>
+        }
+      </div>
     </div>
-
+  </ng-template>
+  <ng-template #consulta>
+  <section class="consulta" aria-labelledby="data-reserva-rotulo">
+    <ng-container [ngTemplateOutlet]="calendarioReserva"
+      [ngTemplateOutletContext]="{ identificador: 'data-reserva' }" />
     <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando() || reserva.cancelando()">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
       <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -45,6 +59,8 @@
       (mesaInicialInvalidada)="onMesaInicialInvalidada()"
     >
       <ng-container consulta-mapa [ngTemplateOutlet]="consulta" />
+      <ng-container consulta-modal [ngTemplateOutlet]="calendarioReserva"
+        [ngTemplateOutletContext]="{ identificador: 'mapa-modal-data-reserva' }" />
     </app-planta-mesas>
   } @else {
     <ng-container [ngTemplateOutlet]="consulta" />
@@ -94,12 +110,14 @@
               <span>{{ formatarData(reserva.data()) }}</span>
             }
           </dd>
+          @if (mesa.tipo === 'FIXA' && mesa.responsavel) {
+            <dt>Responsável</dt>
+            <dd>{{ mesa.responsavel.nome }}</dd>
+          }
           @if (mesa.ocupante && !mesaReservada(mesa)) {
             <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
           }
-          @if (mesa.tipo === 'FIXA' && mesa.responsavel) {
-            <dt>Responsável</dt><dd>{{ mesa.responsavel.nome }}</dd>
-          }
+
           @if (mesa.ocupanteNaData) {
             <dt>
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

@@ -156,6 +156,36 @@ input {
 .campo__entrada:focus {
   border-color: var(--orange);
 }
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) .campo {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) .campo__rotulo {
+  flex: 0 0 auto;
+  color: var(--navy);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) app-calendario-reserva {
+  min-width: 0;
+}
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) .mapa__data-controle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) .mapa__data-controle > svg {
+  flex: 0 0 auto;
+  color: var(--orange-dark);
+}
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) .campo__entrada {
+  width: 160px;
+  padding: 0.5rem 0.625rem;
+  color: var(--navy);
+  font-weight: 700;
+}
 .campo__erro {
   color: var(--error);
   font-size: 0.8125rem;

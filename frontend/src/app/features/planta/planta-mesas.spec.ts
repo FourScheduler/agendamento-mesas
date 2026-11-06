@@ -378,6 +378,147 @@ describe("PlantaMesas", () => {
     expect(viewport.scrollTo).toHaveBeenCalledWith({ left: 0, top: 0 });
   });
 
+  it("abre o mapa ampliado como modal e permite fechá-lo pelo botão, Escape ou fundo", () => {
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.detectChanges();
+    http.expectOne("/api/mesas").flush([]);
+    fixture.detectChanges();
+
+    const modal = fixture.nativeElement.querySelector(".mapa__modal") as HTMLElement;
+    const botaoAmpliar = fixture.nativeElement.querySelector(
+      '[aria-label="Ampliar mapa"]',
+    ) as HTMLButtonElement;
+    botaoAmpliar.click();
+    fixture.detectChanges();
+
+    expect(modal.getAttribute("role")).toBe("dialog");
+    expect(modal.getAttribute("aria-modal")).toBe("true");
+    expect(fixture.componentInstance.mapaAmpliado()).toBe(true);
+    expect(fixture.componentInstance.zoomMapaAmpliado()).toBe(1);
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('[aria-label="Fechar mapa ampliado"]'),
+    );
+    expect(getComputedStyle(modal.querySelector(".mapa__cabecalho")!).display).toBe("none");
+    expect(getComputedStyle(modal.querySelector(".mapa__rodape")!).display).toBe("none");
+    const dataMapa = fixture.nativeElement.querySelector(
+      ".mapa__ferramentas-modal > div",
+    ) as HTMLElement;
+    const botaoData = fixture.nativeElement.querySelector(
+      '[aria-label="Mostrar dia da reserva"]',
+    ) as HTMLButtonElement;
+    expect(botaoData.classList.contains("mapa__alternar-data-modal")).toBe(true);
+    expect(botaoData.getAttribute("aria-pressed")).toBe("false");
+    expect(dataMapa.style.display).toBe("none");
+    botaoData.click();
+    fixture.detectChanges();
+    expect(dataMapa.style.display).toBe("");
+    expect(fixture.nativeElement.querySelector(
+      '.mapa__alternar-data-modal[aria-label="Ocultar dia da reserva"]',
+    )).not.toBeNull();
+    (fixture.nativeElement.querySelector(
+      '.mapa__alternar-data-modal[aria-label="Ocultar dia da reserva"]',
+    ) as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(dataMapa.style.display).toBe("none");
+
+    const zoomIn = fixture.nativeElement.querySelector(
+      '[aria-label="Aumentar zoom do mapa"]',
+    ) as HTMLButtonElement;
+    zoomIn.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.zoomMapaAmpliado()).toBe(1.1);
+    expect(fixture.nativeElement.textContent).toContain("110%");
+
+    const zoomOut = fixture.nativeElement.querySelector(
+      '[aria-label="Diminuir zoom do mapa"]',
+    ) as HTMLButtonElement;
+    zoomOut.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.zoomMapaAmpliado()).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain("100%");
+
+    const viewport = fixture.nativeElement.querySelector(".mapa__viewport") as HTMLElement;
+    viewport.scrollTo = vi.fn();
+    zoomIn.click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector(
+      '[aria-label="Restaurar zoom do mapa"]',
+    ) as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.zoomMapaAmpliado()).toBe(1);
+    expect(viewport.scrollTo).toHaveBeenCalledWith({ left: 0, top: 0 });
+
+    fixture.nativeElement.querySelector('[aria-label="Fechar mapa ampliado"]').click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mapaAmpliado()).toBe(false);
+    expect(document.activeElement).toBe(botaoAmpliar);
+
+    botaoAmpliar.click();
+    fixture.detectChanges();
+    modal.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mapaAmpliado()).toBe(false);
+
+    botaoAmpliar.click();
+    fixture.detectChanges();
+    modal.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mapaAmpliado()).toBe(false);
+  });
+
+  it("ajusta a escala do modal para enquadrar a planta na largura e altura disponíveis", () => {
+    class ResizeObserverFalso implements ResizeObserver {
+      constructor(private readonly callback: ResizeObserverCallback) {}
+
+      observe() {
+        this.callback(
+          [{ contentRect: new DOMRectReadOnly(0, 0, 1200, 500) } as ResizeObserverEntry],
+          this,
+        );
+      }
+
+      unobserve() {}
+      disconnect() {}
+    }
+
+    const resizeObserverOriginal = globalThis.ResizeObserver;
+    vi.stubGlobal("ResizeObserver", ResizeObserverFalso);
+    try {
+      const fixture = TestBed.createComponent(PlantaMesas);
+      fixture.detectChanges();
+      http.expectOne("/api/mesas").flush([{
+        id: 44,
+        codigo: "044",
+        regiao: "TAMBORÉ",
+        tipo: "LIVRE",
+        ativa: true,
+        ocupante: "",
+        referenciaVisual: { planta: "TAMBORÉ", x: 24, y: 24 },
+        ocupada: false,
+      }]);
+      fixture.detectChanges();
+
+      const componente = fixture.componentInstance;
+      fixture.nativeElement.querySelector('[aria-label="Ampliar mapa"]').click();
+      fixture.detectChanges();
+
+      const escalaEsperada = Math.min(
+        1200 / (componente.larguraDesenho() + 132),
+        500 / (componente.alturaDesenho() + 132),
+      ) * 2.6;
+      expect(componente.escala()).toBeCloseTo(escalaEsperada);
+      const viewport = fixture.nativeElement.querySelector(".mapa__viewport") as HTMLElement;
+      expect(getComputedStyle(viewport).overflow).toBe("auto");
+      expect(getComputedStyle(viewport).scrollbarWidth).toBe("none");
+    } finally {
+      vi.stubGlobal("ResizeObserver", resizeObserverOriginal);
+    }
+  });
+
   it("mantém a disponibilidade diária e a seleção real após ajustar o zoom", () => {
     const fixture = TestBed.createComponent(PlantaMesas);
     fixture.componentRef.setInput('data', '2026-10-30');
@@ -461,7 +602,9 @@ describe("PlantaMesas", () => {
     expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
 
     const mesaFixa = mesas[0];
-    (fixture.nativeElement.querySelector('.botao-icone') as HTMLButtonElement).click();
+    (fixture.nativeElement.querySelector(
+      '.legenda__visibilidade .botao-icone',
+    ) as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(mesaFixa.querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Exemplo');

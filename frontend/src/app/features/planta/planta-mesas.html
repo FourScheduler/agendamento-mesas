@@ -1,3 +1,72 @@
+<div
+  #modalMapa
+  id="mapa-ampliado-dialogo"
+  class="mapa__modal"
+  [class.mapa__modal--aberto]="mapaAmpliado()"
+  [attr.role]="mapaAmpliado() ? 'dialog' : null"
+  [attr.aria-modal]="mapaAmpliado() ? 'true' : null"
+  [attr.aria-label]="mapaAmpliado() ? 'Mapa de mesas ampliado' : null"
+  [attr.tabindex]="mapaAmpliado() ? -1 : null"
+  (keydown)="onMapaModalKeydown($event)"
+  (click)="fecharMapaAoClicarFora($event)"
+>
+@if (mapaAmpliado()) {
+  <div class="mapa__ferramentas-modal" role="group" aria-label="Controles da planta ampliada">
+    <div [style.display]="mostrarDataMapa() ? null : 'none'">
+      <ng-content select="[consulta-modal]" />
+    </div>
+    <button type="button" class="mapa__controle-modal mapa__alternar-data-modal" (click)="alternarDataMapa()"
+      [attr.aria-pressed]="mostrarDataMapa()"
+      [attr.aria-label]="mostrarDataMapa() ? 'Ocultar dia da reserva' : 'Mostrar dia da reserva'"
+      [attr.title]="mostrarDataMapa() ? 'Ocultar dia da reserva' : 'Mostrar dia da reserva'">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 10h18" />
+        @if (!mostrarDataMapa()) {
+          <path d="m3 3 18 18" />
+        }
+      </svg>
+    </button>
+  </div>
+  <button type="button"
+    class="mapa__controle-modal mapa__nomes-ampliado mapa__fechar-ampliado mapa__alternar-nomes-modal"
+    style="right: calc(clamp(0.75rem, 2vw, 2rem) + 3.25rem)" (click)="alternarNomes()"
+    [attr.aria-pressed]="mostrarNomes()"
+    [attr.aria-label]="mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes'"
+    [attr.title]="mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes'">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+      @if (!mostrarNomes()) {
+        <path d="m3 3 18 18" />
+      }
+    </svg>
+  </button>
+  <button #botaoFecharMapa type="button" class="mapa__fechar-ampliado"
+    aria-label="Fechar mapa ampliado" title="Fechar mapa ampliado"
+    (click)="fecharMapaAmpliado()">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  </button>
+  <div class="mapa__zoom-ampliado" role="group" aria-label="Zoom do mapa ampliado">
+    <button type="button" aria-label="Diminuir zoom do mapa" title="Diminuir zoom"
+      [disabled]="zoomMapaAmpliado() <= 0.5" (click)="ajustarZoomMapaAmpliado(-0.1)">−</button>
+    <span aria-live="polite">{{ (zoomMapaAmpliado() * 100).toFixed(0) }}%</span>
+    <button type="button" aria-label="Restaurar zoom do mapa" title="Restaurar zoom"
+      [disabled]="zoomMapaAmpliado() === 1" (click)="restaurarZoomMapaAmpliado()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 11a8.1 8.1 0 0 0-14.9-4M4 4v4h4M4 13a8.1 8.1 0 0 0 14.9 4M20 20v-4h-4" />
+      </svg>
+    </button>
+    <button type="button" aria-label="Aumentar zoom do mapa" title="Aumentar zoom"
+      [disabled]="zoomMapaAmpliado() >= 2.5" (click)="ajustarZoomMapaAmpliado(0.1)">+</button>
+  </div>
+}
 <section class="mapa cartao" [class.mapa--relevo]="relevo" aria-label="Mapa interativo de mesas">
   <header class="mapa__cabecalho">
     <div>
@@ -55,6 +124,7 @@
       #viewport
       class="mapa__viewport"
       [class.mapa__viewport--arrastando]="arrastando()"
+      [class.mapa__viewport--zoom-ampliado]="mapaAmpliado() && zoomMapaAmpliado() > 1"
       (pointerdown)="iniciarArraste($event)"
       (pointermove)="moverMapa($event)"
       (pointerup)="finalizarArraste($event)"
@@ -176,6 +246,14 @@
       <button type="button" (click)="ajustarZoom(0.1)" [disabled]="zoom() >= 1.5" aria-label="Aumentar zoom">+</button>
       <button type="button" (click)="ajustarZoom(-0.1)" [disabled]="zoom() <= 0.5" aria-label="Diminuir zoom">−</button>
       <button type="button" (click)="centralizarMapa()" aria-label="Restaurar visualização do mapa">↺</button>
+      <button #botaoAmpliarMapa type="button" (click)="ampliarMapa()" aria-label="Ampliar mapa"
+        aria-controls="mapa-ampliado-dialogo" [attr.aria-expanded]="mapaAmpliado()"
+        title="Ampliar mapa">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </svg>
+      </button>
       <span>{{ (zoom() * 100).toFixed(0) }}%</span>
     </div>
     <div class="mapa__informacao">
@@ -199,3 +277,4 @@
     </div>
   </footer>
 </section>
+</div>

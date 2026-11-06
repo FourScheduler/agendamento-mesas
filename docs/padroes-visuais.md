@@ -72,6 +72,18 @@ visual e a marca, com componentes próprios para seus contratos de API.
   para não sobrepor as cadeiras.
   Os controles ajustam o zoom de 50% a 150% da escala inicial ou restauram a
   visualização. Os controles e a legenda ficam juntos abaixo da área rolável.
+  O controle Ampliar mapa abre a planta em um modal centralizado sobre um fundo
+  desfocado; o botão X, Escape ou clique fora fecham o modal, com foco de teclado
+  mantido dentro dele enquanto estiver aberto. No modal, a escala se ajusta à
+  largura e à altura disponíveis; o zoom inicial de 100% corresponde a 260% da
+  escala de enquadramento anterior. O modal exibe somente a planta, sem cabeçalho,
+  legenda ou barras de rolagem. Controles flutuantes permitem ajustar ou
+  restaurar o zoom e arrastar a planta para navegar. Um controle compacto de
+  data começa oculta ao abrir o modal e pode ser exibida ou ocultada por um botão,
+  junto ao botão com
+  ícone de olho ficam juntos em uma barra flutuante translúcida no canto superior
+  esquerdo. A data abre o calendário de seleção e atualiza a disponibilidade; o
+  olho alterna a exibição dos nomes dos ocupantes.
   As instruções aparecem ao passar o mouse sobre o ícone de informação,
   sem ação de clique; foco por teclado também permite ler a dica.
   O dia da reserva e as ações da consulta ficam no cabeçalho do mapa,
