@@ -258,17 +258,59 @@ describe('Reserva diária pela planta', () => {
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
-  it('mostra a crítica de reserva existente uma única vez pelo toast global', () => {
+  it.each(['USUARIO', 'ADMIN'])('mostra a mesa da reserva existente do beneficiário para %s', perfil => {
     const fixture = abrir();
-    fixture.componentInstance.reserva.confirmar();
-    http.expectOne('/api/reservas').flush({ detail: 'Você já possui uma reserva nessa data.' }, { status: 409, statusText: 'Conflict' });
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { ...usuario, perfil } });
+    fixture.componentInstance.reserva.confirmarComSolicitante(perfil === 'ADMIN' ? 8 : null);
+    const request = http.expectOne('/api/reservas');
+    expect(request.request.body.mesaId).toBe(44);
+    expect(request.request.body.solicitanteId).toBe(perfil === 'ADMIN' ? 8 : undefined);
+    request.flush({
+      code: 'USUARIO_COM_RESERVA_NA_DATA',
+      detail: 'Duplicidade do solicitante na data.',
+      mesa: { id: 53, codigo: '053' },
+    }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
     carregar([]);
     fixture.detectChanges();
-    expect(mockToastService.erro).toHaveBeenCalledWith('Você já possui uma reserva nessa data.');
+    expect(mockToastService.erro).toHaveBeenCalledWith('Você já tem uma reserva para a mesa 053.');
     expect(mockToastService.erro).toHaveBeenCalledTimes(1);
     expect(mockToastService.sucesso).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
+  });
+
+  it.each([
+    'A mesa 044 já possui uma reserva não cancelada em 2026-10-28.',
+    'Mesa 044 é fixa e não pode ser reservada.',
+    'Mesa 044 está inativa.',
+    'Não foi possível concluir a confirmação concorrente.',
+  ])('preserva outro conflito sem classificá-lo como duplicidade: %s', detalhe => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.confirmar();
+    http.expectOne('/api/reservas').flush({
+      detail: detalhe,
+      mesa: { id: 53, codigo: '053' },
+    }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar([]);
+    fixture.detectChanges();
+    expect(mockToastService.erro).toHaveBeenCalledExactlyOnceWith(detalhe);
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, null, '', '  ', 53])('não inventa código para duplicidade com código inválido %s', codigo => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.confirmar();
+    http.expectOne('/api/reservas').flush({
+      code: 'USUARIO_COM_RESERVA_NA_DATA',
+      detail: 'O solicitante já possui uma reserva nessa data.',
+      mesa: { codigo },
+    }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar([]);
+    fixture.detectChanges();
+    expect(mockToastService.erro).toHaveBeenCalledExactlyOnceWith('O solicitante já possui uma reserva nessa data.');
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
   });
 
   it.each(['USUARIO', 'ADMIN'])('informa a mesa vinculada no mapa para %s sem falso sucesso', perfil => {
