@@ -253,8 +253,12 @@ public class ReservaApiTests {
                 .andExpect(status().isNotFound());
         var fixa = mesas.salvar(new Mesa(null, "018", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 100, null));
         var inativa = mesas.salvar(new Mesa(null, "005", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 200, null));
-        criar(maria, fixa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("fixa")));
-        criar(maria, inativa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("inativa")));
+        criar(maria, fixa, HOJE).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Mesa 018 é fixa e não pode ser reservada."))
+            .andExpect(jsonPath("$.code").doesNotExist());
+        criar(maria, inativa, HOJE).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Mesa 005 está inativa."))
+            .andExpect(jsonPath("$.code").doesNotExist());
         assertThat(reservas.contar()).isZero();
     }
 

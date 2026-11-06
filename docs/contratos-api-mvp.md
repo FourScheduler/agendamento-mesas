@@ -318,6 +318,11 @@ sob os mesmos locks de usuário e mesa. Depois das validações de vínculo fixo
 ativação e tipo, a duplicidade é verificada antes da ocupação da mesa, inclusive
 quando a nova tentativa usa a mesma mesa. Sem duplicidade, os demais conflitos
 preservam suas mensagens e não expõem dados da reserva de outra pessoa.
+Lista e mapa identificam duplicidade somente pelo código
+`USUARIO_COM_RESERVA_NA_DATA` e montam a mensagem com `mesa.codigo`.
+Sem código de mesa válido, preservam o `detail`, sem usar a mesa da tentativa.
+Outros conflitos continuam exibindo seu motivo específico, mesmo que incluam
+um campo `mesa`; o status `409` isoladamente não indica duplicidade.
 
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
