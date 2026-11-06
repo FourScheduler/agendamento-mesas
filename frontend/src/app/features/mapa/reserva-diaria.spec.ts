@@ -319,7 +319,8 @@ describe('Reserva diária pela planta', () => {
   it('limpa a planta e a seleção ao apagar a data, sem consultar ou confirmar', () => {
     const fixture = abrir();
     alterarCampo(fixture, '');
-    expect(fixture.nativeElement.querySelector('#erro-data').textContent).toContain('Informe a data');
+    expect(fixture.nativeElement.querySelector('#data-reserva-erro').textContent)
+      .toContain('Informe a data');
     expect(fixture.nativeElement.querySelector('app-planta-mesas')).toBeNull();
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     fixture.componentInstance.reserva.confirmar();
