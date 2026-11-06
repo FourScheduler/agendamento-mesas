@@ -150,6 +150,14 @@ mesa. Todos os cenários são repetidos em H2 e MySQL no schema exclusivo `_test
 
 ## Administrador
 
+`AdminMesaApiTests` verifica as cinco rotas de alteração de mesa: `401` para
+ausência de token ou token inválido, `403` para usuário comum, `404` para mesa
+inexistente e `400` para ID malformado. Fixação e troca também cobrem usuário
+inexistente ou inativo. Entradas ausentes, `null`, valores inválidos e corpos
+malformados verificam as mensagens administrativas, o envelope de erro e a
+preservação dos dados. Há um conflito `409` de cada operação e sucesso com o
+formato de `MesaResponse`, incluindo responsável e referência visual.
+
 `ConcorrenciaAdministrativaApiTests` e `ConcorrenciaAdministrativaMySqlTests`
 verificam fixação/inativação/tipo contra criação de reserva na mesma mesa,
 atribuição/troca contra reserva do usuário em outra mesa, bloqueio por reservas
