@@ -147,6 +147,14 @@ export class MapaPage {
     this.idsMesasDisponiveis.set(ids);
   }
 
+  onDisponibilidadeConsultada(data: string) {
+    this.reserva.registrarDisponibilidade(data);
+    const mesa = this.mesaNoPainel();
+    if (data === this.reserva.data() && mesa && this.idsMesasDisponiveis()?.has(mesa.id)) {
+      this.reserva.selecionar(mesa);
+    }
+  }
+
   onMesaInicialInvalidada() {
     this.detalhesAbertos.set(false);
     this.mesaNoPainel.set(null);
@@ -329,9 +337,18 @@ export class MapaPage {
   }
 
   confirmarReserva() {
+    const mesa = this.mesaNoPainel();
+    if (mesa && this.mesaSelecionada()?.id !== mesa.id && this.podeReservar(mesa)) {
+      this.reserva.selecionar(mesa);
+    }
     const solicitanteId = this.isAdmin() ? this.solicitanteSelecionado()?.id ?? null : null;
     if (this.isAdmin() && solicitanteId === null) return;
-    this.reserva.confirmarComSolicitante(solicitanteId);
+    this.reserva.confirmarComSolicitante(solicitanteId, () => {
+      this.detalhesAbertos.set(false);
+      this.mesaNoPainel.set(null);
+      this.invalidarBuscaReservaDoPainel();
+      this.mesaInicialId.set(null);
+    });
   }
 
   iniciaisSolicitante(nome: string): string {

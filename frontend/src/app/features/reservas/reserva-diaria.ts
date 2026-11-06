@@ -87,7 +87,7 @@ export class ReservaDiaria {
     this.confirmarComSolicitante(null);
   }
 
-  confirmarComSolicitante(solicitanteId: number | null) {
+  confirmarComSolicitante(solicitanteId: number | null, aposConfirmar?: () => void) {
     const mesa = this.selecionada();
     const sessao = this.auth.sessao();
     if (this.confirmando() || !mesa || !sessao || !this.disponibilidadeAtual()) return;
@@ -99,6 +99,7 @@ export class ReservaDiaria {
         next: () => {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
+          aposConfirmar?.();
           this.toast.sucesso('Reserva Confirmada');
           this.data.set(proximoDiaUtil(this.dataMinima));
           this.iniciarConsulta();

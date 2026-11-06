@@ -366,6 +366,31 @@ describe("Barra de reserva do mapa", () => {
       .flush([mesa]);
   });
 
+  it("fecha os detalhes após confirmar e não deixa uma confirmação sem mesa selecionada", () => {
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.componentInstance.reserva.alterarData("2026-10-28");
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]').click();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector(".confirmar") as HTMLButtonElement).click();
+    const request = http.expectOne("/api/reservas");
+    request.flush({ id: 9, data: "2026-10-28", status: "CONFIRMADA" });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    expect(fixture.componentInstance.detalhesAbertos()).toBe(false);
+    expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
+    expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+  });
+
   it("mostra apenas os dados da mesa reservada e permite ao dono cancelar", () => {
     const mesaReservada: Mesa = {
       ...mesa,
