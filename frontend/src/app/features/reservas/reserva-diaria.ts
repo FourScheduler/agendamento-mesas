@@ -113,8 +113,6 @@ export class ReservaDiaria {
           if (erro.status === 409) {
             if (erro.error?.code === 'USUARIO_COM_MESA_FIXA') {
               this.toast.erro('Reserva não permitida', detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.');
-            } else if (erro.error?.code === 'RESERVA_JA_EXISTENTE_USUARIO') {
-              this.toast.erro('Reserva já existente', detalhe || 'Já existe uma reserva para o beneficiário nesta data.');
             } else {
               this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
             }

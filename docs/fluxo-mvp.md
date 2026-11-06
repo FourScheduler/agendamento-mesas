@@ -65,14 +65,6 @@ Nome em `ocupante` não estabelece vínculo. A regularização exige conferênci
 do cadastro pelo e-mail e seleção do ID correto, sem associação automática por nome.
 Ver [regularização de vínculos](regularizacao-vinculos-mesas.md).
 
-Para duplicidade diária do beneficiário, a API retorna `409` com
-`code: RESERVA_JA_EXISTENTE_USUARIO`, `mesa: { id, codigo }` e
-`reserva: { id, data }`. A identificação vem da reserva não cancelada naquela
-data, inclusive quando o administrador reserva para terceiro. A mensagem distingue
-essa situação de vínculo fixo, mesa inativa/fixa e ocupação por outra pessoa.
-Lista e mapa apresentam a mesa existente e orientam o cancelamento antes de
-reservar outra; canceladas e datas diferentes não impedem a criação.
-
 ## Regra de sobreposição: adaptação de `[início, fim)`
 
 A decisão original previa intervalos `[início, fim)`, em que períodos consecutivos são permitidos e sobreposição da mesma mesa não é. Como o MVP adotou **reserva de dia inteiro**, o intervalo da reserva passa a ser o dia completo (`[00:00, 24:00)` do dia reservado) e a regra se traduz em:

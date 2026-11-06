@@ -414,11 +414,6 @@ public class ReservaApiTests {
         outraMesa.setResponsavel(maria);
         mesas.salvarESincronizar(outraMesa);
 
-        criar(maria, mesa, HOJE)
-            .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.code").value("USUARIO_COM_MESA_FIXA"))
-            .andExpect(jsonPath("$.mesa.codigo").value(outraMesa.getCodigo()))
-            .andExpect(jsonPath("$.reserva").doesNotExist());
         criar(maria, mesa, HOJE.plusDays(1)).andExpect(status().isConflict());
 
         assertThat(reservas.buscarTodos()).singleElement().satisfies(reserva -> {
@@ -448,109 +443,6 @@ public class ReservaApiTests {
         reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CANCELADA));
         disponiveis(HOJE).andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(mesa.getId().intValue())));
         criar(maria, mesa, HOJE).andExpect(status().isCreated());
-    }
-
-    @Test
-    void duplicidadeInformaReservaExistenteNaMesmaMesaOuEmOutraMesa() throws Exception {
-        for (var statusReserva : List.of(StatusReserva.PENDENTE, StatusReserva.CONFIRMADA)) {
-            reservas.deletarTodos();
-            var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, statusReserva));
-            for (var destino : List.of(mesa, outraMesa)) {
-                verificarDuplicidade(criar(maria, destino, HOJE), existente,
-                    "Você já tem uma reserva para a mesa 044 nesta data. Para reservar outra mesa, cancele a reserva atual.");
-                assertThat(reservas.contar()).isEqualTo(1);
-                assertThat(reservas.buscarPorId(existente.getId()).orElseThrow().getStatus()).isEqualTo(statusReserva);
-            }
-        }
-    }
-
-    @Test
-    void duplicidadeAdministrativaIdentificaBeneficiarioEmVezDoAdministrador() throws Exception {
-        reservas.salvarESincronizar(new Reserva(mesa, admin, HOJE, StatusReserva.CONFIRMADA));
-        var existente = reservas.salvarESincronizar(new Reserva(outraMesa, joao, HOJE, StatusReserva.CONFIRMADA));
-        var livre = mesas.salvar(new Mesa(null, "089", "DEMO", TipoMesa.LIVRE, true, "DEMO", 0, 400, null));
-        for (var destino : List.of(outraMesa, livre)) {
-            var resultado = mvc.perform(post("/api/reservas")
-                .header("Authorization", "Bearer " + jwt.gerarToken(admin))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"mesaId\":" + destino.getId() + ",\"data\":\"" + HOJE
-                    + "\",\"solicitanteId\":" + joao.getId() + "}"));
-            verificarDuplicidade(resultado, existente,
-                "João já tem uma reserva para a mesa 053 nesta data. Cancele a reserva atual antes de realizar outra para essa pessoa.");
-            assertThat(reservas.contar()).isEqualTo(2);
-        }
-        verificarDuplicidade(criar(admin, livre, HOJE), reservas.buscarReservaDoUsuarioNaData(
-                admin.getId(), HOJE, ReservaRepositoryPort.BLOQUEIA_MESA).orElseThrow(),
-            "Você já tem uma reserva para a mesa 044 nesta data. Para reservar outra mesa, cancele a reserva atual.");
-    }
-
-    @Test
-    void consultaDaDuplicidadeIgnoraCanceladasOutrasDatasEOutrosUsuarios() throws Exception {
-        var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.PENDENTE));
-        reservas.salvarESincronizar(new Reserva(outraMesa, maria, HOJE, StatusReserva.CANCELADA));
-        reservas.salvarESincronizar(new Reserva(outraMesa, maria, HOJE.plusDays(1), StatusReserva.CONFIRMADA));
-        reservas.salvarESincronizar(new Reserva(outraMesa, joao, HOJE, StatusReserva.CONFIRMADA));
-        verificarDuplicidade(criar(maria, outraMesa, HOJE), existente,
-            "Você já tem uma reserva para a mesa 044 nesta data. Para reservar outra mesa, cancele a reserva atual.");
-        assertThat(reservas.contar()).isEqualTo(4);
-        cancelar(existente, maria).andExpect(status().isOk());
-        criar(maria, mesa, HOJE).andExpect(status().isCreated());
-        criar(maria, mesa, HOJE.plusDays(2)).andExpect(status().isCreated());
-    }
-
-    @Test
-    void duplicidadeLegadaTemEscolhaEstavelSemAlterarHistorico() throws Exception {
-        reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.PENDENTE));
-        var recente = reservas.salvarESincronizar(new Reserva(outraMesa, maria, HOJE, StatusReserva.CONFIRMADA));
-        for (int tentativa = 0; tentativa < 2; tentativa++) {
-            verificarDuplicidade(criar(maria, mesa, HOJE), recente,
-                "Você já tem uma reserva para a mesa 053 nesta data. Para reservar outra mesa, cancele a reserva atual.");
-        }
-        assertThat(reservas.contar()).isEqualTo(2);
-    }
-
-    @Test
-    void demaisConflitosNaoExibemMetadadosDaReservaDeOutraPessoa() throws Exception {
-        reservas.salvarESincronizar(new Reserva(mesa, joao, HOJE, StatusReserva.CONFIRMADA));
-        criar(maria, mesa, HOJE).andExpect(status().isConflict())
-            .andExpect(jsonPath("$.detail").value("A mesa 044 já possui uma reserva não cancelada em " + HOJE + "."))
-            .andExpect(jsonPath("$.code").doesNotExist())
-            .andExpect(jsonPath("$.reserva").doesNotExist())
-            .andExpect(jsonPath("$.mesa").doesNotExist());
-        for (boolean ativa : List.of(true, false)) {
-            outraMesa.setAtiva(ativa);
-            outraMesa.setTipo(ativa ? TipoMesa.FIXA : TipoMesa.LIVRE);
-            mesas.salvarESincronizar(outraMesa);
-            criar(maria, outraMesa, HOJE).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value(ativa
-                    ? "Mesa 053 é fixa e não pode ser reservada." : "Mesa 053 está inativa."))
-                .andExpect(jsonPath("$.code").doesNotExist())
-                .andExpect(jsonPath("$.reserva").doesNotExist());
-        }
-        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"" + HOJE
-                    + "\",\"solicitanteId\":" + joao.getId() + "}"))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.reserva").doesNotExist())
-            .andExpect(jsonPath("$.mesa").doesNotExist());
-        assertThat(reservas.contar()).isEqualTo(1);
-    }
-
-    private void verificarDuplicidade(ResultActions resultado, Reserva existente, String mensagem) throws Exception {
-        // Consulta o código sem depender de uma associação lazy fora da transação.
-        var vinculada = mesas.buscarPorId(existente.getMesa().getId()).orElseThrow();
-        resultado.andExpect(status().isConflict())
-            .andExpect(jsonPath("$.status").value(409))
-            .andExpect(jsonPath("$.title").value("Reserva já existente"))
-            .andExpect(jsonPath("$.code").value("RESERVA_JA_EXISTENTE_USUARIO"))
-            .andExpect(jsonPath("$.detail").value(mensagem))
-            .andExpect(jsonPath("$.instance").value("/api/reservas"))
-            .andExpect(jsonPath("$.mesa.id").value(vinculada.getId()))
-            .andExpect(jsonPath("$.mesa.codigo").value(vinculada.getCodigo()))
-            .andExpect(jsonPath("$.reserva.id").value(existente.getId()))
-            .andExpect(jsonPath("$.reserva.data").value(existente.getData().toString()))
-            .andExpect(jsonPath("$.solicitante").doesNotExist());
     }
 
     @Test
@@ -863,20 +755,10 @@ public class ReservaApiTests {
 
     @Test
     void mesmoUsuarioNaoReservaDuasMesasConcorrentementeNoMesmoDia() throws Exception {
-        var conflito = new java.util.concurrent.atomic.AtomicReference<String>();
-        java.util.function.Function<Mesa, Callable<Integer>> tentativa = destino -> () -> {
-            var resposta = criar(maria, destino, HOJE).andReturn().getResponse();
-            if (resposta.getStatus() == 409) conflito.set(resposta.getContentAsString());
-            return resposta.getStatus();
-        };
-        var resultados = disputar(tentativa.apply(mesa), tentativa.apply(outraMesa));
+        var resultados = disputar(() -> criar(maria, mesa, HOJE).andReturn().getResponse().getStatus(),
+                () -> criar(maria, outraMesa, HOJE).andReturn().getResponse().getStatus());
         assertThat(resultados).containsExactlyInAnyOrder(201, 409);
         assertThat(reservas.contar()).isEqualTo(1);
-        var existente = reservas.buscarTodos().getFirst();
-        var mesaExistente = mesas.buscarPorId(existente.getMesa().getId()).orElseThrow();
-        var erro = com.jayway.jsonpath.JsonPath.parse(conflito.get());
-        assertThat(erro.read("$.code", String.class)).isEqualTo("RESERVA_JA_EXISTENTE_USUARIO");
-        assertThat(erro.read("$.mesa.codigo", String.class)).isEqualTo(mesaExistente.getCodigo());
     }
 
     @Test

@@ -7,7 +7,6 @@ import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioComMesaFixaException;
-import br.com.foursys.agendamento_mesas.exceptions.ReservaJaExistenteUsuarioException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Map;
@@ -28,15 +27,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
-
-    @ExceptionHandler(ReservaJaExistenteUsuarioException.class)
-    public ProblemDetail reservaJaExistente(ReservaJaExistenteUsuarioException e, HttpServletRequest request) {
-        var problema = problema(HttpStatus.CONFLICT, "Reserva já existente", e.getMessage(), request);
-        problema.setProperty("code", "RESERVA_JA_EXISTENTE_USUARIO");
-        problema.setProperty("mesa", Map.of("id", e.getMesaId(), "codigo", e.getCodigoMesa()));
-        problema.setProperty("reserva", Map.of("id", e.getReservaId(), "data", e.getData()));
-        return problema;
-    }
 
     @ExceptionHandler(UsuarioComMesaFixaException.class)
     public ProblemDetail usuarioComMesaFixa(UsuarioComMesaFixaException e, HttpServletRequest request) {
