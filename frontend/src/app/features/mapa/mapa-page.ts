@@ -27,7 +27,7 @@ import { Reserva } from '../agendamento/reserva';
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
   host: {
-    '(document:keydown.escape)': 'fecharDetalhes()',
+    '(document:keydown.escape)': 'fecharDetalhes($event)',
   },
 })
 export class MapaPage {
@@ -164,7 +164,8 @@ export class MapaPage {
     void this.router.navigate(['/agendamento'], { queryParams: { data: this.reserva.data(), mesaId: this.mesaSelecionada()?.id ?? null } });
   }
 
-  fecharDetalhes() {
+  fecharDetalhes(event?: Event) {
+    if (event?.defaultPrevented) return;
     if (!this.detalhesAbertos() || this.reserva.confirmando() || this.reserva.cancelando()) return;
 
     const mesaId = this.mesaNoPainel()?.id;

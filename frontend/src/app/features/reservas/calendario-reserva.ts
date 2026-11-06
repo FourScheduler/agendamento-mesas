@@ -37,20 +37,26 @@ import { adicionarDias, formatarData, validarDataReserva } from './data-reserva'
   `,
   styles: `
     :host { display: block; min-width: 0; }
-    dialog { position: fixed; margin: 0; width: min(280px, calc(100vw - 1rem));
-      max-height: calc(100dvh - 1rem); overflow: auto; box-sizing: border-box; padding: .625rem;
-      border: 1px solid var(--border-soft); border-radius: 8px; color: var(--text);
-      background: var(--card-bg); box-shadow: 0 4px 16px rgb(34 34 57 / 18%); font-size: .8125rem; }
+    dialog { position: fixed; margin: 0; width: min(296px, calc(100vw - 1rem));
+      max-height: calc(100dvh - 1rem); overflow: auto; box-sizing: border-box; padding: .75rem;
+      border: 1px solid var(--border-soft); border-radius: 14px; color: var(--text);
+      background: var(--card-bg); box-shadow: 0 16px 40px rgb(34 34 57 / 24%); font-size: .8125rem; }
     dialog::backdrop { background: transparent; }
-    header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
-    .dias { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .125rem; text-align: center; }
-    .dias span { font-size: .6875rem; padding: .375rem 0; }
-    button { min-width: 0; min-height: 30px; border: 1px solid var(--border-soft); border-radius: 4px;
+    header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+    header strong { color: var(--navy); font-size: .875rem; text-transform: capitalize; }
+    .dias { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; text-align: center; }
+    .dias span { color: var(--muted); font-size: .6875rem; font-weight: 700; padding: .375rem 0; }
+    button { min-width: 0; min-height: 36px; border: 1px solid transparent; border-radius: 8px;
       background: var(--card-bg); color: var(--text); font: inherit; cursor: pointer; }
+    header button { width: 36px; min-height: 36px; border-color: var(--border-soft); font-size: 1.25rem; }
+    .dias button:hover:not(:disabled):not([aria-pressed=true]),
+    header button:hover:not(:disabled) { border-color: #f3b69e; background: var(--orange-soft); }
     button:disabled { opacity: .4; cursor: not-allowed; background: var(--page-bg); }
-    button[aria-pressed=true] { border-color: var(--orange); background: var(--orange-soft); }
+    button[aria-pressed=true] { border-color: var(--orange); background: var(--orange); color: #fff; font-weight: 700; }
     button:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
-    .fechar { display: block; margin: .375rem 0 0 auto; padding: 0 .5rem; }
+    .fechar { display: block; min-height: 34px; margin: .5rem 0 0 auto; padding: 0 .625rem;
+      border-color: var(--border-soft); font-weight: 700; }
+    .fechar:hover { border-color: var(--orange); color: var(--orange-dark); }
   `,
 })
 export class CalendarioReserva {

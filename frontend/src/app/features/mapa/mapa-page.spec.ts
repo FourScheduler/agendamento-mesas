@@ -76,6 +76,87 @@ describe("Barra de reserva do mapa", () => {
     });
   }
 
+  it("fecha o mapa ampliado com Escape sem fechar os detalhes da mesa", () => {
+    const fixture = abrir();
+    const modal = fixture.nativeElement.querySelector(".mapa__modal") as HTMLElement;
+    fixture.nativeElement.querySelector('[aria-label="Ampliar mapa"]').click();
+    fixture.detectChanges();
+
+    modal.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(".mapa__modal").getAttribute("role")).toBeNull();
+    expect(fixture.componentInstance.detalhesAbertos()).toBe(true);
+    expect(fixture.nativeElement.querySelector(".detalhes")).not.toBeNull();
+  });
+
+  it("consulta a disponibilidade na data escolhida pelo calendário do modal", () => {
+    const fixture = abrir();
+    fixture.nativeElement.querySelector('[aria-label="Ampliar mapa"]').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(".mapa__painel-modal")).toBeNull();
+    const ferramentas = fixture.nativeElement.querySelector(".mapa__ferramentas-modal") as HTMLElement;
+    expect((ferramentas.querySelector(":scope > div") as HTMLElement).style.display).toBe("none");
+    (fixture.nativeElement.querySelector(
+      '.mapa__alternar-data-modal[aria-label="Mostrar dia da reserva"]',
+    ) as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const calendario = ferramentas.querySelector("app-calendario-reserva") as HTMLElement;
+    const dialogo = calendario.querySelector("dialog") as HTMLDialogElement;
+    dialogo.showModal = vi.fn(() => dialogo.setAttribute("open", ""));
+    dialogo.close = vi.fn(() => dialogo.removeAttribute("open"));
+    calendario.querySelector("input")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    fixture.detectChanges();
+
+    const dia = [...dialogo.querySelectorAll<HTMLButtonElement>(".dias button")]
+      .find(botao => !botao.disabled && botao.getAttribute("aria-pressed") !== "true");
+    expect(dia).toBeDefined();
+    const [diaMes, mes, ano] = dia!.getAttribute("aria-label")!.split("/");
+    const dataSelecionada = `${ano}-${mes}-${diaMes}`;
+    dia!.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.reserva.data()).toBe(dataSelecionada);
+    http.expectOne(request =>
+      request.url === "/api/mesas/com-ocupacao" && request.params.get("data") === dataSelecionada,
+    ).flush([mesa]);
+    http.expectOne(request =>
+      request.url === "/api/mesas/disponiveis" && request.params.get("data") === dataSelecionada,
+    ).flush([mesa]);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.reserva.disponibilidadeAtual()).toBe(true);
+    expect(fixture.nativeElement.querySelector(".mapa__modal--aberto")).not.toBeNull();
+
+    const dataToggle = fixture.nativeElement.querySelector(
+      '.mapa__alternar-data-modal[aria-label="Ocultar dia da reserva"]',
+    ) as HTMLButtonElement;
+    const dataSlot = ferramentas.querySelector(":scope > div") as HTMLElement;
+    dataToggle.click();
+    fixture.detectChanges();
+    expect(dataSlot.style.display).toBe("none");
+    (fixture.nativeElement.querySelector(
+      '.mapa__alternar-data-modal[aria-label="Mostrar dia da reserva"]',
+    ) as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(dataSlot.style.display).toBe("");
+
+    const olho = fixture.nativeElement.querySelector(
+      ".mapa__alternar-nomes-modal",
+    ) as HTMLButtonElement;
+    expect(ferramentas.contains(olho)).toBe(false);
+    expect(olho.getAttribute("aria-pressed")).toBe("false");
+    olho.click();
+    fixture.detectChanges();
+    expect(olho.getAttribute("aria-pressed")).toBe("true");
+    expect(olho.getAttribute("aria-label")).toBe("Ocultar nomes dos ocupantes");
+  });
+
   it("rola até a mesa recebida do agendamento e mantém o destaque sem abrir o modal", () => {
     const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
     const rolar = vi.fn();
