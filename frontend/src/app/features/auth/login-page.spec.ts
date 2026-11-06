@@ -16,7 +16,7 @@ describe('Login separado do mapa', () => {
   });
   afterEach(() => { localStorage.clear(); http.verify(); });
 
-  it('autentica e abre agendamento com a identidade e o token preservados', async () => {
+  it('autentica e abre o mapa com a identidade e o token preservados', async () => {
     const fixture = TestBed.createComponent(LoginPage);
     fixture.componentInstance.email = 'maria@teste.com';
     fixture.componentInstance.senha = 'senha-teste';
@@ -27,7 +27,7 @@ describe('Login separado do mapa', () => {
     request.flush({ token: 'token', tipo: 'Bearer', usuario });
     await entrando;
     expect(TestBed.inject(AuthService).usuario()).toEqual(usuario);
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: {} });
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/mapa'], { queryParams: {} });
     expect(fixture.componentInstance.senha).toBe('');
   });
 
