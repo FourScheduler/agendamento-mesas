@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
 import { MinhasReservasPage } from './minhas-reservas-page';
+import { ToastService } from '../../shared/toast/toast';
 
 const mesaDaMaria: Mesa = {
   id: 1,
@@ -109,11 +110,12 @@ describe('MinhasReservasPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Mesa vinculada');
   });
 
-  it('mostra reservas criadas pelo administrador sem permitir cancelamento ao beneficiário', () => {
+  it('permite ao beneficiário cancelar diária criada pelo administrador sem remover sua mesa fixa', () => {
+    const sucesso = vi.spyOn(TestBed.inject(ToastService), 'sucesso');
     const fixture = TestBed.createComponent(MinhasReservasPage);
     fixture.detectChanges();
 
-    http.expectOne('/api/reservas/minhas').flush([{
+    const diaria = {
       id: 21,
       usuarioId: 7,
       status: 'CONFIRMADA',
@@ -122,12 +124,51 @@ describe('MinhasReservasPage', () => {
       criador: { id: 9, nome: 'Admin', perfil: 'ADMIN' },
       mesa: { id: 9, codigo: '009', regiao: 'TAMBORÉ' },
       solicitante: { id: 7, nome: 'Maria', email: 'maria@teste.com' },
-    }]);
-    http.expectOne('/api/mesas').flush([]);
+    };
+    http.expectOne('/api/reservas/minhas').flush([diaria]);
+    http.expectOne('/api/mesas').flush([mesaDaMaria]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Reserva realizada pelo administrador.');
+    expect(fixture.nativeElement.textContent).not.toContain('Para alterações, entre em contato com a administração.');
+    fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Cancelar esta reserva?');
+    fixture.nativeElement.querySelector('.minhas-reservas__acao--perigo').click();
+    fixture.detectChanges();
+    const cancelamento = http.expectOne('/api/reservas/21/cancelamento');
+    expect(cancelamento.request.method).toBe('PATCH');
+    expect(sucesso).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--perigo').disabled).toBe(true);
+    cancelamento.flush(null);
+    http.expectOne('/api/reservas/minhas').flush([{ ...diaria, status: 'CANCELADA', canceladaEm: '2098-12-20T13:00:00' }]);
+    fixture.detectChanges();
+    expect(sucesso).toHaveBeenCalledExactlyOnceWith('Reserva cancelada', 'Mesa 009 foi liberada.');
     expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa')?.textContent).toContain('Mesa 001');
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa button')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Reserva realizada pelo administrador.');
+    http.expectNone(request => request.url.startsWith('/api/admin/mesas'));
+  });
+
+  it.each([
+    { usuarioId: 8, data: '2099-01-01', status: 'CONFIRMADA', motivo: 'reserva de terceiro' },
+    { usuarioId: 7, data: '2099-01-01', status: 'CANCELADA', motivo: 'reserva cancelada' },
+    { usuarioId: 7, data: '2000-01-01', status: 'CONFIRMADA', motivo: 'critério de data existente' },
+  ])('preserva a restrição de cancelamento para $motivo', caso => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    http.expectOne('/api/reservas/minhas').flush([{
+      id: 21, ...caso, criadaEm: '1999-12-20T12:00:00',
+      criador: { id: 9, nome: 'Admin', perfil: 'ADMIN' },
+      mesa: { id: 9, codigo: '009', regiao: 'TAMBORÉ' },
+    }]);
+    http.expectOne('/api/mesas').flush([]);
+    if (caso.data === '2000-01-01') fixture.componentInstance.trocarFiltro('passadas');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();
+    fixture.componentInstance.cancelarReserva(fixture.componentInstance.cartoes()[0]);
+    http.expectNone('/api/reservas/21/cancelamento');
   });
 
   it('administra a lista geral e consegue cancelar reservas de outros usuários', () => {

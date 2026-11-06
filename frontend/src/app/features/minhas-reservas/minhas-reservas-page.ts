@@ -238,7 +238,6 @@ export class MinhasReservasPage implements OnInit {
     const reserva = cartao.reserva;
     const podeGerenciar = this.ehAdmin() || (
       reserva.usuarioId === this.auth.usuario()?.id &&
-      (reserva.criador == null || reserva.criador.id === reserva.usuarioId) &&
       this.ehFutura(reserva)
     );
     return (
