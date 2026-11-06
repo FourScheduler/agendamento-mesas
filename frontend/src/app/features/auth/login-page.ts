@@ -29,7 +29,7 @@ export class LoginPage {
 
     try {
       await firstValueFrom(this.auth.login(this.email.trim(), this.senha));
-      const retorno = this.route.snapshot.queryParamMap.get('retorno') === 'mapa' ? '/mapa' : '/agendamento';
+      const retorno = this.route.snapshot.queryParamMap.get('retorno') === 'agendamento' ? '/agendamento' : '/mapa';
       const data = this.route.snapshot.queryParamMap.get('data');
       const mesaId = this.route.snapshot.queryParamMap.get('mesaId');
       const queryParams: Record<string, string> = {};

@@ -203,6 +203,10 @@ export class MinhasReservasPage implements OnInit {
     return this.statusFiltro() !== null || this.periodoPersonalizado();
   }
 
+  irParaMapa(): void {
+    void this.router.navigate(['/mapa']);
+  }
+
   irParaAgendamento(): void {
     void this.router.navigate(['/agendamento']);
   }

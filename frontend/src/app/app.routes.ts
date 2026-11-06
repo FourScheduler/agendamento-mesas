@@ -9,6 +9,6 @@ export const routes: Routes = [
   { path: 'minhas-reservas', loadComponent: () => import('./features/minhas-reservas/minhas-reservas-page').then(m => m.MinhasReservasPage), title: 'Minhas Reservas | Agendamento de Mesas', canActivate: [AuthGuard] },
   { path: 'mapa', loadComponent: () => import('./features/mapa/mapa-page').then(m => m.MapaPage), title: 'Mapa de Mesas | Agendamento de Mesas', canActivate: [AuthGuard] },
   { path: 'admin/mesas', loadComponent: () => import('./features/mesas/admin-mesa-page').then(m => m.AdminMesaPage), title: 'Administração de Mesas | Agendamento de Mesas', canActivate: [AuthGuard, AdminGuard] },
-  { path: '', redirectTo: '/agendamento', pathMatch: 'full' },
-  { path: '**', redirectTo: '/agendamento' },
+  { path: '', redirectTo: '/mapa', pathMatch: 'full' },
+  { path: '**', redirectTo: '/mapa' },
 ];

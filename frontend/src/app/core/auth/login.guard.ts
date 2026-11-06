@@ -5,5 +5,5 @@ import { AuthService } from './auth.service';
 export const LoginGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  return await auth.restaurarSessaoSeValida() ? router.createUrlTree(['/agendamento']) : true;
+  return await auth.restaurarSessaoSeValida() ? router.createUrlTree(['/mapa']) : true;
 };
