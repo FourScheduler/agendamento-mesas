@@ -3,6 +3,7 @@ package br.com.foursys.agendamento_mesas.infrastructure.persistence.repository;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
+    @EntityGraph(attributePaths = "mesa")
+    Optional<Reserva> findFirstByUsuarioIdAndDataAndStatusInOrderByIdDesc(
+        Long usuarioId, LocalDate data, Collection<StatusReserva> status);
+
     @Query("select r.usuario.id from Reserva r where r.id = :id")
     Optional<Long> buscarUsuarioId(@Param("id") Long id);
 

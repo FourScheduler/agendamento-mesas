@@ -6,6 +6,7 @@ import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioComMesaFixaException;
+import br.com.foursys.agendamento_mesas.exceptions.ReservaJaExistenteUsuarioException;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.model.Usuario;
@@ -22,7 +23,6 @@ import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +32,6 @@ import java.util.List;
 
 @Service
 public class ReservaService {
-    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final MesaRepositoryPort mesaRepositoryPort;
     private final ReservaRepositoryPort reservaRepositoryPort;
@@ -101,15 +100,23 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " é fixa e não pode ser reservada.");
         }
 
+        // O usuário já está bloqueado: a consulta enxerga a reserva confirmada por uma tentativa anterior.
+        // Verificar antes da ocupação distingue a própria reserva de uma mesa ocupada por outra pessoa.
+        reservaRepositoryPort.buscarReservaDoUsuarioNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)
+            .ifPresent(existente -> {
+                String codigo = existente.getMesa().getCodigo();
+                String mensagem = usuario.getId().equals(autenticado.id())
+                    ? "Você já tem uma reserva para a mesa " + codigo
+                        + " nesta data. Para reservar outra mesa, cancele a reserva atual."
+                    : usuario.getNome() + " já tem uma reserva para a mesa " + codigo
+                        + " nesta data. Cancele a reserva atual antes de realizar outra para essa pessoa.";
+                throw new ReservaJaExistenteUsuarioException(existente.getId(), existente.getData(),
+                    existente.getMesa().getId(), codigo, mensagem);
+            });
+
         if (reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
-        }
-
-        if (reservaRepositoryPort.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Você já possui uma reserva em " + request.data().format(DATA_BR)
-                    + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
 
         Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);

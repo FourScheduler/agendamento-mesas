@@ -308,7 +308,7 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
 | `409` | Beneficiário vinculado como responsável de uma mesa, inclusive inativa ou com tipo legado inconsistente. | `Você já possui a mesa fixa 053 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
-| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
+| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já tem uma reserva para a mesa 053 nesta data. Para reservar outra mesa, cancele a reserva atual.` |
 
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
@@ -343,6 +343,42 @@ validada antes da consulta do vínculo.
 Lista e mapa reconhecem `code` e exibem o `detail` retornado. Outros conflitos
 409 preservam seu motivo específico; não são classificados apenas pelo status.
 O endpoint mantém a validação transacional mesmo com dados antigos na interface.
+
+### Reserva diária já existente do beneficiário
+
+Depois de validar o vínculo de mesa fixa e a elegibilidade da mesa solicitada,
+a API consulta a reserva `PENDENTE`/`CONFIRMADA` do beneficiário na data. Essa
+consulta precede a ocupação da mesa para identificar também uma nova tentativa
+na própria mesa já reservada. O erro mantém `409` e inclui:
+
+```json
+{
+  "title": "Reserva já existente",
+  "status": 409,
+  "detail": "Você já tem uma reserva para a mesa 053 nesta data. Para reservar outra mesa, cancele a reserva atual.",
+  "instance": "/api/reservas",
+  "code": "RESERVA_JA_EXISTENTE_USUARIO",
+  "mesa": { "id": 53, "codigo": "053" },
+  "reserva": { "id": 10, "data": "2026-10-28" }
+}
+```
+
+IDs, código e data acima são exemplos: a resposta usa os dados da reserva
+existente, nunca os da mesa que se tentou reservar. Para administrador reservando
+para terceiro, a mensagem é `{nome} já tem uma reserva para a mesa {codigo} nesta
+data. Cancele a reserva atual antes de realizar outra para essa pessoa.` O próprio
+administrador usa a mensagem iniciada por `Você` ao reservar para si.
+
+A consulta é restrita ao beneficiário autorizado e à data solicitada, ignora
+canceladas e não retorna dados de reservas alheias. Se houver duplicidade legada,
+identifica a reserva bloqueante de maior ID, sem alterar o histórico. Os locks
+continuam na ordem usuário → mesa, com isolamento `READ_COMMITTED`, inclusive
+na disputa com cancelamento e com outra tentativa do mesmo beneficiário.
+
+Lista e mapa reconhecem esse código, mostram o `detail` em uma única notificação
+e atualizam a disponibilidade. Outros `409` preservam o motivo específico e não
+recebem esse código. O vínculo fixo mantém prioridade e o código
+`USUARIO_COM_MESA_FIXA`. Nenhuma reserva é cancelada automaticamente.
 
 ---
 

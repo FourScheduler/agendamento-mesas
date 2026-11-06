@@ -258,6 +258,41 @@ describe('Reserva diária pela planta', () => {
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
+  it.each(['USUARIO', 'ADMIN'])('informa a reserva diária existente do beneficiário no mapa para %s', perfil => {
+    const fixture = abrir();
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { ...usuario, perfil } });
+    if (perfil === 'ADMIN') {
+      fixture.componentInstance.selecionarSolicitante({ id: 8, nome: 'João', email: 'joao@teste.com', perfil: 'USUARIO', ativo: true });
+    }
+    fixture.componentInstance.confirmarReserva();
+    const request = http.expectOne('/api/reservas');
+    expect(request.request.body.solicitanteId).toBe(perfil === 'ADMIN' ? 8 : undefined);
+    const detalhe = perfil === 'ADMIN'
+      ? 'João já tem uma reserva para a mesa 082 nesta data. Cancele a reserva atual antes de realizar outra para essa pessoa.'
+      : 'Você já tem uma reserva para a mesa 082 nesta data. Para reservar outra mesa, cancele a reserva atual.';
+    request.flush({ code: 'RESERVA_JA_EXISTENTE_USUARIO', detail: detalhe,
+      mesa: { id: 82, codigo: '082' }, reserva: { id: 94, data: '2026-10-28' } },
+      { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar();
+    fixture.detectChanges();
+    expect(mockToastService.erro).toHaveBeenCalledExactlyOnceWith('Reserva já existente', detalhe);
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.reserva.selecionada()).toBeNull();
+    fixture.componentInstance.confirmarReserva();
+    http.expectNone('/api/reservas');
+  });
+
+  it('usa orientação geral no mapa se o detalhe da duplicidade estiver ausente', () => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.confirmar();
+    http.expectOne('/api/reservas').flush({ code: 'RESERVA_JA_EXISTENTE_USUARIO' }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar([]);
+    expect(mockToastService.erro).toHaveBeenCalledExactlyOnceWith('Reserva já existente', 'Já existe uma reserva para o beneficiário nesta data.');
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
+  });
+
   it('mostra a crítica de reserva existente uma única vez pelo toast global', () => {
     const fixture = abrir();
     fixture.componentInstance.reserva.confirmar();

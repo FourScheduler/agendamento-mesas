@@ -148,6 +148,24 @@ legada apresentada por maior ID sem modificar registros. Um teste compara a
 quantidade de consultas com duas e 22 mesas para evitar uma busca de ocupação por
 mesa. Todos os cenários são repetidos em H2 e MySQL no schema exclusivo `_test`.
 
+## Identificação de reserva diária existente — issue #68
+
+`ReservaApiTests` e sua execução em `ReservaMySqlTests` verificam duplicidade
+na mesma mesa e em outra mesa para estados `PENDENTE`/`CONFIRMADA`, com
+`RESERVA_JA_EXISTENTE_USUARIO`, ID/data da reserva e ID/código da mesa existente.
+Admin reservando para terceiro recebe os dados do beneficiário, mesmo tendo
+reserva própria; para si recebe a mensagem de usuário. Canceladas, datas e
+usuários diferentes são ignorados na consulta. Duplicidade legada tem seleção
+estável de maior ID, sem alteração de registros. O teste concorrente verifica
+que o erro identifica a mesa da única reserva efetivamente criada.
+
+Mesa fixa vinculada mantém prioridade. Mesa ocupada por outra pessoa, fixa ou
+inativa preserva a causa do erro sem expor metadados de reservas alheias; usuário
+comum não pode consultar a duplicidade de terceiro enviando `solicitanteId`.
+Os testes da lista e do mapa verificam a mensagem dinâmica do beneficiário,
+notificação única, ausência de falso sucesso, seleção limpa e atualização da
+disponibilidade. Se o detalhe estiver ausente, não inventam o código de mesa.
+
 ## Administrador
 
 `AdminMesaApiTests` verifica as cinco rotas de alteração de mesa: `401` para

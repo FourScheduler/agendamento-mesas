@@ -48,6 +48,9 @@ public interface ReservaRepositoryPort {
         @Param("bloqueios") Collection<StatusReserva> bloqueios
     );
 
+    Optional<Reserva> buscarReservaDoUsuarioNaData(Long usuarioId, LocalDate data,
+        Collection<StatusReserva> bloqueios);
+
     boolean mesaOcupadaNaData(
         @Param("mesaId") Long mesaId,
         @Param("data") LocalDate data,

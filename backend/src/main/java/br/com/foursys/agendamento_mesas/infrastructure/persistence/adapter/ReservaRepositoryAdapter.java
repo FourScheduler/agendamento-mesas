@@ -71,6 +71,12 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public Optional<Reserva> buscarReservaDoUsuarioNaData(Long usuarioId, LocalDate data,
+            Collection<StatusReserva> bloqueios) {
+        return reservaJpaRepository.findFirstByUsuarioIdAndDataAndStatusInOrderByIdDesc(usuarioId, data, bloqueios);
+    }
+
+    @Override
     public boolean mesaOcupadaNaData(Long mesaId, LocalDate data, Collection<StatusReserva> bloqueios) {
         return reservaJpaRepository.mesaOcupadaNaData(mesaId, data, bloqueios);
     }
