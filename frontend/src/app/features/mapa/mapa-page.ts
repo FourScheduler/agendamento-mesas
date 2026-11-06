@@ -272,8 +272,7 @@ export class MapaPage {
     const usuarioAtual = this.usuario();
     if (!usuarioAtual) return false;
     if (this.isAdmin()) return true;
-    return reservaMesa.usuarioId === usuarioAtual.id
-      && (reservaMesa.criador == null || reservaMesa.criador.id === usuarioAtual.id);
+    return reservaMesa.usuarioId === usuarioAtual.id;
   }
 
   /** Cancela a reserva atualmente exibida no painel. */
