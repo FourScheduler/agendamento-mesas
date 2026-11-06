@@ -9,7 +9,7 @@
     <div class="filtro-data__linha">
       <div class="filtro-campo">
         <label class="filtro-data__rotulo" for="data-reserva">Data da reserva</label>
-        <app-calendario-reserva [data]="dataSelecionada()" [minima]="todayISO" [maxima]="maxDateISO"
+        <app-calendario-reserva [data]="dataSelecionada()" [minima]="todayISO()" [maxima]="maxDateISO()"
           [desabilitado]="confirmando()" (dataSelecionada)="onDataChange($event)">
         <input
           class="filtro-data__entrada"
@@ -18,8 +18,8 @@
           readonly aria-haspopup="dialog"
           [ngModel]="dataSelecionada()"
           (ngModelChange)="onDataChange($event)"
-          [min]="todayISO"
-          [max]="maxDateISO"
+          [min]="todayISO()"
+          [max]="maxDateISO()"
           [disabled]="confirmando()"
           [attr.aria-invalid]="reserva.erroData() ? true : null"
           aria-describedby="erro-data"
