@@ -308,7 +308,16 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
 | `409` | Beneficiário vinculado como responsável de uma mesa, inclusive inativa ou com tipo legado inconsistente. | `Você já possui a mesa fixa 053 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
-| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
+| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já tem uma reserva para a mesa 053.` |
+
+A duplicidade retorna `code: USUARIO_COM_RESERVA_NA_DATA` e
+`mesa: { id, codigo }` da reserva existente do solicitante efetivo, não da nova
+tentativa nem da reserva do administrador. O código exibido é dinâmico.
+A consulta considera somente reservas `PENDENTE` e `CONFIRMADA` no dia solicitado,
+sob os mesmos locks de usuário e mesa. Depois das validações de vínculo fixo,
+ativação e tipo, a duplicidade é verificada antes da ocupação da mesa, inclusive
+quando a nova tentativa usa a mesma mesa. Sem duplicidade, os demais conflitos
+preservam suas mensagens e não expõem dados da reserva de outra pessoa.
 
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas

@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -435,7 +437,11 @@ public class ReservaApiTests {
         for (var status : List.of(StatusReserva.PENDENTE, StatusReserva.CONFIRMADA)) {
             reservas.deletarTodos();
             reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, status));
-            criar(joao, mesa, HOJE).andExpect(status().isConflict());
+            criar(joao, mesa, HOJE).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("A mesa " + mesa.getCodigo()
+                    + " já possui uma reserva não cancelada em " + HOJE + "."))
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.mesa").doesNotExist());
             criar(maria, outraMesa, HOJE).andExpect(status().isConflict());
         }
         reservas.deletarTodos();
@@ -443,6 +449,36 @@ public class ReservaApiTests {
         reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CANCELADA));
         disponiveis(HOJE).andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(mesa.getId().intValue())));
         criar(maria, mesa, HOJE).andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "false, false, PENDENTE", "false, true, PENDENTE",
+        "true, false, PENDENTE", "true, true, PENDENTE",
+        "false, false, CONFIRMADA", "false, true, CONFIRMADA",
+        "true, false, CONFIRMADA", "true, true, CONFIRMADA"
+    })
+    void duplicidadeIdentificaMesaDoBeneficiarioMesmoEmOutraMesa(boolean porAdmin,
+            boolean mesmaMesa, StatusReserva estado) throws Exception {
+        reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, estado));
+        if (porAdmin) {
+            reservas.salvarESincronizar(new Reserva(outraMesa, admin, HOJE, StatusReserva.CONFIRMADA));
+        }
+        Mesa solicitada = mesmaMesa ? mesa : outraMesa;
+        String conteudo = porAdmin
+            ? "{\"mesaId\":" + solicitada.getId() + ",\"data\":\"" + HOJE
+                + "\",\"solicitanteId\":" + maria.getId() + "}"
+            : corpo(solicitada, HOJE);
+        mvc.perform(post("/api/reservas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(porAdmin ? admin : maria))
+                .contentType(MediaType.APPLICATION_JSON).content(conteudo))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USUARIO_COM_RESERVA_NA_DATA"))
+            .andExpect(jsonPath("$.mesa.id").value(mesa.getId()))
+            .andExpect(jsonPath("$.mesa.codigo").value(mesa.getCodigo()))
+            .andExpect(jsonPath("$.detail").value("Você já tem uma reserva para a mesa " + mesa.getCodigo() + "."))
+            .andExpect(jsonPath("$.solicitante").doesNotExist());
+        assertThat(reservas.contar()).isEqualTo(porAdmin ? 2 : 1);
     }
 
     @Test

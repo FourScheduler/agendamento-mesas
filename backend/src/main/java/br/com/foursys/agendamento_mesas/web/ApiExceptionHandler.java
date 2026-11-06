@@ -7,6 +7,7 @@ import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioComMesaFixaException;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioComReservaNaDataException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Map;
@@ -27,6 +28,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(UsuarioComReservaNaDataException.class)
+    public ProblemDetail usuarioComReservaNaData(UsuarioComReservaNaDataException e, HttpServletRequest request) {
+        var problema = problema(HttpStatus.CONFLICT, "Solicitante com reserva na data", e.getMessage(), request);
+        problema.setProperty("code", "USUARIO_COM_RESERVA_NA_DATA");
+        problema.setProperty("mesa", Map.of("id", e.getMesaId(), "codigo", e.getCodigoMesa()));
+        return problema;
+    }
 
     @ExceptionHandler(UsuarioComMesaFixaException.class)
     public ProblemDetail usuarioComMesaFixa(UsuarioComMesaFixaException e, HttpServletRequest request) {
