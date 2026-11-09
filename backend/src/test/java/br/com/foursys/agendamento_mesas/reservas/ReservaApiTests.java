@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -154,11 +156,11 @@ public class ReservaApiTests {
     }
 
     @Test
-    void beneficiarioNaoCancelaReservaCriadaPorAdminMasAdminPode() throws Exception {
+    void beneficiarioCancelaReservaCriadaPorAdminPreservandoAutoriaEHistorico() throws Exception {
         var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
 
         mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
-                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.status").value(403));
 
@@ -166,11 +168,72 @@ public class ReservaApiTests {
             .isEqualTo(StatusReserva.CONFIRMADA);
 
         mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
-                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
-            .andExpect(status().isOk());
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isOk())
+            .andExpect(content().string(""));
 
-        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getStatus())
-            .isEqualTo(StatusReserva.CANCELADA);
+        var cancelada = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+        assertThat(cancelada.getUsuario().getId()).isEqualTo(joao.getId());
+        assertThat(cancelada.getMesa().getId()).isEqualTo(mesa.getId());
+        assertThat(cancelada.getData()).isEqualTo(criada.data());
+        assertThat(cancelada.getCriadaEm()).isEqualTo(criada.criadaEm());
+        assertThat(cancelada.getConfirmadaEm()).isEqualTo(criada.confirmadaEm());
+        var canceladaEm = cancelada.getCanceladaEm();
+        assertThat(canceladaEm).isNotNull();
+        disponiveis(HOJE).andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(mesa.getId().intValue())));
+
+        cancelar(cancelada, joao).andExpect(status().isConflict());
+        cancelar(cancelada, admin).andExpect(status().isConflict());
+        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getCanceladaEm()).isEqualTo(canceladaEm);
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void administradorContinuaCancelandoDiariaCriadaParaTerceiro() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+        cancelar(reservas.buscarPorId(criada.id()).orElseThrow(), admin).andExpect(status().isOk());
+        var cancelada = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(cancelada.getUsuario().getId()).isEqualTo(joao.getId());
+        assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void cancelamentoPeloBeneficiarioNaoRemoveSuaMesaFixa() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+        // A diária é anterior à fixação: cancelar o histórico não pode desfazer o vínculo atual.
+        mesa.setTipo(TipoMesa.FIXA);
+        mesa.setAtiva(false);
+        mesa.setResponsavel(joao);
+        mesa.setOcupante("Responsável preservado");
+        mesas.salvarESincronizar(mesa);
+
+        cancelar(reservas.buscarPorId(criada.id()).orElseThrow(), joao).andExpect(status().isOk());
+        var atual = mesas.buscarPorId(mesa.getId()).orElseThrow();
+        assertThat(atual.getTipo()).isEqualTo(TipoMesa.FIXA);
+        assertThat(atual.isAtiva()).isFalse();
+        assertThat(atual.getResponsavel().getId()).isEqualTo(joao.getId());
+        assertThat(atual.getOcupante()).isEqualTo("Responsável preservado");
+        mvc.perform(patch("/api/admin/mesas/{id}/desfixar", mesa.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isForbidden());
+        assertThat(mesas.buscarPorId(mesa.getId()).orElseThrow().getResponsavel().getId()).isEqualTo(joao.getId());
+    }
+
+    @Test
+    void beneficiarioCancelaDiariasAdministrativasPassadasConfirmadasOuPendentes() throws Exception {
+        for (var estado : List.of(StatusReserva.CONFIRMADA, StatusReserva.PENDENTE)) {
+            var diaria = new Reserva(mesa, joao, HOJE.minusDays(1), estado);
+            diaria.setCriadoPor(admin);
+            var salva = reservas.salvarESincronizar(diaria);
+            cancelar(salva, joao).andExpect(status().isOk());
+            var cancelada = reservas.buscarPorId(salva.getId()).orElseThrow();
+            assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+            assertThat(cancelada.getData()).isEqualTo(HOJE.minusDays(1));
+            assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+        }
     }
 
     @Test
@@ -251,8 +314,12 @@ public class ReservaApiTests {
                 .andExpect(status().isNotFound());
         var fixa = mesas.salvar(new Mesa(null, "018", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 100, null));
         var inativa = mesas.salvar(new Mesa(null, "005", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 200, null));
-        criar(maria, fixa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("fixa")));
-        criar(maria, inativa, HOJE).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("inativa")));
+        criar(maria, fixa, HOJE).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Mesa 018 é fixa e não pode ser reservada."))
+            .andExpect(jsonPath("$.code").doesNotExist());
+        criar(maria, inativa, HOJE).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Mesa 005 está inativa."))
+            .andExpect(jsonPath("$.code").doesNotExist());
         assertThat(reservas.contar()).isZero();
     }
 
@@ -435,7 +502,11 @@ public class ReservaApiTests {
         for (var status : List.of(StatusReserva.PENDENTE, StatusReserva.CONFIRMADA)) {
             reservas.deletarTodos();
             reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, status));
-            criar(joao, mesa, HOJE).andExpect(status().isConflict());
+            criar(joao, mesa, HOJE).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("A mesa " + mesa.getCodigo()
+                    + " já possui uma reserva não cancelada em " + HOJE + "."))
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.mesa").doesNotExist());
             criar(maria, outraMesa, HOJE).andExpect(status().isConflict());
         }
         reservas.deletarTodos();
@@ -443,6 +514,36 @@ public class ReservaApiTests {
         reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CANCELADA));
         disponiveis(HOJE).andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(mesa.getId().intValue())));
         criar(maria, mesa, HOJE).andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "false, false, PENDENTE", "false, true, PENDENTE",
+        "true, false, PENDENTE", "true, true, PENDENTE",
+        "false, false, CONFIRMADA", "false, true, CONFIRMADA",
+        "true, false, CONFIRMADA", "true, true, CONFIRMADA"
+    })
+    void duplicidadeIdentificaMesaDoBeneficiarioMesmoEmOutraMesa(boolean porAdmin,
+            boolean mesmaMesa, StatusReserva estado) throws Exception {
+        reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, estado));
+        if (porAdmin) {
+            reservas.salvarESincronizar(new Reserva(outraMesa, admin, HOJE, StatusReserva.CONFIRMADA));
+        }
+        Mesa solicitada = mesmaMesa ? mesa : outraMesa;
+        String conteudo = porAdmin
+            ? "{\"mesaId\":" + solicitada.getId() + ",\"data\":\"" + HOJE
+                + "\",\"solicitanteId\":" + maria.getId() + "}"
+            : corpo(solicitada, HOJE);
+        mvc.perform(post("/api/reservas")
+                .header("Authorization", "Bearer " + jwt.gerarToken(porAdmin ? admin : maria))
+                .contentType(MediaType.APPLICATION_JSON).content(conteudo))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USUARIO_COM_RESERVA_NA_DATA"))
+            .andExpect(jsonPath("$.mesa.id").value(mesa.getId()))
+            .andExpect(jsonPath("$.mesa.codigo").value(mesa.getCodigo()))
+            .andExpect(jsonPath("$.detail").value("Você já tem uma reserva para a mesa " + mesa.getCodigo() + "."))
+            .andExpect(jsonPath("$.solicitante").doesNotExist());
+        assertThat(reservas.contar()).isEqualTo(porAdmin ? 2 : 1);
     }
 
     @Test
@@ -525,7 +626,9 @@ public class ReservaApiTests {
 
     @Test
     void falhaNaTransacaoDesfazCancelamentoELiberaLocks() throws Exception {
-        var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+        var diaria = new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA);
+        diaria.setCriadoPor(admin);
+        var existente = reservas.salvarESincronizar(diaria);
 
         assertThatThrownBy(() -> transacao().executeWithoutResult(tx -> {
             service.cancelar(existente.getId(), identidade(maria));
@@ -535,7 +638,24 @@ public class ReservaApiTests {
         var preservada = reservas.buscarPorId(existente.getId()).orElseThrow();
         assertThat(preservada.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
         assertThat(preservada.getCanceladaEm()).isNull();
+        assertThat(preservada.getCriadoPor().getId()).isEqualTo(admin.getId());
         cancelar(existente, maria).andExpect(status().isOk());
+    }
+
+    @Test
+    void beneficiarioEAdministradorCancelamDiariaAdministrativaUmaUnicaVez() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+        var existente = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(disputar(
+            () -> cancelar(existente, joao).andReturn().getResponse().getStatus(),
+            () -> cancelar(existente, admin).andReturn().getResponse().getStatus()
+        )).containsExactlyInAnyOrder(200, 409);
+        var cancelada = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(cancelada.getCanceladaEm()).isEqualTo(LocalDateTime.of(HOJE, LocalTime.of(9, 0)));
+        assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+        assertThat(cancelada.getUsuario().getId()).isEqualTo(joao.getId());
+        assertThat(reservas.contar()).isEqualTo(1);
     }
 
     @Test

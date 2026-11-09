@@ -34,4 +34,17 @@ describe('Datas de reserva diária', () => {
     expect(proximoDiaUtil('2026-10-31')).toBe('2026-11-02');
     expect(proximoDiaUtil('2026-11-01')).toBe('2026-11-02');
   });
+
+  it('reavalia hoje, o fim de semana e o limite inclusivo após a virada de domingo para segunda', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-09T02:59:59Z'));
+    expect(hojeSaoPaulo()).toBe('2026-11-08');
+    expect(validarDataReserva('2026-11-08')).toContain('segunda a sexta');
+    expect(validarDataReserva('2026-11-23')).toBe('');
+    expect(validarDataReserva('2026-11-24')).toContain('15 dias');
+    vi.setSystemTime(new Date('2026-11-09T03:00:00Z'));
+    expect(validarDataReserva('2026-11-09')).toBe('');
+    expect(validarDataReserva('2026-11-24')).toBe('');
+    expect(validarDataReserva('2026-11-25')).toContain('15 dias');
+  });
 });

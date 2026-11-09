@@ -85,6 +85,82 @@ describe('Reserva diária pela planta', () => {
     fixture.detectChanges();
   }
 
+  describe.each([
+    ['lista', AgendamentoPage, '/api/mesas'],
+    ['mapa', MapaPage, '/api/mesas/com-ocupacao'],
+  ] as const)('virada de dia na %s', (_nome, componente, endpoint) => {
+    it('atualiza limites e bloqueia a data que ficou no passado sem escolher outro dia', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-07T02:59:59.900Z'));
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      const fixture = TestBed.createComponent<AgendamentoPage | MapaPage>(componente);
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-06', endpoint);
+      fixture.detectChanges();
+      const reserva = fixture.componentInstance.reserva;
+      reserva.selecionar(mesa);
+      expect(reserva.selecionada()?.id).toBe(mesa.id);
+      vi.advanceTimersByTime(100);
+      fixture.detectChanges();
+      expect(reserva.data()).toBe('2026-11-06');
+      expect(reserva.erroData()).toContain('hoje ou futura');
+      expect(reserva.disponibilidadeAtual()).toBe(false);
+      expect(reserva.selecionada()).toBeNull();
+      const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
+      expect(campo.min).toBe('2026-11-07');
+      expect(campo.max).toBe('2026-11-22');
+      reserva.confirmar();
+      http.expectNone('/api/reservas');
+      http.expectNone(r => r.url === '/api/mesas/disponiveis');
+      fixture.destroy();
+    });
+
+    it('preserva a segunda-feira escolhida e reconsulta a mesma data ao retornar à aba', () => {
+      vi.setSystemTime(new Date('2026-11-06T12:00:00Z'));
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      const fixture = TestBed.createComponent<AgendamentoPage | MapaPage>(componente);
+      fixture.componentInstance.reserva.alterarData('2026-11-09');
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-09', endpoint);
+      fixture.detectChanges();
+      const pagina = fixture.componentInstance;
+      if (pagina instanceof AgendamentoPage) pagina.busca.set('044');
+      vi.setSystemTime(new Date('2026-11-09T03:00:01Z'));
+      window.dispatchEvent(new Event('focus'));
+      fixture.detectChanges();
+      if (pagina instanceof MapaPage) {
+        http.expectOne(r => r.url === endpoint).flush([mesa]);
+      }
+      http.expectOne(r => r.url === '/api/mesas/disponiveis'
+        && r.params.get('data') === '2026-11-09').flush([mesa]);
+      fixture.detectChanges();
+      expect(pagina.reserva.data()).toBe('2026-11-09');
+      expect(pagina.reserva.erroData()).toBe('');
+      expect(pagina.reserva.disponibilidadeAtual()).toBe(true);
+      if (pagina instanceof AgendamentoPage) expect(pagina.busca()).toBe('044');
+      const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
+      expect(campo.min).toBe('2026-11-09');
+      expect(campo.max).toBe('2026-11-24');
+      fixture.destroy();
+    });
+
+    it('revalida o dia antes do POST mesmo se o temporizador não tiver executado', () => {
+      vi.setSystemTime(new Date('2026-11-07T02:59:59Z'));
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      const fixture = TestBed.createComponent<AgendamentoPage | MapaPage>(componente);
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-06', endpoint);
+      fixture.detectChanges();
+      const reserva = fixture.componentInstance.reserva;
+      reserva.selecionar(mesa);
+      vi.setSystemTime(new Date('2026-11-07T03:00:01Z'));
+      reserva.confirmar();
+      expect(reserva.erroData()).toContain('hoje ou futura');
+      http.expectNone('/api/reservas');
+      fixture.destroy();
+    });
+  });
+
   it.each(['2026-10-31T12:00:00Z', '2026-11-01T12:00:00Z'])(
     'abre o mapa no próximo dia útil em %s e mantém essa data após reservar', instante => {
       vi.setSystemTime(new Date(instante));
@@ -258,17 +334,59 @@ describe('Reserva diária pela planta', () => {
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
-  it('mostra a crítica de reserva existente uma única vez pelo toast global', () => {
+  it.each(['USUARIO', 'ADMIN'])('mostra a mesa da reserva existente do beneficiário para %s', perfil => {
     const fixture = abrir();
-    fixture.componentInstance.reserva.confirmar();
-    http.expectOne('/api/reservas').flush({ detail: 'Você já possui uma reserva nessa data.' }, { status: 409, statusText: 'Conflict' });
+    TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario: { ...usuario, perfil } });
+    fixture.componentInstance.reserva.confirmarComSolicitante(perfil === 'ADMIN' ? 8 : null);
+    const request = http.expectOne('/api/reservas');
+    expect(request.request.body.mesaId).toBe(44);
+    expect(request.request.body.solicitanteId).toBe(perfil === 'ADMIN' ? 8 : undefined);
+    request.flush({
+      code: 'USUARIO_COM_RESERVA_NA_DATA',
+      detail: 'Duplicidade do solicitante na data.',
+      mesa: { id: 53, codigo: '053' },
+    }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
     carregar([]);
     fixture.detectChanges();
-    expect(mockToastService.erro).toHaveBeenCalledWith('Você já possui uma reserva nessa data.');
+    expect(mockToastService.erro).toHaveBeenCalledWith('Você já tem uma reserva para a mesa 053.');
     expect(mockToastService.erro).toHaveBeenCalledTimes(1);
     expect(mockToastService.sucesso).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
+  });
+
+  it.each([
+    'A mesa 044 já possui uma reserva não cancelada em 2026-10-28.',
+    'Mesa 044 é fixa e não pode ser reservada.',
+    'Mesa 044 está inativa.',
+    'Não foi possível concluir a confirmação concorrente.',
+  ])('preserva outro conflito sem classificá-lo como duplicidade: %s', detalhe => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.confirmar();
+    http.expectOne('/api/reservas').flush({
+      detail: detalhe,
+      mesa: { id: 53, codigo: '053' },
+    }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar([]);
+    fixture.detectChanges();
+    expect(mockToastService.erro).toHaveBeenCalledExactlyOnceWith(detalhe);
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, null, '', '  ', 53])('não inventa código para duplicidade com código inválido %s', codigo => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.confirmar();
+    http.expectOne('/api/reservas').flush({
+      code: 'USUARIO_COM_RESERVA_NA_DATA',
+      detail: 'O solicitante já possui uma reserva nessa data.',
+      mesa: { codigo },
+    }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    carregar([]);
+    fixture.detectChanges();
+    expect(mockToastService.erro).toHaveBeenCalledExactlyOnceWith('O solicitante já possui uma reserva nessa data.');
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
   });
 
   it.each(['USUARIO', 'ADMIN'])('informa a mesa vinculada no mapa para %s sem falso sucesso', perfil => {

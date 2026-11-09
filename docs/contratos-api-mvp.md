@@ -308,7 +308,21 @@ Confirma e persiste uma reserva de dia inteiro, exclusivamente para a data escol
 | `409` | Mesa inativa. | `Mesa 005 está inativa.` |
 | `409` | Beneficiário vinculado como responsável de uma mesa, inclusive inativa ou com tipo legado inconsistente. | `Você já possui a mesa fixa 053 vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo.` |
 | `409` | Mesa já tem reserva não cancelada na data. | `A mesa 053 já possui uma reserva não cancelada em 2026-10-28.` |
-| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já possui uma reserva em 28/10/2026, para agendar outra mesa na mesma data é necessário cancelar a reserva atual.` |
+| `409` | Usuário já tem reserva não cancelada na mesma data. | `Você já tem uma reserva para a mesa 053.` |
+
+A duplicidade retorna `code: USUARIO_COM_RESERVA_NA_DATA` e
+`mesa: { id, codigo }` da reserva existente do solicitante efetivo, não da nova
+tentativa nem da reserva do administrador. O código exibido é dinâmico.
+A consulta considera somente reservas `PENDENTE` e `CONFIRMADA` no dia solicitado,
+sob os mesmos locks de usuário e mesa. Depois das validações de vínculo fixo,
+ativação e tipo, a duplicidade é verificada antes da ocupação da mesa, inclusive
+quando a nova tentativa usa a mesma mesa. Sem duplicidade, os demais conflitos
+preservam suas mensagens e não expõem dados da reserva de outra pessoa.
+Lista e mapa identificam duplicidade somente pelo código
+`USUARIO_COM_RESERVA_NA_DATA` e montam a mensagem com `mesa.codigo`.
+Sem código de mesa válido, preservam o `detail`, sem usar a mesa da tentativa.
+Outros conflitos continuam exibindo seu motivo específico, mesmo que incluam
+um campo `mesa`; o status `409` isoladamente não indica duplicidade.
 
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
@@ -405,8 +419,8 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 ## PATCH /api/reservas/{id}/cancelamento
 
 Cancela uma reserva não cancelada a qualquer momento, inclusive após o dia reservado.
-O beneficiário pode cancelar reservas que criou para si ou legadas, sem autor.
-Reservas criadas por outra pessoa só podem ser canceladas por um administrador.
+O beneficiário pode cancelar sua reserva diária independentemente de quem a criou,
+inclusive quando foi criada por um administrador ou é legada, sem autor.
 Administradores podem cancelar reservas de qualquer usuário.
 A reserva deixa de bloquear somente a sua data.
 O cancelamento não transforma mesa fixa em livre, não ativa mesa inativa e não
@@ -429,7 +443,7 @@ não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação
 | --- | --- | --- |
 | `401` | Sem ou com token inválido. | |
 | `404` | Reserva inexistente. | `Reserva 999 não encontrada.` |
-| `403` | Usuário não é o beneficiário ou autor autorizado; somente admin cancela reservas criadas para terceiros. | `O usuário sem permissão para realizar essa ação.` |
+| `403` | Usuário comum não é o beneficiário da reserva. A autoria não restringe o cancelamento pelo beneficiário. | `O usuário sem permissão para realizar essa ação.` |
 | `409` | Reserva já `CANCELADA`; repetir o cancelamento é recusado e não altera o registro. | `Reserva 10 já está cancelada.` |
 
 ---
@@ -437,6 +451,30 @@ não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação
 ## Rotas de administrador
 
 Exigem perfil `ADMIN`. Usuário comum recebe `403`.
+
+Nas cinco rotas `PATCH /api/admin/mesas/{id}/...`, as respostas de sucesso
+continuam sendo `200` com `MesaResponse`. Os erros preservam o formato padrão
+(`type`, `title`, `status`, `detail`, `instance`). Sem token válido retorna `401`;
+usuário sem perfil `ADMIN` recebe `403` antes da leitura do corpo. Mesa inexistente
+com uma entrada válida retorna `404`.
+
+O serializador de `ProblemDetail` pode omitir `type` quando seu valor padrão é
+`about:blank`; a ausência tem esse mesmo significado. As respostas de segurança
+incluem esse campo explicitamente.
+
+Erros de leitura do corpo dessas rotas retornam `400` com orientação específica
+quando o campo é identificado: `Campo 'usuarioId' deve ser um inteiro positivo.`,
+`Campo 'tipo' deve ser FIXA ou LIVRE.` ou `Campo 'ativa' deve ser true ou false.`
+Corpo ausente, `null`, estrutura incompatível ou JSON malformado sem campo
+identificável retorna `Corpo JSON ausente ou inválido. Verifique os campos e os
+tipos dos valores enviados.` Desfixar não exige corpo.
+
+Os campos ausentes ou `null` mantêm as validações do service: `usuarioId` usa a
+mensagem de inteiro positivo; `tipo` e `ativa` retornam, respectivamente,
+`Campo 'tipo' é obrigatório.` e `Campo 'ativa' é obrigatório.` ID de rota que não
+pode ser convertido em inteiro retorna `400`: `Campo 'id' deve ser um inteiro.`
+Usuário inexistente ou inativo na atribuição retorna `404`. Recusas não alteram
+tipo, ativação, ocupante, responsável nem os demais dados da mesa.
 
 Fixação, nova atribuição/troca de responsável e alteração de tipo para `FIXA`
 recusam mesas com reservas `PENDENTE`/`CONFIRMADA` de hoje em diante (`409`):
@@ -633,7 +671,8 @@ Altera o tipo da mesa entre `FIXA` e `LIVRE`.
 
 | Status | Situação | Exemplo de `detail` |
 | --- | --- | --- |
-| `400` | `tipo` ausente ou diferente de `FIXA`/`LIVRE`. | `Campo 'tipo' deve ser FIXA ou LIVRE.` |
+| `400` | `tipo` ausente ou `null`. | `Campo 'tipo' é obrigatório.` |
+| `400` | `tipo` inválido. | `Campo 'tipo' deve ser FIXA ou LIVRE.` |
 | `401` | Sem ou com token inválido. | |
 | `403` | Usuário sem perfil `ADMIN`. | `Acesso restrito a administradores.` |
 | `404` | Mesa inexistente. | `Mesa 999 não encontrada.` |

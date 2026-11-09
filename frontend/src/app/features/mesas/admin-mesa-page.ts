@@ -2,8 +2,8 @@ import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, of } from 'rxjs';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Subject, combineLatest, of } from 'rxjs';
 import { catchError, debounceTime, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { AdminMesaService, UsuarioAtivo } from './admin-mesa.service';
@@ -12,6 +12,7 @@ import { Carregando } from '../../shared/estados/carregando';
 import { Erro } from '../../shared/estados/erro';
 import { Vazio } from '../../shared/estados/vazio';
 import { ToastService } from '../../shared/toast/toast';
+import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
 
 @Component({
   selector: 'app-admin-mesa-page',
@@ -26,6 +27,7 @@ export class AdminMesaPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
+  private readonly calendario = inject(CalendarioSaoPaulo);
   private readonly buscaMesas$ = new Subject<string>();
 
   readonly usuario = this.auth.usuario;
@@ -84,10 +86,13 @@ export class AdminMesaPage {
   }
 
   constructor() {
-    this.buscaMesas$.pipe(
-      debounceTime(250),
-      switchMap(termo => {
-        const hoje = new Date().toISOString().split('T')[0];
+    combineLatest([
+      this.buscaMesas$.pipe(debounceTime(250)),
+      toObservable(this.calendario.hoje),
+    ]).pipe(
+      switchMap(([termo, hoje]) => {
+        this.carregando.set(true);
+        this.erroConsulta.set('');
         return this.adminMesa.listarComOcupacao(termo, hoje).pipe(
           catchError(e => {
             this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
@@ -105,6 +110,7 @@ export class AdminMesaPage {
   }
 
   carregarMesas() {
+    this.calendario.atualizar();
     this.carregando.set(true);
     this.erroConsulta.set('');
     this.buscaMesas$.next(this.busca());
@@ -114,6 +120,7 @@ export class AdminMesaPage {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
 
+    this.calendario.atualizar();
     const valor = target.value;
     this.busca.set(valor);
     this.buscaMesas$.next(valor);

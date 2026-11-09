@@ -41,7 +41,7 @@ Somente o **administrador** alterna o tipo `FIXA`/`LIVRE` de uma mesa (`PATCH /a
 | 5 | Sobreposição da mesma mesa | Uma mesa não pode ter duas reservas não canceladas na mesma data (`409`). |
 | 6 | Reservas do mesmo usuário | O usuário não pode ter duas reservas não canceladas na mesma data (`409`). Pode ter reservas em datas diferentes, inclusive na mesma mesa. |
 | 7 | Dias consecutivos | Períodos consecutivos são permitidos (dois dias seguidos na mesma mesa ou pelo usuário). |
-| 8 | Cancelamento | O beneficiário pode cancelar reservas próprias ou legadas sem autor; reservas criadas por terceiros exigem administrador. Administradores podem cancelar qualquer reserva, inclusive de beneficiário inativo. Permitido a qualquer momento, inclusive após o dia reservado. Altera somente a reserva e libera a disponibilidade daquela data; preserva tipo, ativação, ocupante textual e responsável fixo da mesa. |
+| 8 | Cancelamento | O beneficiário pode cancelar suas reservas diárias independentemente de quem as criou, inclusive um administrador, ou de ausência de autor em dados legados. Administradores podem cancelar qualquer reserva, inclusive de beneficiário inativo. A API permite cancelar a qualquer momento, inclusive após o dia reservado. Altera somente a reserva e libera a disponibilidade daquela data; preserva autoria, tipo, ativação, ocupante textual e responsável fixo da mesa. |
 | 9 | Solicitante | Por padrão vem do contexto autenticado. Administradores podem escolher um usuário ativo pela busca de nome/e-mail; usuários comuns não podem escolher terceiros. |
 | 10 | Autenticação | Login local com e-mail e senha (hash BCrypt). Token JWT em `Authorization: Bearer`. |
 | 11 | Estados da reserva | Novas reservas são `CONFIRMADA`. `PENDENTE` permanece compatível com dados legados; `CANCELADA` libera a data. |
@@ -81,6 +81,7 @@ A reserva ocupa exclusivamente sua data. No dia seguinte a mesa está disponíve
 - Datas de reserva são enviadas e retornadas como **data local sem offset**, no formato ISO `yyyy-MM-dd` (ex.: `2026-10-28`).
 - Campos de data/hora (criação, confirmação, cancelamento) usam data/hora local sem offset, no formato ISO `yyyy-MM-dd'T'HH:mm:ss` (ex.: `2026-10-23T14:30:00`).
 - Regras de "hoje", janela de 15 dias e dia útil são avaliadas no fuso `America/Sao_Paulo`, nunca no fuso do servidor nem no do cliente.
+- No frontend, gestão, lista, mapa e Minhas reservas compartilham a referência de dia de São Paulo. Reservas de hoje permanecem atuais até a meia-noite nesse fuso. A referência é atualizada na virada, ao retornar à aba e antes das operações, sem trocar a data consultada nem limpar filtros. Uma data escolhida que ficou no passado é invalidada; a interface não escolhe outro dia automaticamente. Isso não altera as permissões ou prazos de cancelamento da API.
 - O contrato não usa offset (`-03:00`) para manter o payload simples e porque o fuso é fixo e único.
 
 ## Decisões pendências de negócio

@@ -437,7 +437,8 @@ describe("Barra de reserva do mapa", () => {
     expect(fixture.nativeElement.querySelector("button.mesa.livre")).not.toBeNull();
   });
 
-  it("não oferece cancelamento ao beneficiário quando um administrador criou a reserva", () => {
+  it.each(["CONFIRMADA", "PENDENTE"])("permite ao beneficiário cancelar diária %s criada pelo administrador", status => {
+    const sucesso = vi.spyOn(TestBed.inject(ToastService), "sucesso");
     const mesaReservada: Mesa = {
       ...mesa,
       ocupada: true,
@@ -456,15 +457,53 @@ describe("Barra de reserva do mapa", () => {
     ).flush([{
       id: 92,
       usuarioId: 7,
-      status: "CONFIRMADA",
+      status,
       data: fixture.componentInstance.reserva.data(),
       criadaEm: "2026-11-05T08:00:00",
       criador: { id: 1, nome: "Admin", perfil: "ADMIN" },
       mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
     }]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector(".botao--perigo")).toBeNull();
+    const cancelar = fixture.nativeElement.querySelector(".botao--perigo") as HTMLButtonElement;
+    expect(cancelar).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
+    cancelar.click();
+    const request = http.expectOne("/api/reservas/92/cancelamento");
+    expect(request.request.method).toBe("PATCH");
+    expect(sucesso).not.toHaveBeenCalled();
+    request.flush(null);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    fixture.detectChanges();
+    expect(sucesso).toHaveBeenCalledExactlyOnceWith("Reserva cancelada");
+    expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
+    expect(fixture.nativeElement.querySelector("button.mesa.livre")).not.toBeNull();
+    http.expectNone(request => request.url.startsWith("/api/admin/mesas"));
+  });
+
+  it("não permite cancelar a diária de outro beneficiário mesmo se criada pelo administrador", () => {
+    const mesaReservada: Mesa = {
+      ...mesa, ocupada: true,
+      ocupanteNaData: { id: 8, nome: "Outra Pessoa", email: "outra@example.com" },
+    };
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaReservada]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector("button.mesa").click();
+    fixture.detectChanges();
+    // A interface também confere o beneficiário, mesmo diante de um retorno inconsistente.
+    http.expectOne(request => request.url.startsWith("/api/reservas/minhas?")).flush([{
+      id: 94, usuarioId: 8, status: "CONFIRMADA", data: fixture.componentInstance.reserva.data(),
+      criadaEm: "2026-11-05T08:00:00", criador: { id: 1, nome: "Admin", perfil: "ADMIN" },
+      mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
+    }]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".botao--perigo")).toBeNull();
+    fixture.componentInstance.cancelarReserva();
+    http.expectNone("/api/reservas/94/cancelamento");
   });
 
   it("permite ao administrador cancelar a reserva de outro usuário", () => {

@@ -1,13 +1,13 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Mesa } from '../mesas/mesa';
 import { ToastService } from '../../shared/toast/toast';
-import { adicionarDias, hojeSaoPaulo, proximoDiaUtil, validarDataReserva } from './data-reserva';
-import { map } from 'rxjs/operators';
+import { adicionarDias, proximoDiaUtil, validarDataReserva } from './data-reserva';
+import { CalendarioSaoPaulo } from './calendario-sao-paulo';
 
 /** Estado por página, compartilhando as regras de confirmação entre lista e planta. */
 @Injectable()
@@ -18,13 +18,16 @@ export class ReservaDiaria {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly calendario = inject(CalendarioSaoPaulo);
 
-  readonly dataMinima = hojeSaoPaulo();
-  readonly dataMaxima = adicionarDias(this.dataMinima, 15);
+  readonly dataMinima = this.calendario.hoje;
+  readonly dataMaxima = computed(() => adicionarDias(this.dataMinima(), 15));
   readonly data = signal(this.dataInicial());
-  readonly erroData = computed(() => validarDataReserva(this.data(), this.dataMinima));
-  private readonly dataConsultada = signal<string | null>(null);
-  readonly disponibilidadeAtual = computed(() => !this.erroData() && this.dataConsultada() === this.data());
+  readonly erroData = computed(() => validarDataReserva(this.data(), this.dataMinima()));
+  private readonly dataConsultada = signal<{ data: string; hoje: string } | null>(null);
+  readonly disponibilidadeAtual = computed(() => !this.erroData()
+    && this.dataConsultada()?.data === this.data()
+    && this.dataConsultada()?.hoje === this.dataMinima());
   readonly selecionada = signal<Mesa | null>(null);
   readonly confirmando = signal(false);
   readonly cancelando = signal(false);
@@ -33,6 +36,17 @@ export class ReservaDiaria {
   readonly atualizacao = signal(0);
   private readonly reservaParaCancelar = signal<{ id: number; mesaId: number } | null>(null);
 
+  constructor() {
+    this.calendario.atualizar();
+    effect(() => {
+      this.dataMinima();
+      untracked(() => {
+        this.iniciarConsulta();
+        this.atualizacao.update(valor => valor + 1);
+      });
+    });
+  }
+
   fecharMensagem() {
     this.erro.set('');
     this.sucesso.set('');
@@ -40,6 +54,7 @@ export class ReservaDiaria {
 
   alterarData(data: string) {
     if (this.confirmando() || this.cancelando()) return;
+    this.calendario.atualizar();
     this.data.set(data ?? '');
     this.iniciarConsulta();
     this.erro.set('');
@@ -49,6 +64,7 @@ export class ReservaDiaria {
 
   atualizarDisponibilidade() {
     if (this.confirmando() || this.cancelando()) return;
+    this.calendario.atualizar();
     this.iniciarConsulta();
     this.atualizacao.update(valor => valor + 1);
   }
@@ -59,10 +75,14 @@ export class ReservaDiaria {
   }
 
   registrarDisponibilidade(data: string) {
-    if (data === this.data() && !this.erroData()) this.dataConsultada.set(data);
+    this.calendario.atualizar();
+    if (data === this.data() && !this.erroData()) {
+      this.dataConsultada.set({ data, hoje: this.dataMinima() });
+    }
   }
 
   selecionar(mesa: Mesa) {
+    this.calendario.atualizar();
     if (!this.confirmando() && !this.cancelando() && this.disponibilidadeAtual()) {
       this.selecionada.set(mesa);
       this.sincronizarContexto(mesa.id);
@@ -101,7 +121,8 @@ export class ReservaDiaria {
           if (this.auth.sessao()?.token !== sessao.token) return;
           aposConfirmar?.();
           this.toast.sucesso('Reserva Confirmada');
-          this.data.set(proximoDiaUtil(this.dataMinima));
+          this.calendario.atualizar();
+          this.data.set(proximoDiaUtil(this.dataMinima()));
           this.iniciarConsulta();
           this.sincronizarContexto(null);
           this.atualizarDisponibilidade();
@@ -112,7 +133,12 @@ export class ReservaDiaria {
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
           this.sincronizarContexto(null);
           if (erro.status === 409) {
-            if (erro.error?.code === 'USUARIO_COM_MESA_FIXA') {
+            if (erro.error?.code === 'USUARIO_COM_RESERVA_NA_DATA') {
+              const codigo = erro.error?.mesa?.codigo;
+              this.toast.erro(typeof codigo === 'string' && codigo.trim()
+                ? `Você já tem uma reserva para a mesa ${codigo.trim()}.`
+                : detalhe || 'O solicitante já possui uma reserva nessa data.');
+            } else if (erro.error?.code === 'USUARIO_COM_MESA_FIXA') {
               this.toast.erro('Reserva não permitida', detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.');
             } else {
               this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
@@ -166,7 +192,8 @@ export class ReservaDiaria {
   }
 
   private dataInicial(): string {
-    return this.route.snapshot.queryParamMap.get('data') ?? proximoDiaUtil(this.dataMinima);
+    this.calendario.atualizar();
+    return this.route.snapshot.queryParamMap.get('data') ?? proximoDiaUtil(this.dataMinima());
   }
 
   private sincronizarContexto(mesaId: number | null) {

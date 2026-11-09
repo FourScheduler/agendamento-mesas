@@ -6,6 +6,7 @@ import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioSemPermissaoException;
 import br.com.foursys.agendamento_mesas.exceptions.UsuarioComMesaFixaException;
+import br.com.foursys.agendamento_mesas.exceptions.UsuarioComReservaNaDataException;
 import br.com.foursys.agendamento_mesas.model.Mesa;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import br.com.foursys.agendamento_mesas.model.Usuario;
@@ -22,17 +23,16 @@ import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ReservaService {
-    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final MesaRepositoryPort mesaRepositoryPort;
     private final ReservaRepositoryPort reservaRepositoryPort;
@@ -101,15 +101,15 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " é fixa e não pode ser reservada.");
         }
 
+        reservaRepositoryPort.buscarReservaDoUsuarioNaData(usuario.getId(), request.data(),
+            ReservaRepositoryPort.BLOQUEIA_MESA).ifPresent(existente -> {
+                Mesa mesaExistente = existente.getMesa();
+                throw new UsuarioComReservaNaDataException(mesaExistente.getId(), mesaExistente.getCodigo());
+            });
+
         if (reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "A mesa " + mesa.getCodigo() + " já possui uma reserva não cancelada em " + request.data() + ".");
-        }
-
-        if (reservaRepositoryPort.usuarioTemReservaNaData(usuario.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Você já possui uma reserva em " + request.data().format(DATA_BR)
-                    + ", para agendar outra mesa na mesma data é necessário cancelar a reserva atual.");
         }
 
         Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
@@ -166,9 +166,7 @@ public class ReservaService {
 
         boolean administrador = usuarioAutenticado.perfil() == PerfilUsuario.ADMIN;
         boolean solicitante = reserva.getUsuario().getId().equals(usuarioAutenticado.id());
-        boolean criadaPeloSolicitante = reserva.getCriadoPor() == null
-            || reserva.getCriadoPor().getId().equals(usuarioAutenticado.id());
-        if (!administrador && (!solicitante || !criadaPeloSolicitante)) {
+        if (!administrador && !solicitante) {
             throw new UsuarioSemPermissaoException();
         }
 
