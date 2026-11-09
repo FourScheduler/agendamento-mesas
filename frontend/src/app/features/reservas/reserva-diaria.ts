@@ -20,13 +20,6 @@ export class ReservaDiaria {
   private readonly toast = inject(ToastService);
   private readonly calendario = inject(CalendarioSaoPaulo);
 
-  private readonly hoje = signal(hojeSaoPaulo());
-  get dataMinima(): string {
-    return this.hoje();
-  }
-  get dataMaxima(): string {
-    return adicionarDias(this.dataMinima, 15);
-  }
   readonly dataMinima = this.calendario.hoje;
   readonly dataMaxima = computed(() => adicionarDias(this.dataMinima(), 15));
   readonly data = signal(this.dataInicial());
@@ -116,7 +109,7 @@ export class ReservaDiaria {
 
   confirmarComSolicitante(solicitanteId: number | null, aposConfirmar?: () => void) {
     if (this.confirmando()) return;
-    this.hoje.set(hojeSaoPaulo());
+    this.calendario.atualizar();
     if (this.erroData()) {
       this.iniciarConsulta();
       return;

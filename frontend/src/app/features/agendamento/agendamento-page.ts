@@ -103,12 +103,8 @@ export class AgendamentoPage {
   readonly mesaSelecionada = this.reserva.selecionada;
   readonly confirmando = this.reserva.confirmando;
   readonly erro = this.reserva.erro;
-  get todayISO(): string {
-    return this.reserva.dataMinima;
-  }
-  get maxDateISO(): string {
-    return this.reserva.dataMaxima;
-  }
+  readonly todayISO = this.reserva.dataMinima;
+  readonly maxDateISO = this.reserva.dataMaxima;
 
   // UI extras
   readonly stepAtual = signal(1);
