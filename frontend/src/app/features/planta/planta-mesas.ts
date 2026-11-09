@@ -357,6 +357,30 @@ export class PlantaMesas {
     return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
   }
 
+  abrirTooltip(event: Event) {
+    const mesa = event.currentTarget as HTMLButtonElement;
+    const tooltip = mesa.querySelector<HTMLElement>('.mesa-tooltip');
+    if (!tooltip || mesa.disabled) return;
+    const codigo = mesa.querySelector<HTMLElement>('.mesa__codigo')!;
+    const rect = codigo.getBoundingClientRect();
+    tooltip.showPopover();
+    mesa.classList.add('mesa--tooltip');
+    tooltip.style.left = `${Math.max(8, Math.min(
+      rect.left + (rect.width - tooltip.offsetWidth) / 2,
+      window.innerWidth - tooltip.offsetWidth - 8,
+    ))}px`;
+    tooltip.style.top = `${Math.max(8, Math.min(
+      rect.top + (rect.height - tooltip.offsetHeight) / 2,
+      window.innerHeight - tooltip.offsetHeight - 8,
+    ))}px`;
+  }
+
+  fecharTooltip(event: Event) {
+    const mesa = event.currentTarget as HTMLElement;
+    mesa.querySelector<HTMLElement>('.mesa-tooltip')?.hidePopover();
+    mesa.classList.remove('mesa--tooltip');
+  }
+
   alternarNomes() {
     this.mostrarNomes.update((v) => !v);
   }

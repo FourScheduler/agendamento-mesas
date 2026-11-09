@@ -1,3 +1,25 @@
+app-planta-mesas .mesa--tooltip .mesa__codigo {
+  visibility: hidden;
+}
+app-planta-mesas .mesa-tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 14px 20px;
+  border: 1px solid #4b5563;
+  border-radius: 12px;
+  background: #27272a;
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  font-size: 18px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
 :root {
   --navy: #222239;
   --navy-soft: #13131f;

@@ -11,6 +11,17 @@ import { agruparFileiras, TAMANHO_MESA, PLANTA_TAMBORE_EXIBICAO } from "./planta
 describe("PlantaMesas", () => {
   let http: HttpTestingController;
 
+  beforeAll(() => {
+    Object.defineProperties(HTMLElement.prototype, {
+      showPopover: { configurable: true, writable: true, value: vi.fn() },
+      hidePopover: { configurable: true, writable: true, value: vi.fn() },
+    });
+  });
+  afterAll(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'showPopover');
+    Reflect.deleteProperty(HTMLElement.prototype, 'hidePopover');
+  });
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -601,6 +612,34 @@ describe("PlantaMesas", () => {
     expect(mesas[1].querySelector('.mesa__estado')?.textContent).toBe('Livre');
     expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
 
+    expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('065 - Pessoa Exemplo');
+    expect(mesas[1].querySelector('.mesa-tooltip')).toBeNull();
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('067 - Pessoa Reservada');
+    expect(mesas[2].hasAttribute('title')).toBe(false);
+    expect(mesas[2].querySelector('.mesa-tooltip')?.getAttribute('aria-hidden')).toBe('true');
+    const tooltip = mesas[2].querySelector('.mesa-tooltip') as HTMLElement;
+    tooltip.showPopover = vi.fn();
+    tooltip.hidePopover = vi.fn();
+    const codigo = mesas[2].querySelector('.mesa__codigo') as HTMLElement;
+    vi.spyOn(codigo, 'getBoundingClientRect').mockReturnValue({
+      left: 400, top: 300, width: 100, height: 80,
+      right: 500, bottom: 380, x: 400, y: 300, toJSON: () => ({}),
+    });
+    Object.defineProperty(tooltip, 'offsetWidth', { value: 220 });
+    Object.defineProperty(tooltip, 'offsetHeight', { value: 50 });
+    mesas[2].dispatchEvent(new MouseEvent('mouseenter'));
+    expect(tooltip.getAttribute('popover')).toBe('manual');
+    expect(tooltip.showPopover).toHaveBeenCalledOnce();
+    expect(tooltip.style.left).toBe('340px');
+    expect(tooltip.style.top).toBe('315px');
+    expect(mesas[2].classList.contains('mesa--tooltip')).toBe(true);
+    expect(codigo.textContent).toBe('67');
+    mesas[2].dispatchEvent(new MouseEvent('mouseleave'));
+    expect(tooltip.hidePopover).toHaveBeenCalledOnce();
+    expect(mesas[2].classList.contains('mesa--tooltip')).toBe(false);
+    expect(codigo.textContent).toBe('67');
+    expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
+
     const mesaFixa = mesas[0];
     (fixture.nativeElement.querySelector(
       '.legenda__visibilidade .botao-icone',
@@ -612,6 +651,7 @@ describe("PlantaMesas", () => {
     expect(getComputedStyle(mesaFixa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
     expect(mesaFixa.querySelector('.mesa__estado')).toBeNull();
     expect(mesas[2].getAttribute('aria-label')).toContain('Pessoa Reservada');
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('067 - Pessoa Reservada');
   });
 
   it("arrasta somente o fundo e libera a captura ao finalizar", () => {
