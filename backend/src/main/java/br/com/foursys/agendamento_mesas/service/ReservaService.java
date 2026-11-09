@@ -166,9 +166,7 @@ public class ReservaService {
 
         boolean administrador = usuarioAutenticado.perfil() == PerfilUsuario.ADMIN;
         boolean solicitante = reserva.getUsuario().getId().equals(usuarioAutenticado.id());
-        boolean criadaPeloSolicitante = reserva.getCriadoPor() == null
-            || reserva.getCriadoPor().getId().equals(usuarioAutenticado.id());
-        if (!administrador && (!solicitante || !criadaPeloSolicitante)) {
+        if (!administrador && !solicitante) {
             throw new UsuarioSemPermissaoException();
         }
 
