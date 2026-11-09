@@ -15,7 +15,7 @@ export class Notificacao {
   readonly restanteMs = signal(DURACAO_MS);
   readonly progresso = computed(() => this.restanteMs() / DURACAO_MS * 100);
   readonly pausado = signal(false);
-  private readonly motivosPausa = new Set<'mouse' | 'foco'>();
+  private readonly motivosPausa = new Set<'mouse' | 'foco' | 'fixado'>();
   private prazo: number | null = null;
   private temporizador: ReturnType<typeof setTimeout> | undefined;
   private atualizacao: ReturnType<typeof setInterval> | undefined;
@@ -28,6 +28,7 @@ export class Notificacao {
       untracked(() => {
         this.pararContagem();
         this.restanteMs.set(DURACAO_MS);
+        this.motivosPausa.delete('fixado');
         if (!mensagem) this.motivosPausa.clear();
         this.pausado.set(this.motivosPausa.size > 0);
         if (mensagem && !this.pausado()) this.iniciarContagem();
@@ -36,7 +37,7 @@ export class Notificacao {
     });
   }
 
-  definirPausa(origem: 'mouse' | 'foco', pausar: boolean, evento?: FocusEvent) {
+  definirPausa(origem: 'mouse' | 'foco' | 'fixado', pausar: boolean, evento?: FocusEvent) {
     if (origem === 'foco' && !pausar && evento?.currentTarget instanceof Node
       && evento.relatedTarget instanceof Node && evento.currentTarget.contains(evento.relatedTarget)) return;
     if (pausar) this.motivosPausa.add(origem);

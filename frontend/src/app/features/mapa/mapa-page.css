@@ -224,9 +224,9 @@ app-planta-mesas {
   border-color: #80d9b8;
 }
 .detalhes__status--reservada {
-  background: linear-gradient(145deg, #fffafa, #fff0f0);
-  color: #a83d3d;
-  border-color: #f1b5b5;
+  background: var(--mapa-laranja-suave);
+  color: var(--mapa-laranja-texto);
+  border-color: var(--mapa-laranja);
 }
 .detalhes__status--inativa {
   background: #edf0f5;

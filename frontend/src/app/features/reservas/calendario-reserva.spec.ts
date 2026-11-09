@@ -58,4 +58,22 @@ describe('CalendarioReserva', () => {
     fixture.componentInstance.selecionar('2026-10-30');
     expect(emitir).not.toHaveBeenCalled();
   });
+
+  it('consulta histórico e finais de semana sem aplicar a janela de novas reservas', () => {
+    const fixture = TestBed.createComponent(CalendarioReserva);
+    fixture.componentRef.setInput('data', '2020-01-05');
+    fixture.componentRef.setInput('modo', 'consulta');
+    fixture.detectChanges();
+    const dialogo = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    dialogo.close = vi.fn();
+    const emitir = vi.fn();
+    fixture.componentInstance.dataSelecionada.subscribe(emitir);
+    fixture.componentInstance.selecionar('2020-01-05');
+    expect(emitir).toHaveBeenCalledWith('2020-01-05');
+    fixture.componentRef.setInput('minima', '2020-01-06');
+    fixture.detectChanges();
+    emitir.mockClear();
+    fixture.componentInstance.selecionar('2020-01-05');
+    expect(emitir).not.toHaveBeenCalled();
+  });
 });

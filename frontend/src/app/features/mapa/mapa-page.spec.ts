@@ -229,8 +229,9 @@ describe("Barra de reserva do mapa", () => {
     expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
     const itensLegenda = fixture.nativeElement.querySelectorAll(".legenda__itens li:not(.legenda__visibilidade)") as NodeListOf<HTMLElement>;
-    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada", "Inativa"]);
+    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada", "Fixa", "Inativa"]);
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--ocupada")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--fixa")).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--inativa")).not.toBeNull();
     const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
     expect(tooltip.getAttribute("role")).toBe("tooltip");
@@ -424,6 +425,8 @@ describe("Barra de reserva do mapa", () => {
     expect(detalhes.querySelector(".confirmar")).toBeNull();
 
     (detalhes.querySelector(".botao--perigo") as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (detalhes.querySelector(".botao--perigo") as HTMLButtonElement).click();
     const cancelamento = http.expectOne("/api/reservas/91/cancelamento");
     expect(cancelamento.request.method).toBe("PATCH");
     cancelamento.flush(null);
@@ -464,10 +467,13 @@ describe("Barra de reserva do mapa", () => {
       mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
     }]);
     fixture.detectChanges();
-    const cancelar = fixture.nativeElement.querySelector(".botao--perigo") as HTMLButtonElement;
+    const cancelar = fixture.nativeElement.querySelector(".detalhes__rodape .botao--perigo") as HTMLButtonElement;
     expect(cancelar).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
     cancelar.click();
+    fixture.detectChanges();
+    http.expectNone("/api/reservas/92/cancelamento");
+    fixture.nativeElement.querySelector(".detalhes__rodape .botao--perigo").click();
     const request = http.expectOne("/api/reservas/92/cancelamento");
     expect(request.request.method).toBe("PATCH");
     expect(sucesso).not.toHaveBeenCalled();

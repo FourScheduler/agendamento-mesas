@@ -75,6 +75,18 @@ public class ReservaApiTests {
     }
 
     @Test
+    void preflightPermiteCabecalhosDeConfirmacaoECorrelacaoSemLiberarOrigemAlheia() throws Exception {
+        mvc.perform(options("/api/reservas").header("Origin", "http://localhost:4201")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "authorization,content-type,idempotency-key,x-correlation-id"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4201"));
+        mvc.perform(options("/api/reservas").header("Origin", "https://origem-nao-autorizada.example")
+                .header("Access-Control-Request-Method", "POST"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
     void bloqueiaFinaisDeSemanaParaUsuarioEAdministradorSemPersistirReserva() throws Exception {
         for (var usuario : List.of(maria, admin)) {
             for (var data : List.of("2026-10-31", "2026-11-01")) {
@@ -339,12 +351,134 @@ public class ReservaApiTests {
                     .andExpect(jsonPath("$.mesa.id").value(outraMesa.getId()))
                     .andExpect(jsonPath("$.mesa.codigo").value(outraMesa.getCodigo()))
                     .andExpect(jsonPath("$.detail").value(
-                        "Você já possui a mesa fixa " + outraMesa.getCodigo()
-                            + " vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo."));
+                        "Você já possui uma mesa fixa vinculada ao seu usuário e não pode realizar outra reserva."));
 
                 assertThat(reservas.contar()).isZero();
             }
         }
+    }
+
+    @Test
+    void repeteConfirmacaoComMesmaChaveSemNovaGravacaoEPodeConsultarAposRespostaPerdida() throws Exception {
+        String chave = java.util.UUID.randomUUID().toString();
+        var pedido = new CriarReservaRequest(mesa.getId(), HOJE, null);
+        var primeira = service.criar(pedido, identidade(maria), chave);
+        var repetida = service.criar(pedido, identidade(maria), chave);
+        assertThat(repetida.id()).isEqualTo(primeira.id());
+        assertThat(reservas.contar()).isEqualTo(1);
+        mvc.perform(get("/api/reservas/confirmacoes/{chave}", chave)
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(primeira.id()));
+        mvc.perform(get("/api/reservas/confirmacoes/{chave}", chave)
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isNotFound());
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
+                .header("Idempotency-Key", chave).contentType(MediaType.APPLICATION_JSON)
+                .content(corpo(outraMesa, HOJE)))
+            .andExpect(status().isConflict());
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void chaveInvalidaNaoGravaENemConsultaOutraReserva() throws Exception {
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
+                .header("Idempotency-Key", "invalida").contentType(MediaType.APPLICATION_JSON)
+                .content(corpo(mesa, HOJE))).andExpect(status().isBadRequest());
+        assertThat(reservas.contar()).isZero();
+    }
+
+    @Test
+    void replayCanceladoNaoReativaReservaENemMudaVinculoFixo() {
+        String chave = java.util.UUID.randomUUID().toString();
+        var pedido = new CriarReservaRequest(mesa.getId(), HOJE, joao.getId());
+        var criada = service.criar(pedido, identidade(admin), chave);
+        service.cancelar(criada.id(), identidade(joao));
+        outraMesa.setTipo(TipoMesa.FIXA);
+        outraMesa.setResponsavel(joao);
+        mesas.salvarESincronizar(outraMesa);
+        var repetida = service.criar(pedido, identidade(admin), chave);
+        assertThat(repetida.id()).isEqualTo(criada.id());
+        assertThat(repetida.status()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(reservas.contar()).isEqualTo(1);
+        assertThat(mesas.buscarPorId(outraMesa.getId()).orElseThrow().getResponsavel().getId()).isEqualTo(joao.getId());
+    }
+
+    @Test
+    void confirmaMesmaChaveConcorrenteUmaUnicaVez() throws Exception {
+        String chave = java.util.UUID.randomUUID().toString();
+        var pedido = new CriarReservaRequest(mesa.getId(), HOJE, null);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var inicio = new CountDownLatch(1);
+            Callable<Long> chamada = () -> {
+                inicio.await();
+                return service.criar(pedido, identidade(maria), chave).id();
+            };
+            var a = executor.submit(chamada);
+            var b = executor.submit(chamada);
+            inicio.countDown();
+            assertThat(a.get(15, TimeUnit.SECONDS)).isEqualTo(b.get(15, TimeUnit.SECONDS));
+        }
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void chaveEIsoladaPorAutor() {
+        String chave = java.util.UUID.randomUUID().toString();
+        var a = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave);
+        var b = service.criar(new CriarReservaRequest(outraMesa.getId(), HOJE, null), identidade(joao), chave);
+        assertThat(a.id()).isNotEqualTo(b.id());
+        assertThat(reservas.contar()).isEqualTo(2);
+    }
+
+    @Test
+    void retencaoContaDoCancelamentoEPreservaLegadosEstadosEVinculos() {
+        LocalDateTime limite = LocalDateTime.of(HOJE, LocalTime.of(9, 0)).minusDays(15);
+        for (var estado : StatusReserva.values()) {
+            for (var momento : List.of(limite.minusSeconds(1), limite, limite.plusSeconds(1))) {
+                var reserva = new Reserva(mesa, maria, HOJE.minusDays(30), estado);
+                reserva.setCanceladaEm(momento);
+                reservas.salvarESincronizar(reserva);
+            }
+        }
+        var legado = new Reserva(mesa, maria, HOJE.minusDays(40), StatusReserva.CANCELADA);
+        reservas.salvarESincronizar(legado);
+        long antes = reservas.contar();
+        assertThat(reservas.excluirCanceladasAte(limite, 1)).isEqualTo(1);
+        assertThat(reservas.excluirCanceladasAte(limite, 500)).isEqualTo(1);
+        assertThat(reservas.excluirCanceladasAte(limite, 500)).isZero();
+        assertThat(reservas.contar()).isEqualTo(antes - 2);
+        assertThat(reservas.buscarPorId(legado.getId())).isPresent();
+        assertThat(mesas.buscarPorId(mesa.getId())).isPresent();
+        assertThat(usuarios.buscarPorId(maria.getId())).isPresent();
+    }
+
+    @Test
+    void paginaPorSituacaoSemConfundirConfirmadaPassadaComCancelada() throws Exception {
+        for (var data : List.of(HOJE.minusDays(20), HOJE, HOJE.plusDays(1))) {
+            reservas.salvarESincronizar(new Reserva(mesa, maria, data, StatusReserva.CONFIRMADA));
+        }
+        var cancelada = new Reserva(outraMesa, maria, HOJE, StatusReserva.CANCELADA);
+        reservas.salvarESincronizar(cancelada);
+        reservas.salvarESincronizar(new Reserva(mesa, joao, HOJE, StatusReserva.PENDENTE));
+        String token = "Bearer " + jwt.gerarToken(maria);
+        mvc.perform(get("/api/reservas/minhas/pagina").param("tamanho", "2").header("Authorization", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalRegistros").value(3))
+            .andExpect(jsonPath("$.totalPaginas").value(2))
+            .andExpect(jsonPath("$.conteudo[0].data").value(HOJE.minusDays(20).toString()))
+            .andExpect(jsonPath("$.conteudo.length()").value(2));
+        mvc.perform(get("/api/reservas/minhas/pagina").param("pagina", "1").param("tamanho", "2")
+                .header("Authorization", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.conteudo.length()").value(1));
+        mvc.perform(get("/api/reservas/minhas/pagina").param("canceladas", "true").header("Authorization", token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalRegistros").value(1))
+            .andExpect(jsonPath("$.conteudo[0].id").value(cancelada.getId()));
+        mvc.perform(get("/api/reservas/minhas/pagina").param("tamanho", "101").header("Authorization", token))
+            .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/admin/reservas/pagina").header("Authorization", token))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/reservas/pagina").param("dataInicio", HOJE.toString())
+                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalRegistros").value(3));
     }
 
     @Test

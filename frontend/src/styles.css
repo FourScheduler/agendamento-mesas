@@ -1,4 +1,16 @@
 :root {
+  --mapa-laranja: #d76822;
+  --mapa-laranja-suave: #fff0df;
+  --mapa-laranja-texto: #9a4612;
+  --status-cancelada: #8d4038;
+  --status-cancelada-fundo: #f8e5e2;
+  --toast-sucesso: #176345;
+  --toast-erro: #a53832;
+  --toast-aviso: #805509;
+  --toast-info: #245c86;
+  --notificacao-topo: calc(max(50px, 6vh) + 16px);
+  --notificacao-margem: 16px;
+  --notificacao-largura: 360px;
   --navy: #222239;
   --navy-soft: #13131f;
   --orange: #ff5315;
@@ -26,13 +38,26 @@
   --mesa-livre: #10b981;
   --mesa-livre-texto: #047857;
   --mesa-livre-bg: #ecfdf5;
-  --mesa-fixa-bg: #fef2f2;
+  --mesa-fixa-bg: var(--mapa-laranja-suave);
   --mapa-fixa: #f3f4f6;
   --mapa-borda: #d1d5db;
   --mapa-linha: #93c5fd;
   --mapa-estrutura: #d1d5db;
   --radius: 8px;
   --font: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.confirmacao-pendente {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin: 1rem auto;
+  padding: 1rem;
+  border: 1px solid var(--mapa-laranja);
+  border-radius: var(--radius);
+  background: var(--mapa-laranja-suave);
+  color: var(--navy);
 }
 
 * {
@@ -228,7 +253,7 @@ input {
 }
 .amostra--fixa {
   background: var(--mesa-fixa-bg);
-  border: 1.5px solid var(--error);
+  border: 1.5px solid var(--mapa-laranja);
   box-shadow: 0 0 0 2px white inset;
 }
 .amostra--livre {

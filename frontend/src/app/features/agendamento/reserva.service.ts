@@ -1,11 +1,19 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Reserva, ReservaConfirmada } from './reserva';
+import { Reserva } from './reserva';
 import { Mesa } from '../mesas/mesa';
 import { UsuarioAdminResumo } from '../../core/auth/auth.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { map } from 'rxjs/operators';
+
+export interface PaginaReservas {
+  conteudo: Reserva[];
+  pagina: number;
+  tamanho: number;
+  totalRegistros: number;
+  totalPaginas: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ReservaService {
@@ -38,6 +46,12 @@ export class ReservaService {
     });
   }
 
+  listarPagina(admin: boolean, params: { canceladas: boolean; pagina: number; tamanho: number;
+    status?: string; dataInicio?: string; dataFim?: string }) {
+    const rota = admin ? 'admin/reservas/pagina' : 'reservas/minhas/pagina';
+    return this.http.get<PaginaReservas>(`${environment.apiUrl}/${rota}`, { params });
+  }
+
   /** Lista usuários ativos (rota administrativa). */
   buscarUsuariosAtivos(termo: string) {
     return this.http.get<readonly UsuarioAdminResumo[]>(`${environment.apiUrl}/admin/usuarios/busca`, {
@@ -45,14 +59,22 @@ export class ReservaService {
     });
   }
 
-  criar(mesaId: number, data: string, solicitanteId?: number) {
+  criar(mesaId: number, data: string, solicitanteId?: number, chave?: string) {
     const body: { mesaId: number; data: string; solicitanteId?: number } = { mesaId, data };
     if (solicitanteId != null) body.solicitanteId = solicitanteId;
-    return this.http.post<ReservaConfirmada>(`${environment.apiUrl}/reservas`, body);
+    return this.http.post<Reserva>(`${environment.apiUrl}/reservas`, body, {
+      headers: chave ? { 'Idempotency-Key': chave } : {},
+    });
+  }
+
+  consultarConfirmacao(chave: string) {
+    return this.http.get<Reserva>(`${environment.apiUrl}/reservas/confirmacoes/${encodeURIComponent(chave)}`, {
+      headers: { 'X-Correlation-ID': chave },
+    });
   }
 
   cancelar(id: number) {
-    return this.http.patch<Reserva>(`${environment.apiUrl}/reservas/${id}/cancelamento`, {});
+    return this.http.patch<void>(`${environment.apiUrl}/reservas/${id}/cancelamento`, {});
   }
 
   /** Busca a reserva do usuário atual (ou de qualquer usuário se admin) para uma mesa e data específicas. */

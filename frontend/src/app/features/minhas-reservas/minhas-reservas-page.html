@@ -10,34 +10,32 @@
     <button
       class="botao botao--suave minhas-reservas__voltar"
       type="button"
-      (click)="irParaMapa()"
+      (click)="irParaAgendamento()"
     >
       <span aria-hidden="true">&#8592;</span>
-      Voltar ao mapa
+      Listar mesas
     </button>
   </header>
 
   <div class="minhas-reservas__barraFiltros">
-    <div class="minhas-reservas__filtros" role="group" aria-label="Filtrar reservas por período">
+    <div class="minhas-reservas__filtros" role="group" aria-label="Filtrar reservas por situação">
       <button
         class="minhas-reservas__filtro"
         type="button"
-        [class.minhas-reservas__filtro--ativo]="filtro() === 'futuras'"
-        [attr.aria-pressed]="filtro() === 'futuras'"
-        [disabled]="periodoPersonalizado()"
-        (click)="trocarFiltro('futuras')"
+        [class.minhas-reservas__filtro--ativo]="filtro() === 'ativas'"
+        [attr.aria-pressed]="filtro() === 'ativas'"
+        (click)="trocarFiltro('ativas')"
       >
-        Futuras
+        Ativas
       </button>
       <button
         class="minhas-reservas__filtro"
         type="button"
-        [class.minhas-reservas__filtro--ativo]="filtro() === 'passadas'"
-        [attr.aria-pressed]="filtro() === 'passadas'"
-        [disabled]="periodoPersonalizado()"
-        (click)="trocarFiltro('passadas')"
+        [class.minhas-reservas__filtro--ativo]="filtro() === 'canceladas'"
+        [attr.aria-pressed]="filtro() === 'canceladas'"
+        (click)="trocarFiltro('canceladas')"
       >
-        Passadas
+        Canceladas
       </button>
     </div>
 
@@ -47,6 +45,7 @@
         <select
           class="campo__entrada"
           [value]="statusFiltro() ?? ''"
+          [disabled]="filtro() === 'canceladas'"
           (change)="trocarStatus($event)"
         >
           <option value="">Todos os status</option>
@@ -58,22 +57,26 @@
 
       <label class="campo minhas-reservas__campo">
         <span class="campo__rotulo">De</span>
-        <input
+        <app-calendario-reserva modo="consulta" [data]="periodoFiltro().inicio ?? ''"
+          [maxima]="periodoFiltro().fim ?? '9999-12-31'" (dataSelecionada)="selecionarData('inicio', $event)">
+        <input readonly aria-haspopup="dialog" aria-label="Data inicial"
           class="campo__entrada"
           type="date"
           [value]="periodoFiltro().inicio ?? ''"
           (change)="trocarData('inicio', $event)"
-        />
+        /></app-calendario-reserva>
       </label>
 
       <label class="campo minhas-reservas__campo">
         <span class="campo__rotulo">Até</span>
-        <input
+        <app-calendario-reserva modo="consulta" [data]="periodoFiltro().fim ?? ''"
+          [minima]="periodoFiltro().inicio ?? '0001-01-01'" (dataSelecionada)="selecionarData('fim', $event)">
+        <input readonly aria-haspopup="dialog" aria-label="Data final"
           class="campo__entrada"
           type="date"
           [value]="periodoFiltro().fim ?? ''"
           (change)="trocarData('fim', $event)"
-        />
+        /></app-calendario-reserva>
       </label>
 
       @if (temFiltroAtivo()) {
@@ -86,6 +89,7 @@
         </button>
       }
     </div>
+    <p class="minhas-reservas__detalhes">Ativas reúne reservas não canceladas, inclusive dias já encerrados. O período pode ser combinado com a situação.</p>
   </div>
 
   @if (periodoInvalido()) {
@@ -101,8 +105,9 @@
       {{ erro }}
       <button class="minhas-reservas__limpar" type="button" (click)="buscarMesaAtribuida()">Tentar novamente</button>
     </p>
-  } @else if (mesasAtribuidas().length > 0) {
+  } @else if (mesasAtribuidas().length > 0 && filtro() === 'ativas') {
     <section class="minhas-reservas__mesas-fixas" aria-labelledby="mesas-fixas-titulo">
+      <h2 id="mesas-fixas-titulo" class="subtitulo">Mesa atribuída a você</h2>
       <ul class="minhas-reservas__lista minhas-reservas__lista--fixas">
         @for (mesa of mesasAtribuidas(); track mesa.id) {
           <li class="cartao minhas-reservas__cartao minhas-reservas__cartao--fixa">
@@ -138,12 +143,7 @@
       [mensagem]="mensagem"
       (tentarNovamente)="buscar()"
     />
-  } @else if (
-    cartoes().length === 0 &&
-    mesasAtribuidas().length === 0 &&
-    !carregandoMesaAtribuida() &&
-    !erroMesaAtribuida()
-  ) {
+  } @else if (cartoes().length === 0) {
     <app-vazio
       [titulo]="tituloVazio"
       [mensagem]="mensagemVazio()"
@@ -168,13 +168,6 @@
               <div class="minhas-reservas__identificacao">
                 <div class="minhas-reservas__nomeLinha">
                   <p class="minhas-reservas__mesa">Mesa {{ cartao.reserva.mesa.codigo }} - {{ cartao.reserva.mesa.regiao }}</p>
-                  <span
-                    class="minhas-reservas__status"
-                    [class.minhas-reservas__status--confirmada]="cartao.reserva.status === 'CONFIRMADA'"
-                    [class.minhas-reservas__status--cancelada]="ehCancelada(cartao.reserva.status)"
-                  >
-                    {{ rotuloStatus(cartao.reserva.status) }}
-                  </span>
                 </div>
                 @if (ehAdmin()) {
                   <span class="minhas-reservas__detalhes">
@@ -182,6 +175,12 @@
                   </span>
                 }
               </div>
+
+              <span class="minhas-reservas__status"
+                [class.minhas-reservas__status--confirmada]="cartao.reserva.status === 'CONFIRMADA'"
+                [class.minhas-reservas__status--cancelada]="ehCancelada(cartao.reserva.status)">
+                {{ rotuloStatus(cartao.reserva.status) }}
+              </span>
 
               <div class="minhas-reservas__acoes">
                 @if (podeCancelar(cartao)) {
@@ -226,7 +225,8 @@
             </p>
             @if (!ehAdmin() && reservaCriadaPorAdmin(cartao)) {
               <p class="minhas-reservas__aviso-admin">
-                Reserva realizada pelo administrador.
+                Reserva realizada pelo administrador em seu nome.
+                @if (podeCancelar(cartao)) { Você pode cancelá-la. }
               </p>
             }
           </div>
@@ -234,4 +234,6 @@
       }
     </ul>
   }
+  <app-paginacao [total]="totalRegistros()" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
+    [carregando]="carregando()" (paginaAlterada)="trocarPagina($event)" (tamanhoAlterado)="trocarTamanho($event)" />
 </section>

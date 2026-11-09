@@ -29,6 +29,7 @@ describe('Reserva diária pela planta', () => {
   let http: HttpTestingController;
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-27T12:00:00Z'));
@@ -45,6 +46,7 @@ describe('Reserva diária pela planta', () => {
   });
   afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     try {
       http.verify();
     } finally {
@@ -174,7 +176,7 @@ describe('Reserva diária pela planta', () => {
       fixture.nativeElement.querySelector('.mesa').click();
       fixture.detectChanges();
       fixture.nativeElement.querySelector('.confirmar').click();
-      http.expectOne('/api/reservas').flush({ id: 1 });
+      http.expectOne('/api/reservas').flush({ id: 1, data: '2026-11-02', status: 'CONFIRMADA', mesa, solicitante: usuario });
       fixture.detectChanges();
       carregar([mesa], '2026-11-02');
       fixture.detectChanges();
@@ -215,18 +217,17 @@ describe('Reserva diária pela planta', () => {
     expect(request.request.body).toEqual({ mesaId: 44, data: '2026-10-28' });
     request.flush({ id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario });
     fixture.detectChanges();
-    // Após sucesso, a data volta para hoje (2026-10-27)
     carregar([mesa], '2026-10-27');
     fixture.detectChanges();
-    expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva Confirmada');
+    expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva Confirmada', 'Reserva para 28/10/2026.');
     expect(mockToastService.sucesso).toHaveBeenCalledTimes(1);
     expect(fixture.componentInstance.reserva.data()).toBe('2026-10-27');
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
 
     // A reserva ocupa apenas o dia confirmado, sem bloquear os outros dias.
-    alterarCampo(fixture, '2026-10-28');
-    carregar([]);
+    alterarCampo(fixture, '2026-10-29');
+    carregar([], '2026-10-29');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
     expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-disabled')).toBe('true');
@@ -249,7 +250,7 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
       expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
+      expect(mockToastService.erro).toHaveBeenCalledWith('Não foi possível concluir', 'Reserva recusada.');
     });
 
   it('trata erro 409 sem sucesso e atualiza a disponibilidade', () => {
@@ -271,36 +272,56 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(0);
     });
 
-  it('trata erro 500 sem sucesso e atualiza a disponibilidade', () => {
+  it('reconcilia commit confirmado quando o POST retorna erro 500, sem reenviar POST', () => {
       const fixture = abrir();
-      fixture.componentInstance.reserva.confirmar();
+      fixture.componentInstance.confirmarReserva();
       const request = http.expectOne('/api/reservas');
       request.flush({ detail: 'Reserva recusada.' }, { status: 500, statusText: 'Erro' });
+      const chave = request.request.headers.get('Idempotency-Key');
+      http.expectOne(`/api/reservas/confirmacoes/${chave}`).flush({
+        id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario,
+      });
       fixture.detectChanges();
-      carregar([]);
+      carregar([mesa], '2026-10-27');
       fixture.detectChanges();
       expect(fixture.componentInstance.reserva.sucesso()).toBe('');
-      expect(fixture.componentInstance.reserva.erro()).not.toBe('');
+      expect(fixture.componentInstance.reserva.erro()).toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+      expect(fixture.componentInstance.detalhesAbertos()).toBe(false);
       expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
+      expect(mockToastService.sucesso).toHaveBeenCalledTimes(1);
+      http.expectNone('/api/reservas');
+      expect(fixture.componentInstance.reserva.tentativaPendente()).toBeNull();
     });
 
-  it('trata erro 0 sem sucesso e atualiza a disponibilidade', () => {
+  it('mantém tentativa incerta após perda da resposta e repete somente com a mesma chave', () => {
       const fixture = abrir();
       fixture.componentInstance.reserva.confirmar();
       const request = http.expectOne('/api/reservas');
       request.error(new ProgressEvent('error'));
-      fixture.detectChanges();
-      carregar([]);
+      const chave = request.request.headers.get('Idempotency-Key');
+      http.expectOne(`/api/reservas/confirmacoes/${chave}`)
+        .flush({}, { status: 404, statusText: 'Not Found' });
       fixture.detectChanges();
       expect(fixture.componentInstance.reserva.sucesso()).toBe('');
-      expect(fixture.componentInstance.reserva.erro()).not.toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
-      expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
+      expect(fixture.componentInstance.reserva.tentativaPendente()?.chave).toBe(chave);
+      expect(fixture.componentInstance.reserva.data()).toBe('2026-10-28');
+      expect(fixture.nativeElement.querySelector('.confirmacao-pendente')).not.toBeNull();
+      expect(mockToastService.sucesso).not.toHaveBeenCalled();
+      fixture.componentInstance.reserva.confirmar();
+      http.expectNone('/api/reservas');
+      fixture.componentInstance.reserva.repetirConfirmacao();
+      const repetida = http.expectOne('/api/reservas');
+      expect(repetida.request.headers.get('Idempotency-Key')).toBe(chave);
+      expect(repetida.request.body).toEqual(request.request.body);
+      repetida.flush({ id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario });
+      fixture.detectChanges();
+      carregar([mesa], '2026-10-27');
+      fixture.detectChanges();
+      expect(fixture.componentInstance.reserva.tentativaPendente()).toBeNull();
+      expect(mockToastService.sucesso).toHaveBeenCalledTimes(1);
     });
 
   it('limpa a seleção ao mudar de dia e consulta a nova data', () => {

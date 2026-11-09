@@ -1,4 +1,5 @@
 <main class="page-conteudo" [class.page-conteudo--com-detalhes]="detalhesAbertos()">
+  <app-confirmacao-pendente />
   <ng-template #calendarioReserva let-identificador="identificador">
     <div class="mapa__data-modal" [class.mapa__data-modal--sobreposto]="identificador === 'mapa-modal-data-reserva'">
       <div class="campo">
@@ -30,7 +31,10 @@
     <ng-container [ngTemplateOutlet]="calendarioReserva"
       [ngTemplateOutletContext]="{ identificador: 'data-reserva' }" />
     <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando() || reserva.cancelando()">
-    Mesas livres
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+    Listar mesas
   </button>
     <button id="atualizar-disponibilidade" type="button" class="botao" aria-label="Atualizar disponibilidade" (click)="reserva.atualizarDisponibilidade()"
       [disabled]="reserva.confirmando() || reserva.cancelando() || !reserva.data()">
@@ -100,9 +104,13 @@
           </dt>
           <dd>
             @if (podeReservar(mesa)) {
-              <input type="date" class="campo__entrada" [ngModel]="reserva.data()" (ngModelChange)="onDataChangeNoPainel($event)"
-                [min]="reserva.dataMinima()" [max]="reserva.dataMaxima()"
-                [disabled]="reserva.confirmando() || reserva.cancelando()" required />
+              <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima()" [maxima]="reserva.dataMaxima()"
+                [desabilitado]="reserva.confirmando() || reserva.cancelando()" (dataSelecionada)="onDataChangeNoPainel($event)">
+                <input type="date" class="campo__entrada" readonly aria-label="Data da reserva" aria-haspopup="dialog"
+                  [ngModel]="reserva.data()" (ngModelChange)="onDataChangeNoPainel($event)"
+                  [min]="reserva.dataMinima()" [max]="reserva.dataMaxima()"
+                  [disabled]="reserva.confirmando() || reserva.cancelando()" required />
+              </app-calendario-reserva>
             } @else {
               <span>{{ formatarData(reserva.data()) }}</span>
             }
@@ -234,19 +242,33 @@
         </section>
       }
 
-      @if (fixacaoPretendida() !== null || podeReservar(mesa)) {
+      @if (fixacaoPretendida() !== null || podeReservar(mesa) || podeGerenciarReserva(mesa)) {
         <footer class="detalhes__rodape">
           @if (fixacaoPretendida() !== null) {
             <button type="button" class="botao confirmar-fixacao" (click)="abrirConfirmacaoFixacao()"
               [disabled]="enviandoFixacao() || (fixacaoPretendida() && !solicitanteSelecionado())">
               {{ enviandoFixacao() ? 'Salvando…' : 'Confirmar' }}
             </button>
-          } @else {
+          } @else if (podeReservar(mesa)) {
             <p class="detalhes__nota">A reserva ocupa somente este dia.</p>
             <button class="botao confirmar" type="button" (click)="confirmarReserva()"
               [disabled]="reserva.confirmando() || !usuario() || (isAdmin() && !solicitanteSelecionado())">
               {{ reserva.confirmando() ? 'Confirmando…' : 'Confirmar' }}
             </button>
+          }
+          @if (podeGerenciarReserva(mesa)) {
+            @if (confirmacaoCancelamento()) {
+              <p>Cancelar a reserva da mesa {{ mesa.codigo }} em {{ formatarData(reserva.data()) }}?</p>
+              <button class="botao" type="button" (click)="confirmacaoCancelamento.set(false)"
+                [disabled]="reserva.cancelando()">Manter reserva</button>
+              <button class="botao botao--perigo" type="button" (click)="cancelarReserva()"
+                [disabled]="reserva.confirmando() || reserva.cancelando() || enviandoFixacao()">
+                {{ reserva.cancelando() ? 'Cancelando…' : 'Sim, cancelar reserva' }}
+              </button>
+            } @else {
+              <button class="botao botao--perigo" type="button" (click)="confirmacaoCancelamento.set(true)"
+                [disabled]="reserva.confirmando() || reserva.cancelando() || enviandoFixacao()">Cancelar reserva</button>
+            }
           }
         </footer>
       }
@@ -255,19 +277,6 @@
         <p role="status">Carregando informações da reserva…</p>
       }
 
-      @if (mesaReservada(mesa) && reservaDoPainel()) {
-        @if (podeGerenciarReserva(mesa)) {
-        <div class="detalhes__acoes">
-          <button class="botao botao--perigo" type="button" (click)="cancelarReserva()"
-            [disabled]="reserva.confirmando() || reserva.cancelando()">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-            Cancelar reserva
-          </button>
-        </div>
-        }
-      }
     </aside>
   }
 </main>
@@ -293,6 +302,3 @@
     </button>
   </div>
 </dialog>
-
-<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
-  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

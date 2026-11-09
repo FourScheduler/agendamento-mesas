@@ -9,14 +9,15 @@ import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
 import { MesaService } from '../mesas/mesa.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { Mesa } from '../mesas/mesa';
-import { Notificacao } from '../../shared/notificacao/notificacao';
 import { ReservaService } from './reserva.service';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
+import { ConfirmacaoPendente } from '../reservas/confirmacao-pendente';
+import { Paginacao } from '../../shared/paginacao/paginacao';
 
 @Component({
   selector: 'app-agendamento-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Notificacao, CalendarioReserva],
+  imports: [CommonModule, FormsModule, CalendarioReserva, ConfirmacaoPendente, Paginacao],
   providers: [ReservaDiaria],
   templateUrl: './agendamento-page.html',
   styleUrl: './agendamento-page.css',
@@ -41,8 +42,17 @@ export class AgendamentoPage {
   readonly mesasLivres = signal<readonly Mesa[]>([]);
   // Filtros locais
   readonly busca = signal('');
+  readonly local = signal('');
+  readonly locais = computed(() => [...new Set(this.todasMesas().map(m => m.regiao))].sort());
+  readonly pagina = signal(0);
+  readonly tamanhoPagina = signal(10);
+  readonly paginaAtual = computed(() => Math.min(this.pagina(), Math.max(0, Math.ceil(this.mesasFiltradas().length / this.tamanhoPagina()) - 1)));
+  readonly mesasPaginadas = computed(() => this.mesasFiltradas().slice(
+    this.paginaAtual() * this.tamanhoPagina(), (this.paginaAtual() + 1) * this.tamanhoPagina()));
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
+  readonly erroCatalogo = signal('');
+  readonly carregandoCatalogo = signal(false);
 
   // Usuários ativos (para admin escolher solicitante)
   readonly usuariosAtivos = signal<readonly UsuarioAdminResumo[]>([]);
@@ -66,17 +76,18 @@ export class AgendamentoPage {
     const termo = this.busca().trim().toLowerCase();
 
     // Busca vazia: mostra apenas mesas livres
-    if (!termo) return this.mesasLivres();
+    const daRegiao = (m: Mesa) => !this.local() || m.regiao === this.local();
+    if (!termo) return this.mesasLivres().filter(daRegiao);
 
     // Busca com termo: busca no catálogo completo
     const termoNormalizado = termo.replace(/^mesa\s*/i, '');
 
-    const resultados = this.todasMesasParaBusca().filter(m =>
+    const resultados = this.todasMesasParaBusca().filter(m => daRegiao(m) && (
       m.codigo.toLowerCase().includes(termoNormalizado) ||
       m.codigo.toLowerCase().includes(termo) ||
       `mesa ${m.codigo}`.toLowerCase().includes(termo) ||
       m.regiao.toLowerCase().includes(termo)
-    );
+    ));
 
     // Prioriza mesas livres no topo
     return resultados.sort((a, b) => {
@@ -113,6 +124,7 @@ export class AgendamentoPage {
   readonly temMesaSelecionada = computed(() => !!this.mesaSelecionada());
 
   constructor() {
+    effect(() => { this.busca(); this.local(); this.dataSelecionada(); this.pagina.set(0); });
     this.termosBuscaSolicitante.pipe(
       distinctUntilChanged(),
       tap(termo => {
@@ -137,13 +149,7 @@ export class AgendamentoPage {
       this.carregandoUsuarios.set(false);
     });
 
-    // Carrega catálogo completo uma vez
-    this.mesas.listar()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (mesas) => this.todasMesas.set(mesas),
-        error: () => this.todasMesas.set([]),
-      });
+    this.carregarCatalogo();
 
     if (this.isAdmin()) {
       const eu = this.usuario();
@@ -243,6 +249,26 @@ export class AgendamentoPage {
 
   irParaMapa() {
     void this.router.navigate(['/mapa'], { queryParams: { data: this.dataSelecionada(), mesaId: this.mesaSelecionada()?.id ?? null } });
+  }
+
+  irParaReservas() { void this.router.navigate(['/minhas-reservas']); }
+
+  carregarCatalogo() {
+    if (this.carregandoCatalogo()) return;
+    this.carregandoCatalogo.set(true);
+    this.erroCatalogo.set('');
+    this.mesas.listar().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: mesas => { this.todasMesas.set(mesas); this.carregandoCatalogo.set(false); },
+      error: () => {
+        this.carregandoCatalogo.set(false);
+        this.erroCatalogo.set('Não foi possível carregar o catálogo para os filtros.');
+      },
+    });
+  }
+
+  limparFiltros() {
+    this.busca.set('');
+    this.local.set('');
   }
 
   formatarDataBR(dataISO: string): string {

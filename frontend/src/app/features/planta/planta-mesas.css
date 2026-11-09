@@ -36,29 +36,27 @@
   backdrop-filter: blur(12px);
   max-width: min(390px, calc(100vw - 6rem));
 }
-.mapa__controle-modal {
+:is(.mapa__controle-modal, .mapa__fechar-ampliado, .mapa__zoom-ampliado button) {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   padding: 0;
+  color: var(--navy);
+  cursor: pointer;
+}
+.mapa__controle-modal {
   flex: 0 0 44px;
   border: 1px solid #e3e7ed;
   border-radius: 10px;
   background: #f0f4f8;
-  color: var(--navy);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-  cursor: pointer;
 }
 .mapa__controle-modal:hover,
 .mapa__controle-modal[aria-pressed="true"] {
   border-color: #f3b69e;
   background: var(--orange-soft);
   color: var(--orange-dark);
-}
-.mapa__controle-modal:focus-visible {
-  outline: 3px solid var(--orange);
-  outline-offset: 3px;
 }
 .mapa {
   position: relative;
@@ -72,25 +70,18 @@
   box-shadow: none;
 }
 .mapa__modal--aberto .mapa {
-  position: relative;
   z-index: 1;
   width: 100%;
   height: 100%;
   min-height: 0;
   background: transparent;
-  border-radius: 0;
   box-shadow: 0 24px 80px rgb(15 23 42 / 30%);
 }
-.mapa__modal--aberto .mapa__cabecalho,
-.mapa__modal--aberto .mapa__rodape {
+.mapa__modal--aberto :is(.mapa__cabecalho, .mapa__rodape) {
   display: none;
-}
-.mapa__modal--aberto .mapa__corpo {
-  flex: 1;
 }
 .mapa__modal--aberto .mapa__viewport {
   max-height: none;
-  flex: 1;
   overflow: auto;
   display: grid;
   place-items: center;
@@ -106,9 +97,6 @@
 }
 .mapa__modal--aberto .mapa__desenho {
   margin: 0 auto;
-}
-.mapa__modal--aberto .mapa__ferramentas {
-  display: none;
 }
 .mapa__cabecalho {
   flex-shrink: 0;
@@ -128,18 +116,12 @@
   z-index: 2;
   top: clamp(0.75rem, 2vw, 2rem);
   right: clamp(0.75rem, 2vw, 2rem);
-  display: grid;
-  place-items: center;
   flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
-  color: var(--navy);
   box-shadow: 0 10px 28px rgb(15 23 42 / 20%);
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
-  cursor: pointer;
 }
 .mapa__zoom-ampliado {
   position: absolute;
@@ -157,30 +139,21 @@
   backdrop-filter: blur(12px);
 }
 .mapa__zoom-ampliado button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
   border: 1px solid transparent;
   border-radius: 10px;
   background: #f0f4f8;
-  color: var(--navy);
-  font: inherit;
   font-size: 1.5rem;
   transition: background 0.15s ease, color 0.15s ease;
-  cursor: pointer;
 }
-.mapa__zoom-ampliado button:hover:not(:disabled) {
+:is(.mapa__zoom-ampliado button, .mapa__controles button):hover:not(:disabled),
+.mapa__fechar-ampliado:hover,
+.botao-icone[aria-pressed="true"] {
   background: var(--orange-soft);
   color: #b83208;
 }
-.mapa__zoom-ampliado button:disabled {
+:is(.mapa__zoom-ampliado, .mapa__controles) button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-.mapa__zoom-ampliado button:focus-visible {
-  outline: 3px solid var(--orange);
-  outline-offset: 2px;
 }
 .mapa__zoom-ampliado span {
   min-width: 3.25rem;
@@ -188,14 +161,6 @@
   font-size: 0.8125rem;
   font-weight: 700;
   text-align: center;
-}
-.mapa__fechar-ampliado:hover {
-  background: var(--orange-soft);
-  color: #b83208;
-}
-.mapa__fechar-ampliado:focus-visible {
-  outline: 3px solid var(--orange);
-  outline-offset: 3px;
 }
 .mapa__cabecalho .titulo {
   font-size: 1.5rem;
@@ -239,17 +204,10 @@
   border: 2px solid #00ad7c;
 }
 .amostra--fixa,
-.amostra--ocupada {
-  background: #fff0f0;
-  border: 2px solid #ed9292;
-}
+.amostra--ocupada { background: var(--mapa-laranja-suave); border: 2px solid var(--mapa-laranja); }
 .amostra--inativa {
   border: 1px dashed #64748b;
   background: #e5e7eb;
-}
-.amostra--selecionada {
-  background: #ffdfb4;
-  border: 2px solid #ff9418;
 }
 .mapa__viewport {
   width: 100%;
@@ -343,7 +301,6 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-.parede,
 .estrutura {
   border: 5px ridge #c5cdd1;
   border-radius: 3px;
@@ -363,7 +320,6 @@
   border-radius: 4px;
   background: linear-gradient(145deg, #fff, #e3eaf6);
   color: #365a7c;
-  font-family: inherit;
   text-align: center;
   box-shadow: none;
   cursor: pointer;
@@ -397,7 +353,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 16px;
   line-height: 1.2;
 }
 .mesa__estado {
@@ -435,9 +390,9 @@
 .mesa--unida-superior::before { display: none; }
 .mesa.fixa,
 .mesa.ocupada {
-  border-color: #f1b5b5;
-  background: linear-gradient(145deg, #fffafa, #fff0f0);
-  color: #a83d3d;
+  border-color: var(--mapa-laranja);
+  background: var(--mapa-laranja-suave);
+  color: var(--mapa-laranja-texto);
 }
 .mesa.livre {
   border-color: #80d9b8;
@@ -448,7 +403,6 @@
   border: 1.5px dashed #c3cad4;
   background: #edf0f5;
   color: #526175;
-  box-shadow: none;
 }
 .mesa:disabled {
   cursor: not-allowed;
@@ -458,21 +412,18 @@
 }
 .mesa.selecionada {
   z-index: 2;
-  outline: 3px solid #ff9418;
+  outline: 3px solid var(--mapa-laranja);
   outline-offset: 2px;
-  border-color: #ff9418;
-  background: #fff0d9;
-  color: #83501f;
+  border-color: var(--mapa-laranja);
+  background: var(--mapa-laranja-suave);
+  color: var(--mapa-laranja-texto);
   box-shadow: 0 0 0 6px rgb(217 119 50 / 12%);
 }
 .mesa:hover:not(:disabled) {
   filter: brightness(1.03);
 }
-.mesa:focus-visible,
-.botao-icone:focus-visible,
-.mapa__controles button:focus-visible,
-.mapa__fechar-ampliado:focus-visible,
-.mapa__viewport:focus-visible {
+:is(.mesa, .botao-icone, .mapa__controles button, .mapa__controle-modal,
+  .mapa__zoom-ampliado button, .mapa__fechar-ampliado, .mapa__viewport):focus-visible {
   outline: 3px solid var(--orange);
   outline-offset: 3px;
 }
@@ -486,7 +437,7 @@
   background: #00ad7c;
 }
 .mesa__marcador--selecionado {
-  background: #d97732;
+  background: var(--mapa-laranja);
 }
 .botao-icone,
 .mapa__controles button {
@@ -499,15 +450,6 @@
   background: #fff;
   color: var(--navy);
   cursor: pointer;
-}
-.botao-icone[aria-pressed="true"],
-.mapa__controles button:hover:not(:disabled) {
-  background: var(--orange-soft);
-  color: #b83208;
-}
-.mapa__controles button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 .mapa__rodape {
   flex-shrink: 0;
@@ -524,8 +466,6 @@
   box-shadow: 0 4px 12px rgb(34 34 57 / 12%);
 }
 .mapa__rodape p {
-  flex: 1 1 280px;
-  margin: 0;
   color: #596174;
   font-size: 0.8125rem;
 }
@@ -555,10 +495,6 @@
 }
 .mapa__informacao-icone {
   cursor: help;
-}
-.mapa__informacao-icone:focus-visible {
-  outline: 2px solid var(--orange);
-  outline-offset: 2px;
 }
 .mapa__informacao p {
   visibility: hidden;
@@ -621,8 +557,7 @@
   font-size: 13px;
   padding: 1px 3px;
 }
-.planta--legado .mesa__ocupante,
-.planta--legado .mesa__estado {
+.planta--legado .mesa__ocupante {
   font-size: 11px;
 }
 .planta--legado .mesa__estado {
@@ -670,6 +605,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .mesa,
   .mapa__controle-modal,
   .mapa__data-modal .campo__entrada,
   .mapa__fechar-ampliado,
@@ -691,8 +627,10 @@
     padding: 0.625rem 1rem;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .mesa {
-    transition: none;
-  }
-}
+.entrada__arvore { position: absolute; width: 52px; height: 72px; right: 24px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.mesa-tooltip { position: fixed; z-index: 1400; width: max-content; max-width: min(280px, calc(100vw - 16px));
+  padding: .625rem .875rem; border-radius: 8px; background: var(--navy); color: white;
+  font-size: .8125rem; line-height: 1.4; box-shadow: 0 4px 16px #0002; pointer-events: none; overflow-wrap: anywhere; }
+.mesa.mesa--minha { outline: 4px double var(--navy); outline-offset: 4px; }
+.mesa.mesa--minha::after { content: 'Sua mesa'; position: absolute; left: 50%; top: -25px; transform: translateX(-50%);
+  border-radius: 4px; padding: 2px 6px; background: var(--navy); color: white; font-size: 11px; white-space: nowrap; }

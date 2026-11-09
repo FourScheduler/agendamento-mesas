@@ -9,6 +9,23 @@
   justify-content: center;
   min-height: 100vh;
   padding: 2rem 1rem;
+  gap: clamp(2rem, 6vw, 6rem);
+  background: linear-gradient(135deg, var(--page-bg), var(--orange-soft));
+}
+.login-apresentacao { max-width: 430px; color: var(--navy); }
+.login-marca { font-size: .8125rem; font-weight: 800; letter-spacing: .12em; color: var(--orange-dark); }
+.login-apresentacao h1 { font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.12; margin: 1rem 0; }
+.login-apresentacao p { color: var(--muted); line-height: 1.7; }
+.login-ilustracao { color: var(--mapa-laranja); max-width: 250px; margin: 2rem auto 0; }
+.login-seguranca { margin: 0; color: var(--muted); font-size: .75rem; text-align: center; }
+.login h2 { font-size: 1.75rem; margin: 0 0 .5rem; }
+.login .cartao__cabecalho { padding: 2rem 1.5rem 1rem; }
+.login .campo__erro { padding: .75rem; border-radius: var(--radius); background: var(--status-cancelada-fundo); }
+@media (max-width: 800px) {
+  .login-page { flex-direction: column; min-height: 100dvh; gap: 1.5rem; }
+  .login-apresentacao { text-align: center; }
+  .login-apresentacao h1 { font-size: 1.75rem; }
+  .login-ilustracao { display: none; }
 }
 .login {
   width: min(100%, 440px);

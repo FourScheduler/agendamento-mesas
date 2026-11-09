@@ -1,10 +1,22 @@
 <main class="login-page">
+  <aside class="login-apresentacao" aria-label="Agendamento de Mesas">
+    <span class="login-marca">FourScheduler</span>
+    <h1>Seu espaço para trabalhar melhor.</h1>
+    <p>Encontre sua mesa, consulte o mapa e acompanhe suas reservas em um só lugar.</p>
+    <div class="login-ilustracao" aria-hidden="true">
+      <svg viewBox="0 0 240 160" fill="none" stroke="currentColor" stroke-width="5">
+        <rect x="70" y="12" width="100" height="62" rx="8" />
+        <path d="M120 74v25M95 99h50M30 112h180M45 112v36M195 112v36" />
+        <path d="M25 92h25M190 92h25" stroke-linecap="round" />
+      </svg>
+    </div>
+  </aside>
   <section class="login cartao" aria-labelledby="titulo-login">
     <div class="cartao__cabecalho">
-      <h2 id="titulo-login">Entre para acessar o Agendamento de Mesas</h2>
-      <p>Use sua conta de demonstração para consultar as mesas.</p>
+      <h2 id="titulo-login">Boas-vindas</h2>
+      <p>Entre para acessar o Agendamento de Mesas.</p>
     </div>
-    <form #form="ngForm" (ngSubmit)="entrar()">
+    <form #form="ngForm" (ngSubmit)="entrar()" [attr.aria-busy]="entrando()">
       <div class="campo">
         <label class="campo__rotulo" for="email">E-mail</label>
         <input
@@ -34,7 +46,7 @@
         />
       </div>
       @if (erro()) {
-      <p role="alert" class="campo__erro">{{ erro() }}</p>
+      <p id="login-erro" role="alert" class="campo__erro">{{ erro() }}</p>
       }
       <button
         class="botao entrar"
@@ -46,6 +58,7 @@
           <path d="M5 12h14m-5-5 5 5-5 5" />
         </svg>
       </button>
+      <p class="login-seguranca">Use sua conta cadastrada. Nunca compartilhe sua senha.</p>
     </form>
   </section>
 </main>

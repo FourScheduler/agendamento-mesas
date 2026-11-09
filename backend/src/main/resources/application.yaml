@@ -20,7 +20,15 @@ spring:
 server:
   port: ${SERVER_PORT:8081}
 
+logging:
+  pattern:
+    level: "%5p [correlationId=%X{correlationId:-}]"
+
 app:
+  reservas:
+    retencao:
+      habilitada: ${RESERVAS_RETENCAO_HABILITADA:false}
+      cron: ${RESERVAS_RETENCAO_CRON:0 0 3 * * *}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4201}
   jwt:

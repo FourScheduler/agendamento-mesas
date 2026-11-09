@@ -50,6 +50,8 @@ describe('AdminMesaPage', () => {
       expect(pagina.mesasFiltradas()).toHaveLength(1);
       vi.advanceTimersByTime(90 * 60 * 1000 - 500);
       fixture.detectChanges();
+      expect(pagina.carregando()).toBe(true);
+      vi.advanceTimersByTime(250);
       http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
         && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-07')
         .flush([mesa]);
@@ -223,6 +225,12 @@ describe('AdminMesaPage', () => {
       confirmar();
       const recusada = http.expectOne('/api/admin/mesas/44/responsavel');
       expect(recusada.request.body).toEqual({ usuarioId: 8 });
+      fixture.componentInstance.confirmarAcao();
+      fixture.componentInstance.fecharModal();
+      fixture.detectChanges();
+      http.expectNone('/api/admin/mesas/44/responsavel');
+      expect(fixture.componentInstance.mesaSelecionadaParaAcao()?.id).toBe(44);
+      expect(fixture.nativeElement.querySelector('.modal__responsavel-atual')).not.toBeNull();
       recusada.flush({ detail: 'O usuário possui reservas não canceladas.' }, { status: 409, statusText: 'Conflict' });
       fixture.detectChanges();
       expect(fixture.componentInstance.mesas()[0].responsavel).toBeNull();
@@ -243,6 +251,32 @@ describe('AdminMesaPage', () => {
       fixture.destroy();
       TestBed.resetTestingModule();
     }
+  });
+
+  it('combina nome parcial sem distinguir caixa, local, tipo, ordenação e paginação', async () => {
+    const mesas = Array.from({ length: 25 }, (_, i): Mesa => ({ ...mesa, id: i + 1,
+      codigo: String(i + 1).padStart(3, '0'), tipo: 'FIXA', regiao: i < 20 ? 'Local A' : 'Local B',
+      responsavel: { id: i + 10, nome: i % 2 ? 'Ana Silva' : 'Bruna Costa', email: 'teste@exemplo.com' } }));
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+      { provide: AdminMesaService, useValue: { listarComOcupacao: () => of(mesas) } }] });
+    const fixture = TestBed.createComponent(AdminMesaPage);
+    fixture.detectChanges();
+    await new Promise<void>(resolve => setTimeout(resolve, 300));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(10);
+    fixture.componentInstance.pagina.set(2);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(5);
+    fixture.componentInstance.nomeResponsavel.set('sILVa');
+    fixture.componentInstance.local.set('Local A');
+    fixture.componentInstance.filtroTipo.set('fixa');
+    fixture.componentInstance.descendente.set(true);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.paginaAtual()).toBe(0);
+    expect(fixture.componentInstance.mesasFiltradas()).toHaveLength(10);
+    expect(fixture.componentInstance.mesasPaginadas()[0].codigo).toBe('020');
+    fixture.destroy();
+    TestBed.resetTestingModule();
   });
 
   it('esconde a busca após selecionar responsável e a reabre ao trocar', async () => {

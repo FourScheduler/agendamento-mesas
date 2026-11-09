@@ -26,7 +26,8 @@ public class WebConfig {
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        config.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+        config.setAllowedHeaders(List.of("Content-Type", "Authorization", "Idempotency-Key", "X-Correlation-ID"));
+        config.setExposedHeaders(List.of("X-Correlation-ID"));
 
         UrlBasedCorsConfigurationSource fonte = new UrlBasedCorsConfigurationSource();
 

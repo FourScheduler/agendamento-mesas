@@ -7,6 +7,11 @@ import br.com.foursys.agendamento_mesas.port.out.ReservaRepositoryPort;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -40,8 +45,26 @@ public class ReservaRepositoryAdapter implements ReservaRepositoryPort {
     }
 
     @Override
+    public Optional<Reserva> buscarPorAutorEChave(Long autorId, String chave) {
+        return reservaJpaRepository.buscarPorAutorEChave(autorId, chave);
+    }
+
+    @Override
+    @Transactional
+    public int excluirCanceladasAte(LocalDateTime limite, int tamanhoLote) {
+        var ids = reservaJpaRepository.buscarCanceladasParaRetencao(limite, PageRequest.of(0, tamanhoLote));
+        return ids.isEmpty() ? 0 : reservaJpaRepository.excluirCanceladasAte(ids, limite);
+    }
+
+    @Override
     public List<Reserva> buscarTodos() {
         return reservaJpaRepository.findAll();
+    }
+
+    @Override
+    public Page<Reserva> listarPagina(Long usuarioId, LocalDate inicio, LocalDate fim,
+            Collection<StatusReserva> status, Pageable pagina) {
+        return reservaJpaRepository.listarPagina(usuarioId, inicio, fim, status, pagina);
     }
 
     @Override

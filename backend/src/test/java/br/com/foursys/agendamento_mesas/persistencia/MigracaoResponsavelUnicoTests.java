@@ -21,7 +21,7 @@ class MigracaoResponsavelUnicoTests {
         var usuariosAntes = jdbc.queryForList("SELECT * FROM usuarios ORDER BY id");
         var reservasAntes = jdbc.queryForList("SELECT * FROM reservas ORDER BY id");
 
-        var flyway = Flyway.configure().dataSource(ds).locations("classpath:db/migration").load();
+        var flyway = Flyway.configure().dataSource(ds).locations("classpath:db/migration").target("9").load();
         assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(jdbc.queryForList("SELECT * FROM mesas ORDER BY id")).isEqualTo(mesasAntes);
         assertThat(jdbc.queryForList("SELECT * FROM usuarios ORDER BY id")).isEqualTo(usuariosAntes);
@@ -36,7 +36,7 @@ class MigracaoResponsavelUnicoTests {
         prepararDados(jdbc);
         jdbc.update("UPDATE mesas SET responsavel_id = 1 WHERE id IN (1, 2)");
         var antes = jdbc.queryForList("SELECT * FROM mesas ORDER BY id");
-        var flyway = Flyway.configure().dataSource(ds).locations("classpath:db/migration").load();
+        var flyway = Flyway.configure().dataSource(ds).locations("classpath:db/migration").target("9").load();
 
         assertThatThrownBy(flyway::migrate)
             .isInstanceOf(FlywayException.class)

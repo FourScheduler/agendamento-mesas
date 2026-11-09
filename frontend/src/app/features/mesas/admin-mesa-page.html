@@ -21,20 +21,11 @@
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
-        Voltar ao agendamento
+        Listar mesas
       </button>
     </div>
   </header>
 
-  @if (carregando()) {
-    <app-carregando texto="Carregando mesas..." />
-  } @else if (erroConsulta()) {
-    <app-erro
-      [titulo]="'Erro ao carregar mesas'"
-      [mensagem]="erroConsulta()"
-      (tentarNovamente)="carregarMesas()"
-    />
-  } @else {
     <div class="admin-mesa-page__conteudo">
       <div class="admin-mesa-page__filtros">
       <div class="admin-mesa-page__busca">
@@ -64,7 +55,7 @@
           title="Filtrar mesas fixas"
         >
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            <path d="m8 3 8 0-1 6 4 4H5l4-4-1-6ZM12 13v8" />
           </svg>
           <span>Fixas</span>
         </button>
@@ -110,13 +101,37 @@
           <span>Reservadas</span>
         </button>
       </div>
+      <label class="campo">Responsável fixo
+        <input class="campo__entrada" type="search" placeholder="Nome completo ou parcial"
+          [ngModel]="nomeResponsavel()" (ngModelChange)="nomeResponsavel.set($event)" />
+      </label>
+      <label class="campo">Local
+        <select class="campo__entrada" [ngModel]="local()" (ngModelChange)="local.set($event)">
+          <option value="">Todos os locais</option>
+          @for (regiao of locais(); track regiao) { <option [value]="regiao">{{ regiao }}</option> }
+        </select>
+      </label>
+      <label class="campo">Ordenar por
+        <select class="campo__entrada" [ngModel]="ordenacao()" (ngModelChange)="ordenacao.set($event)">
+          <option value="codigo">Número da mesa</option><option value="regiao">Localização</option>
+          <option value="tipo">Tipo</option><option value="responsavel">Responsável</option>
+        </select>
+      </label>
+      <button class="botao botao--contorno" type="button" (click)="descendente.set(!descendente())">
+        {{ descendente() ? 'Decrescente' : 'Crescente' }}
+      </button>
+      <button class="botao botao--contorno" type="button" (click)="limparFiltros()">Limpar filtros</button>
       <span class="admin-mesa-page__contagem" role="status">
         <strong>{{ mesasFiltradas().length }}</strong>
         {{ mesasFiltradas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
       </span>
       </div>
 
-      @if (mesasFiltradas().length === 0) {
+      @if (carregando()) {
+        <app-carregando texto="Carregando mesas..." />
+      } @else if (erroConsulta()) {
+        <app-erro titulo="Erro ao carregar mesas" [mensagem]="erroConsulta()" (tentarNovamente)="carregarMesas()" />
+      } @else if (mesasFiltradas().length === 0) {
         <app-vazio
           titulo="Nenhuma mesa encontrada"
           [mensagem]="busca() || filtroTipo() ? 'Nenhuma mesa corresponde aos filtros selecionados.' : 'Nenhuma mesa cadastrada.'"
@@ -135,7 +150,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (mesa of mesasFiltradas(); track mesa.id) {
+              @for (mesa of mesasPaginadas(); track mesa.id) {
                 <tr [class.admin-mesa-page__linha--inativa]="!mesa.ativa">
                   <td class="admin-mesa-page__codigo"><span class="admin-mesa-page__numero">{{ mesa.codigo }}</span></td>
                   <td>{{ mesa.regiao }}</td>
@@ -229,8 +244,10 @@
           </table>
         </div>
       }
+      <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
+        [carregando]="carregando()" (paginaAlterada)="pagina.set($event)"
+        (tamanhoAlterado)="tamanhoPagina.set($event); pagina.set(0)" />
     </div>
-  }
 
   @if (mesaSelecionadaParaAcao() && acaoEmAndamento()) {
     <div class="modal-overlay" (click)="!confirmando() && fecharModal()" (keydown.escape)="fecharModal()" role="presentation">
@@ -357,8 +374,12 @@
             <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
           }
 
-          @if (acaoEmAndamento() === 'alterar-responsavel' && !confirmando()) {
+          @if (acaoEmAndamento() === 'fixar' || acaoEmAndamento() === 'alterar-responsavel' || acaoEmAndamento() === 'desfixar') {
             <p class="modal__responsavel-atual"><strong>Atual:</strong> {{ getResponsavelAtual() }}</p>
+            @if (getUsuarioSelecionado(); as novo) {
+              <p class="modal__mensagem"><strong>Novo responsável:</strong> {{ novo.nome }}.
+                Confira a mesa e os responsáveis antes de confirmar a substituição.</p>
+            }
           }
 
           @if (erroAcao()) {

@@ -14,15 +14,15 @@ import { AuthService, UsuarioAdminResumo } from '../../core/auth/auth.service';
 import { ReservaDiaria } from '../reservas/reserva-diaria';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
 import { formatarData } from '../reservas/data-reserva';
-import { Notificacao } from '../../shared/notificacao/notificacao';
 import { ToastService } from '../../shared/toast/toast';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Reserva } from '../agendamento/reserva';
+import { ConfirmacaoPendente } from '../reservas/confirmacao-pendente';
 
 @Component({
   selector: 'app-mapa-page',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, Notificacao, CalendarioReserva],
+  imports: [FormsModule, NgTemplateOutlet, PlantaMesas, CalendarioReserva, ConfirmacaoPendente],
   providers: [ReservaDiaria],
   templateUrl: './mapa-page.html',
   styleUrl: './mapa-page.css',
@@ -50,6 +50,7 @@ export class MapaPage {
   readonly idsMesasDisponiveis = signal<ReadonlySet<number> | null>(null);
   readonly reservaDoPainel = signal<Reserva | null>(null);
   readonly carregandoReservaDoPainel = signal(false);
+  readonly confirmacaoCancelamento = signal(false);
   readonly detalhesAbertos = signal(false);
   readonly fixacaoPretendida = signal<boolean | null>(null);
   readonly enviandoFixacao = signal(false);
@@ -105,7 +106,7 @@ export class MapaPage {
   }
 
   onMesaSelecionada(selecao: { readonly mesa: Mesa; readonly disponivel: boolean }) {
-    if (this.enviandoFixacao() || this.reserva.confirmando()) return;
+    if (this.enviandoFixacao() || this.reserva.confirmando() || this.reserva.cancelando()) return;
     if (this.detalhesAbertos() && this.mesaNoPainel()?.id === selecao.mesa.id) {
       this.fecharDetalhes();
       return;
@@ -128,6 +129,7 @@ export class MapaPage {
   }
 
   onDataChange(data: string) {
+    if (this.enviandoFixacao() || this.reserva.confirmando() || this.reserva.cancelando()) return;
     this.mesaInicialId.set(null);
     this.invalidarBuscaReservaDoPainel();
     this.reserva.alterarData(data);
@@ -174,7 +176,7 @@ export class MapaPage {
 
   fecharDetalhes(event?: Event) {
     if (event?.defaultPrevented) return;
-    if (!this.detalhesAbertos() || this.reserva.confirmando() || this.reserva.cancelando()) return;
+    if (!this.detalhesAbertos() || this.enviandoFixacao() || this.reserva.confirmando() || this.reserva.cancelando()) return;
 
     const mesaId = this.mesaNoPainel()?.id;
     if (mesaId !== undefined) {
@@ -287,7 +289,8 @@ export class MapaPage {
   cancelarReserva() {
     const mesa = this.mesaNoPainel();
     const reservaMesa = this.reservaDoPainel();
-    if (!mesa || !reservaMesa || !this.podeGerenciarReserva(mesa) || this.reserva.cancelando()) return;
+    if (!mesa || !reservaMesa || !this.confirmacaoCancelamento() || !this.podeGerenciarReserva(mesa)
+      || this.reserva.cancelando() || this.enviandoFixacao()) return;
     this.reserva.cancelarReserva(reservaMesa.id, mesa.id, () => {
       this.detalhesAbertos.set(false);
       this.mesaNoPainel.set(null);
@@ -388,6 +391,7 @@ export class MapaPage {
   }
 
   private invalidarBuscaReservaDoPainel() {
+    this.confirmacaoCancelamento.set(false);
     this.reservaPainelRequest++;
     this.reservaDoPainel.set(null);
     this.carregandoReservaDoPainel.set(false);

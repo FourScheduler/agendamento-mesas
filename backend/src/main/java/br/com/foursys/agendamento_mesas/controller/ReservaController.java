@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.PaginaResponse;
 import br.com.foursys.agendamento_mesas.security.UsuarioAutenticado;
 import br.com.foursys.agendamento_mesas.service.ReservaService;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +27,20 @@ public class ReservaController {
     @PostMapping
     public ResponseEntity<ReservaResponse> criar(
         @RequestBody CriarReservaRequest request,
+        @RequestHeader(value = "Idempotency-Key", required = false) String chave,
         @AuthenticationPrincipal UsuarioAutenticado usuario
     ) {
-        ReservaResponse reserva = reservaService.criar(request, usuario);
+        ReservaResponse reserva = reservaService.criar(request, usuario, chave);
 
         return ResponseEntity
                 .created(URI.create("/api/reservas/" + reserva.id()))
                 .body(reserva);
+    }
+
+    @GetMapping("/confirmacoes/{chave}")
+    public ReservaResponse consultarConfirmacao(@PathVariable String chave,
+        @AuthenticationPrincipal UsuarioAutenticado usuario) {
+        return reservaService.consultarConfirmacao(chave, usuario);
     }
 
     @GetMapping("/minhas")
@@ -52,6 +60,18 @@ public class ReservaController {
                     dataFim,
                     status
                 ));
+    }
+
+    @GetMapping("/minhas/pagina")
+    public PaginaResponse<ReservaResponse> minhasPaginadas(
+            @AuthenticationPrincipal UsuarioAutenticado usuario,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @RequestParam(required = false) StatusReserva status,
+            @RequestParam(defaultValue = "false") boolean canceladas,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "10") int tamanho) {
+        return reservaService.listarPagina(usuario.id(), dataInicio, dataFim, status, canceladas, pagina, tamanho);
     }
 
     @PatchMapping("/{id}/cancelamento")

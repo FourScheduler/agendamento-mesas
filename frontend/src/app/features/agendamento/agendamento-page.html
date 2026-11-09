@@ -3,7 +3,20 @@
     <p class="eyebrow">Agendamento de Mesas</p>
     <h1 class="titulo">Escolha uma mesa</h1>
     <p class="subtitulo">Selecione a data, escolha uma mesa livre e confirme</p>
+    <button class="botao botao--contorno" type="button" (click)="irParaReservas()">Minhas reservas</button>
+    <ol class="agendamento__passos" aria-label="Como reservar">
+      <li><strong>Escolha o dia</strong><span>Consulte até 15 dias à frente.</span></li>
+      <li><strong>Encontre sua mesa</strong><span>Use os filtros ou navegue pelo mapa.</span></li>
+      <li><strong>Revise e confirme</strong><span>Acompanhe tudo em Minhas reservas.</span></li>
+    </ol>
   </div>
+  <app-confirmacao-pendente />
+  @if (erroCatalogo()) {
+    <p class="campo__erro" role="alert">{{ erroCatalogo() }}
+      <button class="botao botao--contorno" type="button" (click)="carregarCatalogo()"
+        [disabled]="carregandoCatalogo()">Tentar novamente</button>
+    </p>
+  }
 
   <section class="filtro-data cartao" aria-label="Filtros de agendamento">
     <div class="filtro-data__linha">
@@ -48,6 +61,16 @@
         </div>
       </div>
 
+      <div class="filtro-campo">
+        <label class="filtro-data__rotulo" for="filtro-local">Local</label>
+        <select id="filtro-local" class="campo__entrada" [ngModel]="local()" (ngModelChange)="local.set($event)">
+          <option value="">Todos os locais</option>
+          @for (regiao of locais(); track regiao) { <option [value]="regiao">{{ regiao }}</option> }
+        </select>
+      </div>
+      @if (busca() || local()) {
+        <button class="botao botao--contorno" type="button" (click)="limparFiltros()">Limpar filtros</button>
+      }
       <button class="botao" type="button" (click)="irParaMapa()" [disabled]="confirmando()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -94,13 +117,13 @@
     </div>
     } @else if (erroConsulta()) {
       <p class="mesas-livres__vazio" role="status">Consulta indisponível. Use “Atualizar disponibilidade” para tentar novamente.</p>
-    } @else if (mesasLivres().length === 0) {
+    } @else if (mesasLivres().length === 0 && !busca()) {
       <p class="mesas-livres__vazio" role="status">Nenhuma mesa disponível para a data selecionada.</p>
     } @else if (mesasFiltradas().length === 0) {
       <p class="mesas-livres__vazio" role="status">Nenhuma mesa encontrada para a pesquisa.</p>
     } @else {
     <div class="mesas-livres__grid" role="listbox" aria-label="Mesas disponíveis">
-      @for (mesa of mesasFiltradas(); track mesa.id) {
+      @for (mesa of mesasPaginadas(); track mesa.id) {
         <article class="mesa-card"
           [class.mesa-card--selecionada]="mesaSelecionada()?.id === mesa.id"
           [class.mesa-card--indisponivel]="!estaDisponivel(mesa)"
@@ -148,6 +171,9 @@
       }
     </div>
     }
+    <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
+      [carregando]="carregandoMesas()" (paginaAlterada)="pagina.set($event)"
+      (tamanhoAlterado)="tamanhoPagina.set($event); pagina.set(0)" />
   </section>
 
   <!-- Lado direito: resumo da reserva (aparece apenas quando há mesa selecionada) -->
@@ -330,6 +356,3 @@
   </aside>
   }
 </div>
-
-<app-notificacao [mensagem]="reserva.erro() || reserva.sucesso()"
-  [tipo]="reserva.erro() ? 'erro' : 'sucesso'" (fechar)="reserva.fecharMensagem()" />

@@ -86,6 +86,9 @@
         <span class="amostra amostra--ocupada" aria-hidden="true"></span>Reservada
       </li>
       <li>
+        <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa
+      </li>
+      <li>
         <span class="amostra amostra--inativa" aria-hidden="true"></span>Inativa
       </li>
       <li class="legenda__visibilidade">
@@ -176,6 +179,14 @@
             [style.height.px]="layoutTambore.entrada.altura"
           >
             Entrada
+            @if (mostrarArvore()) {
+              <svg class="entrada__arvore" viewBox="0 0 80 110" focusable="false">
+                <path d="M34 88h12v19H34z" fill="#79533c" />
+                <path d="M40 12 16 48h12L9 73h15L3 95h74L56 73h15L52 48h12z" fill="#25664d" />
+                <path d="m40 0 3 8 9 1-7 6 2 9-7-5-7 5 2-9-7-6 9-1z" fill="#bf8e49" />
+                <g fill="#e1ae80"><circle cx="32" cy="46" r="3" /><circle cx="48" cy="66" r="3" /><circle cx="26" cy="84" r="3" /><circle cx="56" cy="88" r="3" /></g>
+              </svg>
+            }
           </div>
           @for (estrutura of layoutTambore.estruturas; track $index) {
           <div
@@ -198,6 +209,7 @@
             [class.inativa]="!mesa.ativa"
             [class.fixa]="mesa.ativa && mesa.tipo === 'FIXA'"
             [class.selecionada]="selecionada() === mesa.id"
+            [class.mesa--minha]="minhaMesaId() === mesa.id"
             [style.left.px]="planta.posicoes.get(mesa.id)!.x"
             [style.top.px]="planta.posicoes.get(mesa.id)!.y"
             [style.width.px]="planta.tamanhoMesa.largura"
@@ -207,7 +219,12 @@
             [attr.aria-pressed]="selecionada() === mesa.id"
             [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Reservada' : 'Livre na data') + (nomeOcupante(mesa) ? ', ' + nomeOcupante(mesa) : '')"
             (click)="selecionar(mesa)"
-            (focus)="onMesaFocus(mesa)"
+            (focus)="onMesaFocus(mesa); mostrarTooltip(mesa, $event)"
+            (blur)="tooltip.set(null)"
+            (mouseenter)="mostrarTooltip(mesa, $event)"
+            (mouseleave)="tooltip.set(null)"
+            (pointerdown)="mostrarTooltip(mesa, $event)"
+            [attr.aria-describedby]="tooltip() ? 'mesa-tooltip' : null"
           >
             @if (planta.posicoes.get(mesa.id)!.superior) {
               <span class="mesa__cadeira mesa__cadeira--superior" aria-hidden="true"></span>
@@ -277,4 +294,8 @@
     </div>
   </footer>
 </section>
+@if (tooltip(); as dica) {
+  <div id="mesa-tooltip" class="mesa-tooltip" role="tooltip"
+    [style.left.px]="dica.x" [style.top.px]="dica.y">{{ dica.texto }}</div>
+}
 </div>

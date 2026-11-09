@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, input, output, signal, viewChild } from '@angular/core';
-import { adicionarDias, formatarData, validarDataReserva } from './data-reserva';
+import { adicionarDias, formatarData, hojeSaoPaulo, validarDataReserva } from './data-reserva';
 
 @Component({
   selector: 'app-calendario-reserva',
@@ -61,8 +61,9 @@ import { adicionarDias, formatarData, validarDataReserva } from './data-reserva'
 })
 export class CalendarioReserva {
   readonly data = input.required<string>();
-  readonly minima = input.required<string>();
-  readonly maxima = input.required<string>();
+  readonly minima = input('0001-01-01');
+  readonly maxima = input('9999-12-31');
+  readonly modo = input<'reserva' | 'consulta'>('reserva');
   readonly desabilitado = input(false);
   readonly dataSelecionada = output<string>();
   readonly mes = signal('');
@@ -88,11 +89,12 @@ export class CalendarioReserva {
   abrir(event: Event) {
     if (!(event.target instanceof HTMLInputElement) || this.desabilitado()) return;
     event.preventDefault();
-    const data = this.data() >= this.minima() && this.data() <= this.maxima() ? this.data() : this.minima();
+    const atual = this.data() || hojeSaoPaulo();
+    const data = atual < this.minima() ? this.minima() : atual > this.maxima() ? this.maxima() : atual;
     this.mes.set(data.slice(0, 7));
     const dialogo = this.dialogo().nativeElement;
     const campo = event.target.getBoundingClientRect();
-    const largura = Math.min(280, window.innerWidth - 16);
+    const largura = Math.min(296, window.innerWidth - 16);
     const altura = 310;
     const topo = campo.bottom + altura + 4 <= window.innerHeight - 8
       ? campo.bottom + 4 : Math.max(8, campo.top - altura - 4);
@@ -122,6 +124,7 @@ export class CalendarioReserva {
   }
 
   private bloqueado(data: string) {
-    return !!validarDataReserva(data, this.minima()) || data > this.maxima();
+    return data < this.minima() || data > this.maxima()
+      || this.modo() === 'reserva' && !!validarDataReserva(data, this.minima());
   }
 }

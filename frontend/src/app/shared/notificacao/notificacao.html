@@ -2,7 +2,9 @@
   <aside class="notificacao" [class.notificacao--sucesso]="tipo() === 'sucesso'"
     [class.notificacao--erro]="tipo() === 'erro'" [attr.role]="tipo() === 'erro' ? 'alert' : 'status'"
     aria-atomic="true" (mouseenter)="definirPausa('mouse', true)" (mouseleave)="definirPausa('mouse', false)"
-    (focusin)="definirPausa('foco', true)" (focusout)="definirPausa('foco', false, $event)">
+    (focusin)="definirPausa('foco', true)" (focusout)="definirPausa('foco', false, $event)"
+    (click)="definirPausa('fixado', true)" (keydown.enter)="definirPausa('fixado', true)"
+    (keydown.space)="$event.preventDefault(); definirPausa('fixado', true)">
     <svg class="notificacao__icone" viewBox="0 0 24 24" width="24" height="24" fill="none"
       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       @if (tipo() === 'sucesso') {
@@ -15,7 +17,8 @@
     <div class="notificacao__conteudo" tabindex="0" aria-label="Mensagem da notificação">
       <p class="notificacao__mensagem">{{ mensagem() }}</p>
     </div>
-    <button class="notificacao__fechar" type="button" aria-label="Fechar notificação" (click)="fecharAgora()">
+    <button class="notificacao__fechar" type="button" aria-label="Fechar notificação"
+      (click)="$event.stopPropagation(); fecharAgora()" (keydown)="$event.stopPropagation()">
       <span aria-hidden="true">&times;</span>
     </button>
     <div class="notificacao__trilha" aria-hidden="true">

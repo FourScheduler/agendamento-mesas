@@ -18,6 +18,8 @@ import { NgTemplateOutlet } from "@angular/common";
 import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
+import { hojeSaoPaulo } from '../reservas/data-reserva';
 import {
   PLANTA_TAMBORE_EXIBICAO,
   TAMANHO_MESA,
@@ -34,6 +36,17 @@ import {
   styleUrl: "./planta-mesas.css",
 })
 export class PlantaMesas {
+  private readonly auth = inject(AuthService);
+  readonly decoracaoNatal = input(true);
+  readonly mostrarArvore = computed(() => this.decoracaoNatal() && hojeSaoPaulo().slice(5, 7) === '12');
+  readonly minhaMesaId = computed(() => {
+    const usuarioId = this.auth.usuario()?.id;
+    if (usuarioId == null) return null;
+    return this.mesas().find(m => m.ativa && (m.ocupanteNaData?.id === usuarioId
+      || m.responsavel?.id === usuarioId))?.id ?? null;
+  });
+  readonly tooltip = signal<{ texto: string; x: number; y: number } | null>(null);
+  private ultimoFocoAutomatico = '';
   readonly data = input('');
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
@@ -280,6 +293,7 @@ export class PlantaMesas {
       this.disponiveis.set(null);
       this.mesasDisponiveisCarregadas.emit(null);
       this.selecionada.set(null);
+      this.tooltip.set(null);
       this.erro.set("");
       this.carregando.set(false);
       this.carregando.set(true);
@@ -321,6 +335,17 @@ export class PlantaMesas {
               }
               else this.mesaInicialInvalidada.emit();
             }
+            if (mesaInicialId === null && this.minhaMesaId() !== null) {
+              const id = this.minhaMesaId()!;
+              const contexto = `${data}:${id}`;
+              if (this.ultimoFocoAutomatico !== contexto) {
+                this.ultimoFocoAutomatico = contexto;
+                afterNextRender(() => {
+                  if (this.data() !== data || this.minhaMesaId() !== id) return;
+                  this.centralizarMesa(id);
+                }, { injector: this.injector });
+              }
+            }
           }
         },
         error: (erro: HttpErrorResponse) => {
@@ -355,6 +380,30 @@ export class PlantaMesas {
 
   nomeOcupante(mesa: Mesa): string | null {
     return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
+  }
+
+  mostrarTooltip(mesa: Mesa, evento: Event) {
+    if (!(evento.currentTarget instanceof HTMLElement)) return;
+    const alvo = evento.currentTarget.getBoundingClientRect();
+    const nome = this.nomeOcupante(mesa);
+    this.tooltip.set({
+      texto: `Mesa ${mesa.codigo} · ${nome ? nome : this.estaDisponivel(mesa) ? 'Disponível' : !mesa.ativa ? 'Inativa' : 'Indisponível'}`,
+      x: Math.max(8, Math.min(alvo.left, window.innerWidth - 288)),
+      y: Math.max(8, Math.min(alvo.bottom + 8, window.innerHeight - 80)),
+    });
+  }
+
+  private centralizarMesa(id: number) {
+    const viewport = this.viewport().nativeElement;
+    const mesa = viewport.querySelector<HTMLElement>(`button.mesa[data-mesa-id="${id}"]`);
+    if (!mesa) return;
+    const area = viewport.getBoundingClientRect();
+    const alvo = mesa.getBoundingClientRect();
+    viewport.scrollTo({
+      left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft - (viewport.clientWidth - alvo.width) / 2,
+      top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop - (viewport.clientHeight - alvo.height) / 2,
+      behavior: 'instant',
+    });
   }
 
   alternarNomes() {

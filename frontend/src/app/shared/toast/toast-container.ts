@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, Toast } from './toast';
 
@@ -7,10 +7,13 @@ import { ToastService, Toast } from './toast';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="toast-container" [class.pausado]="pausar()">
+    <div class="toast-container" aria-label="Notificações">
       @for (toast of toasts(); track toast.id) {
-        <div class="toast" [class]="toast.tipo" role="alert" aria-live="polite"
-             (mouseenter)="pausar.set(true)" (mouseleave)="pausar.set(false)">
+        <div class="toast" [class]="toast.tipo" [attr.role]="toast.tipo === 'erro' ? 'alert' : 'status'" tabindex="0"
+             (click)="fixar(toast.id)" (keydown.enter)="fixar(toast.id)"
+             (keydown.space)="$event.preventDefault(); fixar(toast.id)"
+             (mouseenter)="pausar(toast.id, 'mouse', true)" (mouseleave)="pausar(toast.id, 'mouse', false)"
+             (focusin)="pausar(toast.id, 'foco', true)" (focusout)="sairFoco(toast.id, $event)">
           <svg class="toast__icone" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path [attr.d]="icone(toast.tipo)" />
           </svg>
@@ -19,8 +22,10 @@ import { ToastService, Toast } from './toast';
             @if (toast.mensagem) {
               <p class="toast__mensagem">{{ toast.mensagem }}</p>
             }
+            @if (toast.fixado) { <span class="toast__fixado">Mantida aberta</span> }
           </div>
-          <button class="toast__fechar" type="button" (click)="remover(toast.id)" aria-label="Fechar notificação">
+          <button class="toast__fechar" type="button" (click)="$event.stopPropagation(); remover(toast.id)"
+            (keydown)="$event.stopPropagation()" aria-label="Fechar notificação">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -32,27 +37,26 @@ import { ToastService, Toast } from './toast';
   styles: [`
     .toast-container {
       position: fixed;
-      top: 6rem;
-      right: 1.5rem;
-      z-index: 1000;
+      top: var(--notificacao-topo);
+      right: var(--notificacao-margem);
+      z-index: 2000;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
-      max-width: 22rem;
+      width: min(var(--notificacao-largura), calc(100vw - 2 * var(--notificacao-margem)));
+      max-height: min(40dvh, calc(100dvh - var(--notificacao-topo) - 1rem));
+      overflow-y: auto;
       pointer-events: none;
-    }
-
-    .toast-container.pausado .toast {
-      animation-play-state: paused;
     }
 
     .toast {
       pointer-events: auto;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 0.75rem;
-      padding: 1rem 1.25rem;
-      border-radius: 10px;
+      padding: 1rem;
+      border-radius: 8px;
+      flex-shrink: 0;
       background: #ffffff;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       animation: toast-entrar 0.3s ease-out;
@@ -65,21 +69,23 @@ import { ToastService, Toast } from './toast';
     }
 
     .toast.sucesso {
-      background: #07bc0c;
+      background: var(--toast-sucesso);
       color: #ffffff;
     }
 
     .toast.erro {
-      background: #dc2626;
+      background: var(--toast-erro);
       color: #ffffff;
     }
 
     .toast.aviso {
-      border-left: 4px solid #f59e0b;
+      background: var(--toast-aviso);
+      color: #ffffff;
     }
 
     .toast.info {
-      border-left: 4px solid #3b82f6;
+      background: var(--toast-info);
+      color: #ffffff;
     }
 
     .toast__icone {
@@ -89,12 +95,13 @@ import { ToastService, Toast } from './toast';
 
     .toast.sucesso .toast__icone,
     .toast.erro .toast__icone { color: currentColor; }
-    .toast.aviso .toast__icone { color: #f59e0b; }
-    .toast.info .toast__icone { color: #3b82f6; }
+    .toast.aviso .toast__icone,
+    .toast.info .toast__icone { color: currentColor; }
 
     .toast__conteudo {
       flex: 1;
       min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .toast__titulo {
@@ -118,8 +125,8 @@ import { ToastService, Toast } from './toast';
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
+      width: 44px;
+      height: 44px;
       border: none;
       background: transparent;
       color: currentColor;
@@ -133,22 +140,26 @@ import { ToastService, Toast } from './toast';
       background: rgba(0, 0, 0, 0.1);
     }
 
-    @media (max-width: 640px) {
-      .toast-container {
-        left: 1rem;
-        right: 1rem;
-        max-width: none;
-        top: auto;
-        bottom: 1rem;
-      }
-    }
+    .toast__fixado { font-size: .75rem; }
+    .toast:focus-visible, .toast__fechar:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+    @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
   `],
 })
 export class ToastContainer {
   private readonly toastService = inject(ToastService);
 
   readonly toasts = computed(() => this.toastService.toasts());
-  readonly pausar = signal(false);
+  pausar(id: number, origem: 'mouse' | 'foco', pausado: boolean) {
+    this.toastService.pausar(id, origem, pausado);
+  }
+
+  fixar(id: number) { this.toastService.pausar(id, 'fixado', true); }
+
+  sairFoco(id: number, event: FocusEvent) {
+    if (event.currentTarget instanceof HTMLElement && event.relatedTarget instanceof Node
+      && event.currentTarget.contains(event.relatedTarget)) return;
+    this.pausar(id, 'foco', false);
+  }
 
   remover(id: number): void {
     this.toastService.remover(id);

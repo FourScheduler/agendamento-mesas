@@ -1,10 +1,10 @@
-import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, effect, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { Subject, combineLatest, of } from 'rxjs';
-import { catchError, debounceTime, switchMap } from 'rxjs/operators';
+import { Observable, Subject, combineLatest, of, timer } from 'rxjs';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { AdminMesaService, UsuarioAtivo } from './admin-mesa.service';
 import { Mesa } from './mesa';
@@ -13,11 +13,13 @@ import { Erro } from '../../shared/estados/erro';
 import { Vazio } from '../../shared/estados/vazio';
 import { ToastService } from '../../shared/toast/toast';
 import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
+import { Paginacao } from '../../shared/paginacao/paginacao';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-admin-mesa-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Carregando, Erro, Vazio],
+  imports: [CommonModule, FormsModule, Carregando, Erro, Vazio, Paginacao],
   templateUrl: './admin-mesa-page.html',
   styleUrl: './admin-mesa-page.css',
 })
@@ -35,10 +37,20 @@ export class AdminMesaPage {
 
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
+  readonly nomeResponsavel = signal('');
+  readonly local = signal('');
+  readonly locais = signal<readonly string[]>([]);
+  readonly ordenacao = signal<'codigo' | 'regiao' | 'tipo' | 'responsavel'>('codigo');
+  readonly descendente = signal(false);
+  readonly pagina = signal(0);
+  readonly tamanhoPagina = signal(10);
   readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
   readonly mesasFiltradas = computed(() => {
     const filtro = this.filtroTipo();
     return this.mesas().filter(mesa => {
+      if (this.local() && mesa.regiao !== this.local()) return false;
+      if (this.nomeResponsavel().trim() && !mesa.responsavel?.nome.toLocaleLowerCase('pt-BR')
+        .includes(this.nomeResponsavel().trim().toLocaleLowerCase('pt-BR'))) return false;
       switch (filtro) {
         case 'fixa': return mesa.tipo === 'FIXA';
         case 'livre': return mesa.ativa && mesa.tipo === 'LIVRE' && !mesa.ocupada;
@@ -46,8 +58,17 @@ export class AdminMesaPage {
         case 'reservada': return mesa.ativa && mesa.tipo === 'LIVRE' && mesa.ocupada;
         default: return true;
       }
+    }).sort((a, b) => {
+      const campo = this.ordenacao();
+      const valor = (m: Mesa) => campo === 'responsavel' ? m.responsavel?.nome ?? '' : m[campo];
+      const ordem = valor(a).localeCompare(valor(b), 'pt-BR', { numeric: true, sensitivity: 'base' });
+      return (this.descendente() ? -ordem : ordem) || a.id - b.id;
     });
   });
+  readonly paginaAtual = computed(() => Math.min(this.pagina(),
+    Math.max(0, Math.ceil(this.mesasFiltradas().length / this.tamanhoPagina()) - 1)));
+  readonly mesasPaginadas = computed(() => this.mesasFiltradas().slice(
+    this.paginaAtual() * this.tamanhoPagina(), (this.paginaAtual() + 1) * this.tamanhoPagina()));
   readonly carregando = signal(false);
   readonly erroConsulta = signal('');
 
@@ -86,22 +107,25 @@ export class AdminMesaPage {
   }
 
   constructor() {
-    combineLatest([
-      this.buscaMesas$.pipe(debounceTime(250)),
-      toObservable(this.calendario.hoje),
-    ]).pipe(
-      switchMap(([termo, hoje]) => {
+    effect(() => {
+      this.busca(); this.nomeResponsavel(); this.local(); this.filtroTipo(); this.ordenacao(); this.descendente();
+      this.pagina.set(0);
+    });
+    combineLatest([this.buscaMesas$, toObservable(this.calendario.hoje)]).pipe(
+      tap(() => {
         this.carregando.set(true);
         this.erroConsulta.set('');
-        return this.adminMesa.listarComOcupacao(termo, hoje).pipe(
+      }),
+      switchMap(([termo, hoje]) => timer(250).pipe(
+        switchMap(() => this.adminMesa.listarComOcupacao(termo, hoje)),
           catchError(e => {
             this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
             return of([] as readonly Mesa[]);
           }),
-        );
-      }),
+      )),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(mesas => {
+      this.locais.update(locais => [...new Set([...locais, ...mesas.map(m => m.regiao)])].sort());
       this.mesas.set(mesas);
       this.carregando.set(false);
     });
@@ -123,7 +147,17 @@ export class AdminMesaPage {
     this.calendario.atualizar();
     const valor = target.value;
     this.busca.set(valor);
+    this.carregando.set(true);
+    this.erroConsulta.set('');
     this.buscaMesas$.next(valor);
+  }
+
+  limparFiltros() {
+    this.busca.set('');
+    this.nomeResponsavel.set('');
+    this.local.set('');
+    this.filtroTipo.set(null);
+    this.carregarMesas();
   }
 
   carregarUsuariosAtivos() {
@@ -143,7 +177,8 @@ export class AdminMesaPage {
       });
   }
 
-  private extrairMensagemErro(e: any, padrao: string): string {
+  private extrairMensagemErro(e: unknown, padrao: string): string {
+    if (!(e instanceof HttpErrorResponse)) return padrao;
     if (e.status === 401) return 'Sua sessão expirou. Faça login novamente.';
     if (e.status === 403) return 'Acesso restrito a administradores.';
     return e.error?.detail ?? padrao;
@@ -193,6 +228,7 @@ export class AdminMesaPage {
   }
 
   fecharModal() {
+    if (this.confirmando()) return;
     this.mesaSelecionadaParaAcao.set(null);
     this.acaoEmAndamento.set(null);
     this.usuarioSelecionado.set(null);
@@ -226,12 +262,12 @@ export class AdminMesaPage {
   confirmarAcao() {
     const mesa = this.mesaSelecionadaParaAcao();
     const acao = this.acaoEmAndamento();
-    if (!mesa || !acao) return;
+    if (!mesa || !acao || this.confirmando()) return;
 
     this.confirmando.set(true);
     this.erroAcao.set('');
 
-    let operacao: any;
+    let operacao: Observable<Mesa>;
 
     switch (acao) {
       case 'fixar': {
@@ -274,6 +310,7 @@ export class AdminMesaPage {
           mesas.map(m => m.id === mesaAtualizada.id ? { ...m, ...mesaAtualizada, ocupada: m.ocupada } : m)
         );
         this.toast.sucesso('Sucesso', this.mensagemSucesso(acao));
+        this.confirmando.set(false);
         this.fecharModal();
       },
       error: (e: unknown) => {

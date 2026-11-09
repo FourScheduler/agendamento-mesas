@@ -42,6 +42,9 @@ public class Reserva {
     @JoinColumn(name = "criado_por_id")
     private Usuario criadoPor;
 
+    @Column(name = "chave_requisicao", length = 36, updatable = false)
+    private String chaveRequisicao;
+
     @Column(name = "data", nullable = false)
     private LocalDate data;
 

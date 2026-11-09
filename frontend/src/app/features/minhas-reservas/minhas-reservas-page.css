@@ -155,11 +155,16 @@
 }
 
 .minhas-reservas__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   justify-content: space-between;
   gap: 0.5rem 0.75rem;
 }
+.minhas-reservas__linha > .minhas-reservas__status { grid-column: 2; grid-row: 1; align-self: start; }
+.minhas-reservas__linha > .minhas-reservas__acoes { grid-column: 1 / -1; justify-self: end; }
 
 .minhas-reservas__identificacao {
+  flex: 1;
   min-width: 0;
   display: grid;
   gap: 0.125rem;
@@ -179,6 +184,7 @@
 }
 
 .minhas-reservas__status {
+  margin-left: auto;
   flex: none;
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
@@ -194,8 +200,8 @@
 }
 
 .minhas-reservas__status--cancelada {
-  background: var(--error);
-  color: #ffffff;
+  background: var(--status-cancelada-fundo);
+  color: var(--status-cancelada);
 }
 
 .minhas-reservas__confirmacaoTexto {
