@@ -11,6 +11,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
 import { MesaService } from '../mesas/mesa.service';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
+import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
 
 type Filtro = 'futuras' | 'passadas';
 
@@ -38,7 +39,7 @@ const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA'];
 @Component({
   selector: 'app-minhas-reservas-page',
   standalone: true,
-  imports: [Carregando, Erro, Vazio, CalendarioReserva],
+  imports: [Carregando, Erro, Vazio],
   templateUrl: './minhas-reservas-page.html',
   styleUrl: './minhas-reservas-page.css',
 })
@@ -49,6 +50,7 @@ export class MinhasReservasPage implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
   private readonly mesasService = inject(MesaService);
+  private readonly calendario = inject(CalendarioSaoPaulo);
 
   readonly reservas = signal<Reserva[]>([]);
   readonly ehAdmin = computed(() => this.auth.usuario()?.perfil === 'ADMIN');
@@ -83,12 +85,12 @@ export class MinhasReservasPage implements OnInit {
           this.filtro() === 'futuras' ? this.ehFutura(reserva) : !this.ehFutura(reserva),
         );
 
-    const porMomento = (a: Reserva, b: Reserva) =>
-      this.momento(a).localeCompare(this.momento(b));
+    const porData = (a: Reserva, b: Reserva) =>
+      a.data.localeCompare(b.data);
 
     const ascendente = this.periodoPersonalizado() || this.filtro() === 'futuras';
 
-    return ascendente ? lista.sort(porMomento) : lista.sort((a, b) => porMomento(b, a));
+    return ascendente ? lista.sort(porData) : lista.sort((a, b) => porData(b, a));
   });
 
   readonly cartoes = computed<CartaoReserva[]>(() => {
@@ -144,6 +146,7 @@ export class MinhasReservasPage implements OnInit {
   }
 
   buscar(): void {
+    this.calendario.atualizar();
     if (this.periodoInvalido()) {
       return;
     }
@@ -203,6 +206,10 @@ export class MinhasReservasPage implements OnInit {
     return this.statusFiltro() !== null || this.periodoPersonalizado();
   }
 
+  irParaMapa(): void {
+    void this.router.navigate(['/mapa']);
+  }
+
   irParaAgendamento(): void {
     void this.router.navigate(['/agendamento']);
   }
@@ -234,7 +241,6 @@ export class MinhasReservasPage implements OnInit {
     const reserva = cartao.reserva;
     const podeGerenciar = this.ehAdmin() || (
       reserva.usuarioId === this.auth.usuario()?.id &&
-      (reserva.criador == null || reserva.criador.id === reserva.usuarioId) &&
       this.ehFutura(reserva)
     );
     return (
@@ -250,6 +256,7 @@ export class MinhasReservasPage implements OnInit {
   }
 
   solicitarCancelamento(cartao: CartaoReserva): void {
+    this.calendario.atualizar();
     if (!this.podeCancelar(cartao)) {
       return;
     }
@@ -261,6 +268,7 @@ export class MinhasReservasPage implements OnInit {
   }
 
   cancelarReserva(cartao: CartaoReserva): void {
+    this.calendario.atualizar();
     const id = cartao.reserva.id;
 
     if (id == null || !this.podeCancelar(cartao)) {
@@ -299,20 +307,7 @@ export class MinhasReservasPage implements OnInit {
   }
 
   private ehFutura(reserva: Reserva): boolean {
-    return this.momento(reserva) > this.agoraIso();
-  }
-
-  private momento(reserva: Reserva): string {
-    return `${reserva.data}T23:59:59`;
-  }
-
-  private agoraIso(): string {
-    const agora = new Date();
-    const hora = [agora.getHours(), agora.getMinutes(), agora.getSeconds()]
-      .map((parte) => String(parte).padStart(2, '0'))
-      .join(':');
-    const dia = agora.toISOString().split('T')[0];
-    return `${dia}T${hora}`;
+    return reserva.data >= this.calendario.hoje();
   }
 
   private mensagemDeErro(erro: unknown): string {

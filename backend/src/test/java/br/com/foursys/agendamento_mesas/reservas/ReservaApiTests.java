@@ -156,11 +156,11 @@ public class ReservaApiTests {
     }
 
     @Test
-    void beneficiarioNaoCancelaReservaCriadaPorAdminMasAdminPode() throws Exception {
+    void beneficiarioCancelaReservaCriadaPorAdminPreservandoAutoriaEHistorico() throws Exception {
         var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
 
         mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
-                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+                .header("Authorization", "Bearer " + jwt.gerarToken(maria)))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.status").value(403));
 
@@ -168,11 +168,72 @@ public class ReservaApiTests {
             .isEqualTo(StatusReserva.CONFIRMADA);
 
         mvc.perform(patch("/api/reservas/{id}/cancelamento", criada.id())
-                .header("Authorization", "Bearer " + jwt.gerarToken(admin)))
-            .andExpect(status().isOk());
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isOk())
+            .andExpect(content().string(""));
 
-        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getStatus())
-            .isEqualTo(StatusReserva.CANCELADA);
+        var cancelada = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+        assertThat(cancelada.getUsuario().getId()).isEqualTo(joao.getId());
+        assertThat(cancelada.getMesa().getId()).isEqualTo(mesa.getId());
+        assertThat(cancelada.getData()).isEqualTo(criada.data());
+        assertThat(cancelada.getCriadaEm()).isEqualTo(criada.criadaEm());
+        assertThat(cancelada.getConfirmadaEm()).isEqualTo(criada.confirmadaEm());
+        var canceladaEm = cancelada.getCanceladaEm();
+        assertThat(canceladaEm).isNotNull();
+        disponiveis(HOJE).andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(mesa.getId().intValue())));
+
+        cancelar(cancelada, joao).andExpect(status().isConflict());
+        cancelar(cancelada, admin).andExpect(status().isConflict());
+        assertThat(reservas.buscarPorId(criada.id()).orElseThrow().getCanceladaEm()).isEqualTo(canceladaEm);
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void administradorContinuaCancelandoDiariaCriadaParaTerceiro() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+        cancelar(reservas.buscarPorId(criada.id()).orElseThrow(), admin).andExpect(status().isOk());
+        var cancelada = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(cancelada.getUsuario().getId()).isEqualTo(joao.getId());
+        assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+    }
+
+    @Test
+    void cancelamentoPeloBeneficiarioNaoRemoveSuaMesaFixa() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+        // A diária é anterior à fixação: cancelar o histórico não pode desfazer o vínculo atual.
+        mesa.setTipo(TipoMesa.FIXA);
+        mesa.setAtiva(false);
+        mesa.setResponsavel(joao);
+        mesa.setOcupante("Responsável preservado");
+        mesas.salvarESincronizar(mesa);
+
+        cancelar(reservas.buscarPorId(criada.id()).orElseThrow(), joao).andExpect(status().isOk());
+        var atual = mesas.buscarPorId(mesa.getId()).orElseThrow();
+        assertThat(atual.getTipo()).isEqualTo(TipoMesa.FIXA);
+        assertThat(atual.isAtiva()).isFalse();
+        assertThat(atual.getResponsavel().getId()).isEqualTo(joao.getId());
+        assertThat(atual.getOcupante()).isEqualTo("Responsável preservado");
+        mvc.perform(patch("/api/admin/mesas/{id}/desfixar", mesa.getId())
+                .header("Authorization", "Bearer " + jwt.gerarToken(joao)))
+            .andExpect(status().isForbidden());
+        assertThat(mesas.buscarPorId(mesa.getId()).orElseThrow().getResponsavel().getId()).isEqualTo(joao.getId());
+    }
+
+    @Test
+    void beneficiarioCancelaDiariasAdministrativasPassadasConfirmadasOuPendentes() throws Exception {
+        for (var estado : List.of(StatusReserva.CONFIRMADA, StatusReserva.PENDENTE)) {
+            var diaria = new Reserva(mesa, joao, HOJE.minusDays(1), estado);
+            diaria.setCriadoPor(admin);
+            var salva = reservas.salvarESincronizar(diaria);
+            cancelar(salva, joao).andExpect(status().isOk());
+            var cancelada = reservas.buscarPorId(salva.getId()).orElseThrow();
+            assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+            assertThat(cancelada.getData()).isEqualTo(HOJE.minusDays(1));
+            assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+        }
     }
 
     @Test
@@ -565,7 +626,9 @@ public class ReservaApiTests {
 
     @Test
     void falhaNaTransacaoDesfazCancelamentoELiberaLocks() throws Exception {
-        var existente = reservas.salvarESincronizar(new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA));
+        var diaria = new Reserva(mesa, maria, HOJE, StatusReserva.CONFIRMADA);
+        diaria.setCriadoPor(admin);
+        var existente = reservas.salvarESincronizar(diaria);
 
         assertThatThrownBy(() -> transacao().executeWithoutResult(tx -> {
             service.cancelar(existente.getId(), identidade(maria));
@@ -575,7 +638,24 @@ public class ReservaApiTests {
         var preservada = reservas.buscarPorId(existente.getId()).orElseThrow();
         assertThat(preservada.getStatus()).isEqualTo(StatusReserva.CONFIRMADA);
         assertThat(preservada.getCanceladaEm()).isNull();
+        assertThat(preservada.getCriadoPor().getId()).isEqualTo(admin.getId());
         cancelar(existente, maria).andExpect(status().isOk());
+    }
+
+    @Test
+    void beneficiarioEAdministradorCancelamDiariaAdministrativaUmaUnicaVez() throws Exception {
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, joao.getId()), identidade(admin));
+        var existente = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(disputar(
+            () -> cancelar(existente, joao).andReturn().getResponse().getStatus(),
+            () -> cancelar(existente, admin).andReturn().getResponse().getStatus()
+        )).containsExactlyInAnyOrder(200, 409);
+        var cancelada = reservas.buscarPorId(criada.id()).orElseThrow();
+        assertThat(cancelada.getStatus()).isEqualTo(StatusReserva.CANCELADA);
+        assertThat(cancelada.getCanceladaEm()).isEqualTo(LocalDateTime.of(HOJE, LocalTime.of(9, 0)));
+        assertThat(cancelada.getCriadoPor().getId()).isEqualTo(admin.getId());
+        assertThat(cancelada.getUsuario().getId()).isEqualTo(joao.getId());
+        assertThat(reservas.contar()).isEqualTo(1);
     }
 
     @Test

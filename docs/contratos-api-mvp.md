@@ -419,8 +419,8 @@ Lista vazia (`[]`) é resposta válida (`200`), não erro.
 ## PATCH /api/reservas/{id}/cancelamento
 
 Cancela uma reserva não cancelada a qualquer momento, inclusive após o dia reservado.
-O beneficiário pode cancelar reservas que criou para si ou legadas, sem autor.
-Reservas criadas por outra pessoa só podem ser canceladas por um administrador.
+O beneficiário pode cancelar sua reserva diária independentemente de quem a criou,
+inclusive quando foi criada por um administrador ou é legada, sem autor.
 Administradores podem cancelar reservas de qualquer usuário.
 A reserva deixa de bloquear somente a sua data.
 O cancelamento não transforma mesa fixa em livre, não ativa mesa inativa e não
@@ -443,7 +443,7 @@ não altera novamente `canceladaEm`. Falhas desfazem integralmente a transação
 | --- | --- | --- |
 | `401` | Sem ou com token inválido. | |
 | `404` | Reserva inexistente. | `Reserva 999 não encontrada.` |
-| `403` | Usuário não é o beneficiário ou autor autorizado; somente admin cancela reservas criadas para terceiros. | `O usuário sem permissão para realizar essa ação.` |
+| `403` | Usuário comum não é o beneficiário da reserva. A autoria não restringe o cancelamento pelo beneficiário. | `O usuário sem permissão para realizar essa ação.` |
 | `409` | Reserva já `CANCELADA`; repetir o cancelamento é recusado e não altera o registro. | `Reserva 10 já está cancelada.` |
 
 ---

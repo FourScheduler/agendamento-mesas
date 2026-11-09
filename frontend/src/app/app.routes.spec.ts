@@ -27,7 +27,7 @@ describe('Rotas da develop integradas à issue 7', () => {
 
   it('abre o login ao acessar a rota inicial sem autenticação', async () => {
     const harness = await RouterTestingHarness.create('/');
-    expect(TestBed.inject(Router).url).toBe('/login?retorno=agendamento');
+    expect(TestBed.inject(Router).url).toBe('/login?retorno=mapa');
     expect(harness.routeNativeElement?.textContent).toContain('Entre para acessar');
   });
 

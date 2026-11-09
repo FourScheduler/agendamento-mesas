@@ -85,6 +85,82 @@ describe('Reserva diária pela planta', () => {
     fixture.detectChanges();
   }
 
+  describe.each([
+    ['lista', AgendamentoPage, '/api/mesas'],
+    ['mapa', MapaPage, '/api/mesas/com-ocupacao'],
+  ] as const)('virada de dia na %s', (_nome, componente, endpoint) => {
+    it('atualiza limites e bloqueia a data que ficou no passado sem escolher outro dia', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-07T02:59:59.900Z'));
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      const fixture = TestBed.createComponent<AgendamentoPage | MapaPage>(componente);
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-06', endpoint);
+      fixture.detectChanges();
+      const reserva = fixture.componentInstance.reserva;
+      reserva.selecionar(mesa);
+      expect(reserva.selecionada()?.id).toBe(mesa.id);
+      vi.advanceTimersByTime(100);
+      fixture.detectChanges();
+      expect(reserva.data()).toBe('2026-11-06');
+      expect(reserva.erroData()).toContain('hoje ou futura');
+      expect(reserva.disponibilidadeAtual()).toBe(false);
+      expect(reserva.selecionada()).toBeNull();
+      const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
+      expect(campo.min).toBe('2026-11-07');
+      expect(campo.max).toBe('2026-11-22');
+      reserva.confirmar();
+      http.expectNone('/api/reservas');
+      http.expectNone(r => r.url === '/api/mesas/disponiveis');
+      fixture.destroy();
+    });
+
+    it('preserva a segunda-feira escolhida e reconsulta a mesma data ao retornar à aba', () => {
+      vi.setSystemTime(new Date('2026-11-06T12:00:00Z'));
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      const fixture = TestBed.createComponent<AgendamentoPage | MapaPage>(componente);
+      fixture.componentInstance.reserva.alterarData('2026-11-09');
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-09', endpoint);
+      fixture.detectChanges();
+      const pagina = fixture.componentInstance;
+      if (pagina instanceof AgendamentoPage) pagina.busca.set('044');
+      vi.setSystemTime(new Date('2026-11-09T03:00:01Z'));
+      window.dispatchEvent(new Event('focus'));
+      fixture.detectChanges();
+      if (pagina instanceof MapaPage) {
+        http.expectOne(r => r.url === endpoint).flush([mesa]);
+      }
+      http.expectOne(r => r.url === '/api/mesas/disponiveis'
+        && r.params.get('data') === '2026-11-09').flush([mesa]);
+      fixture.detectChanges();
+      expect(pagina.reserva.data()).toBe('2026-11-09');
+      expect(pagina.reserva.erroData()).toBe('');
+      expect(pagina.reserva.disponibilidadeAtual()).toBe(true);
+      if (pagina instanceof AgendamentoPage) expect(pagina.busca()).toBe('044');
+      const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
+      expect(campo.min).toBe('2026-11-09');
+      expect(campo.max).toBe('2026-11-24');
+      fixture.destroy();
+    });
+
+    it('revalida o dia antes do POST mesmo se o temporizador não tiver executado', () => {
+      vi.setSystemTime(new Date('2026-11-07T02:59:59Z'));
+      TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });
+      const fixture = TestBed.createComponent<AgendamentoPage | MapaPage>(componente);
+      fixture.detectChanges();
+      carregar([mesa], '2026-11-06', endpoint);
+      fixture.detectChanges();
+      const reserva = fixture.componentInstance.reserva;
+      reserva.selecionar(mesa);
+      vi.setSystemTime(new Date('2026-11-07T03:00:01Z'));
+      reserva.confirmar();
+      expect(reserva.erroData()).toContain('hoje ou futura');
+      http.expectNone('/api/reservas');
+      fixture.destroy();
+    });
+  });
+
   it.each(['2026-10-31T12:00:00Z', '2026-11-01T12:00:00Z'])(
     'abre o mapa no próximo dia útil em %s e mantém essa data após reservar', instante => {
       vi.setSystemTime(new Date(instante));
@@ -235,6 +311,18 @@ describe('Reserva diária pela planta', () => {
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === '2026-10-29').flush([mesa]);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
+    http.expectNone('/api/reservas');
+  });
+
+  it('revalida o dia antes do POST no mapa mesmo se o temporizador não tiver executado', () => {
+    const fixture = abrir();
+    vi.setSystemTime(new Date('2026-10-29T04:01:00Z'));
+
+    fixture.nativeElement.querySelector('.confirmar').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('hoje ou futura');
+    expect(fixture.componentInstance.reserva.selecionada()).toBeNull();
     http.expectNone('/api/reservas');
   });
 
