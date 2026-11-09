@@ -367,14 +367,7 @@ describe("Barra de reserva do mapa", () => {
   });
 
   it("fecha os detalhes após confirmar e não deixa uma confirmação sem mesa selecionada", () => {
-    const fixture = TestBed.createComponent(MapaPage);
-    fixture.componentInstance.reserva.alterarData("2026-10-28");
-    fixture.detectChanges();
-    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
-    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
-    fixture.detectChanges();
-    fixture.nativeElement.querySelector('button.mesa[data-mesa-id="44"]').click();
-    fixture.detectChanges();
+    const fixture = abrir();
 
     (fixture.nativeElement.querySelector(".confirmar") as HTMLButtonElement).click();
     const request = http.expectOne("/api/reservas");
