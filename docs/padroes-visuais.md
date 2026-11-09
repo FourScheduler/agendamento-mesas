@@ -188,7 +188,7 @@ Na gestão de mesas, usar cartão branco com cabeçalho integrado, contagem de
 resultados e tabela com títulos em fundo cinza-claro. Números ficam centralizados
 em etiquetas, status têm texto e indicador colorido e linhas inativas usam fundo
 vermelho suave. Ações usam botões de contorno com foco visível. Preservar os
-atalhos Ver mapa e Voltar ao agendamento e a rolagem horizontal em telas menores.
+atalhos Explorar mesas e Voltar ao agendamento e a rolagem horizontal em telas menores.
 O modal de ações usa fundo desfocado e dimensões alinhadas ao modal do mapa;
 o conteúdo interno fica limitado a 420px, sem alterar a largura do modal.
 

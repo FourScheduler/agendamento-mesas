@@ -4,6 +4,8 @@ Cenários que o backend deve cobrir com testes automatizados. Cada cenário refe
 
 A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem própria/administrativa e cancelamento estão cobertos por testes.
 
+Para datas e fuso horário no frontend, consulte o [roteiro de validação da issue #75](validacao-issue-75.md), com os cenários de virada de dia e comandos de teste.
+
 ## Datas inválidas (`400`)
 
 | # | Cenário | Request | Esperado |
@@ -81,12 +83,17 @@ troca rápida de datas, carregamento, resposta vazia, erro e nova tentativa.
 A confirmação é bloqueada até concluir a consulta da data atual, mesmo se um
 evento antigo tentar selecionar uma mesa durante a atualização. O resumo usa
 dia inteiro e a data de confirmação é a mesma enviada na consulta.
+Antes do POST, o frontend recalcula o dia no fuso de São Paulo e bloqueia uma
+data que tenha expirado desde a consulta, sem depender da execução de um timer.
 
 `data-reserva.spec.ts` cobre formato, datas inexistentes, fuso de São Paulo e os
 limites inclusivos da janela. O backend mantém sua validação autoritativa.
 Ver [descrição atualizada da issue #11](issue-11-filtro-data.md).
 
 ## Cancelamento
+
+Roteiro para conferência manual e resumo das alterações da #87:
+[Validação da issue #87](validacao-issue-87.md).
 
 `ReservaApiTests` e a suíte herdada `ReservaMySqlTests` verificam preservação de tipo
 `LIVRE`/`FIXA`, ativação, responsável e ocupante textual, inclusive mesas legadas
@@ -97,7 +104,18 @@ cancelamento concorrente com fixação/inativação sobre reserva antiga e nova 
 do mesmo usuário sem duplicação. São cobertas disputas entre dono e administrador
 e entre dois administradores, inclusive para beneficiário inativo e mesa fixa
 inativa, preservando sua configuração. Usuário comum recebe `403` para reserva
-alheia ou criada por um administrador em seu nome, sem erro interno.
+alheia. O beneficiário pode cancelar diária criada por administrador, preservando
+beneficiário, autor, mesa, data e timestamps anteriores. Cancelamento repetido
+retorna `409`, e uma disputa entre beneficiário e administrador produz um `200`
+e um `409`. Rollback também é verificado para diária de autoria administrativa.
+
+A cobertura da #87 inclui diária administrativa passada e estado legado PENDENTE
+na API, sem novo prazo, e cancelamento sem remover o vínculo de mesa que passou
+a ser fixa/inativa. O beneficiário continua sem permissão para desfixar a mesa.
+Minhas reservas testa confirmação e sucesso somente após resposta, preservação
+do cartão de mesa fixa e ausência da antiga orientação de procurar o administrador.
+As restrições existentes de data/estado dessa tela são preservadas. O mapa testa
+CONFIRMADA/PENDENTE, atualização da disponibilidade e bloqueio para terceiro.
 
 | # | Cenário | Esperado |
 | --- | --- | --- |

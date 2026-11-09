@@ -36,7 +36,7 @@ describe('Sessão compartilhada e guards', () => {
     expect(request.request.headers.get('Authorization')).toBe('Bearer token');
     request.flush(usuario);
     expect(await protegida).toBe(true);
-    expect((await login).toString()).toBe('/agendamento');
+    expect((await login).toString()).toBe('/mapa');
     expect(auth.usuario()).toEqual(usuario);
   });
 

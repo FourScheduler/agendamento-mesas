@@ -106,13 +106,13 @@ class CatalogoMesasTests {
     }
 
     @Test
-    void catalogoAutenticadoIncluiInativaEReferenciaVisualSemDisponibilidadeGlobal() throws Exception {
+    void catalogoAutenticadoIncluiTodasAtivasEReferenciaVisualSemDisponibilidadeGlobal() throws Exception {
         String token = jwt.gerarToken(usuarios.buscarPorEmail("hudson.silva@foursys.com.br").orElseThrow());
         String resposta = mvc.perform(get("/api/mesas").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(115))
                 .andExpect(jsonPath("$[4].codigo").value("005"))
-                .andExpect(jsonPath("$[4].ativa").value(false))
+                .andExpect(jsonPath("$[4].ativa").value(true))
                 .andExpect(jsonPath("$[43].id").value(44))
                 .andExpect(jsonPath("$[43].codigo").value("044"))
                 .andExpect(jsonPath("$[43].regiao").value("TAMBORÉ"))
@@ -231,17 +231,20 @@ class CatalogoMesasTests {
     }
 
     @Test
-    void elegibilidadeRecusaInativaMesmoQuandoLivreEFixaENaoEncontrada() {
+    void elegibilidadeRecusaInativaEFixaENaoEncontradaMasAceitaLivres() {
         Mesa inativa = repository.salvar(new Mesa(null, "999", "DEMO", TipoMesa.LIVRE, false, "DEMO", 0, 0, null));
+        Mesa fixa = repository.salvar(new Mesa(null, "998", "DEMO", TipoMesa.FIXA, true, "DEMO", 0, 0, null));
         assertThatThrownBy(() -> service.obterParaReserva(inativa.getId()))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         erro -> assertThat(erro.getStatusCode()).isEqualTo(HttpStatus.CONFLICT))
                 .hasMessageContaining("inativa");
-        assertThatThrownBy(() -> service.obterParaReserva(repository.buscarPorCodigo("001").orElseThrow().getId()))
+        assertThatThrownBy(() -> service.obterParaReserva(fixa.getId()))
                 .hasMessageContaining("fixa");
         assertThatThrownBy(() -> service.obterParaReserva(-1L))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         erro -> assertThat(erro.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+        assertThat(service.obterParaReserva(repository.buscarPorCodigo("001").orElseThrow().getId()).getCodigo())
+                .isEqualTo("001");
         assertThat(service.obterParaReserva(repository.buscarPorCodigo("044").orElseThrow().getId()).getCodigo())
                 .isEqualTo("044");
     }
@@ -260,7 +263,9 @@ class CatalogoMesasTests {
             if (anterior != null) assertThat(catalogo).isEqualTo(anterior);
             anterior = catalogo;
             assertThat(flyway.migrate().migrationsExecuted).isZero();
-            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM mesas WHERE ativa = FALSE", Integer.class)).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM mesas WHERE ativa = FALSE", Integer.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM mesas WHERE tipo = 'LIVRE'", Integer.class)).isEqualTo(115);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM mesas WHERE tipo = 'FIXA'", Integer.class)).isZero();
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM reservas", Integer.class)).isZero();
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM (SELECT planta, posicao_x, posicao_y FROM mesas GROUP BY planta, posicao_x, posicao_y) p", Integer.class)).isEqualTo(115);
         }
