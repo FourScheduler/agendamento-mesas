@@ -1,7 +1,7 @@
-export function hojeSaoPaulo(): string {
+export function hojeSaoPaulo(agora = new Date()): string {
   const partes = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date());
+  }).formatToParts(agora);
   const parte = (tipo: Intl.DateTimeFormatPartTypes) => partes.find(p => p.type === tipo)!.value;
   return `${parte('year')}-${parte('month')}-${parte('day')}`;
 }

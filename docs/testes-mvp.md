@@ -4,6 +4,8 @@ Cenários que o backend deve cobrir com testes automatizados. Cada cenário refe
 
 A issue #7 implementa criação diária com confirmação direta, autoria e serialização. Listagem própria/administrativa e cancelamento estão cobertos por testes.
 
+Para datas e fuso horário no frontend, consulte o [roteiro de validação da issue #75](validacao-issue-75.md), com os cenários de virada de dia e comandos de teste.
+
 ## Datas inválidas (`400`)
 
 | # | Cenário | Request | Esperado |
