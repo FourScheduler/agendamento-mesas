@@ -6,8 +6,12 @@ import { CalendarioReserva } from './calendario-reserva';
   imports: [CalendarioReserva],
   template: `
     <app-calendario-reserva data="2026-10-30" minima="2026-10-26" maxima="2026-11-10"
+      [bloquearFinaisDeSemana]="true"
       (dataSelecionada)="selecionada = $event">
-      <input type="date" readonly value="2026-10-30" />
+      <span>
+        <svg aria-hidden="true"><path d="M1 1" /></svg>
+        <input type="date" readonly value="2026-10-30" />
+      </span>
     </app-calendario-reserva>
   `,
 })
@@ -22,7 +26,7 @@ describe('CalendarioReserva', () => {
     const dialogo = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
     dialogo.showModal = vi.fn(() => dialogo.setAttribute('open', ''));
     dialogo.close = vi.fn(() => dialogo.removeAttribute('open'));
-    fixture.nativeElement.querySelector('input').click();
+    fixture.nativeElement.querySelector('svg path').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     fixture.detectChanges();
     expect(dialogo.open).toBe(true);
     const dia = (data: string) => dialogo.querySelector(`[aria-label="${data}"]`) as HTMLButtonElement;
@@ -47,6 +51,7 @@ describe('CalendarioReserva', () => {
     fixture.componentRef.setInput('data', '2026-10-30');
     fixture.componentRef.setInput('minima', '2026-10-26');
     fixture.componentRef.setInput('maxima', '2026-11-10');
+    fixture.componentRef.setInput('bloquearFinaisDeSemana', true);
     fixture.detectChanges();
     const emitir = vi.fn();
     fixture.componentInstance.dataSelecionada.subscribe(emitir);
@@ -59,21 +64,20 @@ describe('CalendarioReserva', () => {
     expect(emitir).not.toHaveBeenCalled();
   });
 
-  it('consulta histórico e finais de semana sem aplicar a janela de novas reservas', () => {
+  it('permite datas passadas e fins de semana sem limites de reserva', () => {
     const fixture = TestBed.createComponent(CalendarioReserva);
-    fixture.componentRef.setInput('data', '2020-01-05');
-    fixture.componentRef.setInput('modo', 'consulta');
+    fixture.componentRef.setInput('data', '');
     fixture.detectChanges();
     const dialogo = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
     dialogo.close = vi.fn();
     const emitir = vi.fn();
     fixture.componentInstance.dataSelecionada.subscribe(emitir);
-    fixture.componentInstance.selecionar('2020-01-05');
-    expect(emitir).toHaveBeenCalledWith('2020-01-05');
-    fixture.componentRef.setInput('minima', '2020-01-06');
+    fixture.componentInstance.selecionar('2020-10-31');
+    expect(emitir).toHaveBeenCalledWith('2020-10-31');
+    fixture.componentRef.setInput('minima', '2020-11-01');
     fixture.detectChanges();
     emitir.mockClear();
-    fixture.componentInstance.selecionar('2020-01-05');
+    fixture.componentInstance.selecionar('2020-10-31');
     expect(emitir).not.toHaveBeenCalled();
   });
 });

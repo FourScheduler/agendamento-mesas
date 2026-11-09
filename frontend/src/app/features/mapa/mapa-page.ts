@@ -39,6 +39,7 @@ export class MapaPage {
   private readonly adminMesas = inject(AdminMesaService);
   private readonly toast = inject(ToastService);
   private readonly dialogoFixacao = viewChild.required<ElementRef<HTMLDialogElement>>('dialogoFixacao');
+  private readonly campoDataDetalhes = viewChild<ElementRef<HTMLInputElement>>('campoDataDetalhes');
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly reserva = inject(ReservaDiaria);
   readonly usuario = this.auth.usuario;
@@ -168,6 +169,12 @@ export class MapaPage {
   /** Altera a data diretamente pelo input no painel de detalhes. */
   onDataChangeNoPainel(data: string) {
     this.onDataChange(data);
+  }
+
+  abrirCalendarioDetalhes(event: Event) {
+    event.preventDefault();
+    const campo = this.campoDataDetalhes()?.nativeElement;
+    if (campo && !campo.disabled) campo.click();
   }
 
   voltarParaAgendamento() {

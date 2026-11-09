@@ -161,8 +161,9 @@ describe("Barra de reserva do mapa", () => {
     const dialogo = calendario.querySelector("dialog") as HTMLDialogElement;
     dialogo.showModal = vi.fn(() => dialogo.setAttribute("open", ""));
     dialogo.close = vi.fn(() => dialogo.removeAttribute("open"));
-    calendario.querySelector("input")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    calendario.querySelector("svg rect")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     fixture.detectChanges();
+    expect(dialogo.open).toBe(true);
 
     const dia = [...dialogo.querySelectorAll<HTMLButtonElement>(".dias button")]
       .find(botao => !botao.disabled && botao.getAttribute("aria-pressed") !== "true");
@@ -206,6 +207,34 @@ describe("Barra de reserva do mapa", () => {
     fixture.detectChanges();
     expect(olho.getAttribute("aria-pressed")).toBe("true");
     expect(olho.getAttribute("aria-label")).toBe("Ocultar nomes dos ocupantes");
+  });
+
+  it("abre o calendário dos detalhes da mesa ao clicar no ícone", () => {
+    const fixture = abrir();
+    const calendario = fixture.nativeElement.querySelector("#data-reserva-detalhes")
+      .closest("app-calendario-reserva") as HTMLElement;
+    const dialogo = calendario.querySelector("dialog") as HTMLDialogElement;
+    dialogo.showModal = vi.fn(() => dialogo.setAttribute("open", ""));
+    dialogo.close = vi.fn(() => dialogo.removeAttribute("open"));
+
+    const icones = fixture.nativeElement.querySelectorAll(".detalhes dl > dt > svg") as NodeListOf<SVGElement>;
+    const campo = calendario.querySelector("input") as HTMLInputElement;
+    vi.spyOn(campo, "getBoundingClientRect").mockReturnValue(
+      { left: 700, right: 900, top: 100, bottom: 144, width: 200, height: 44, x: 700, y: 100, toJSON: () => ({}) },
+    );
+    expect(icones[0].parentElement?.textContent).toContain("Localização");
+    icones[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(dialogo.showModal).not.toHaveBeenCalled();
+    expect(icones[0].getAttribute("role")).toBeNull();
+    expect(icones[1].parentElement?.textContent).toContain("Data selecionada");
+    expect(icones[1].getAttribute("aria-label")).toBe("Escolher data da reserva");
+    icones[1]
+      .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(dialogo.open).toBe(true);
+    expect(dialogo.style.left).toBe("604px");
+    expect(getComputedStyle(icones[1]).outlineColor).toBe("var(--orange)");
   });
 
   it("rola até a mesa recebida do agendamento e mantém o destaque sem abrir o modal", () => {

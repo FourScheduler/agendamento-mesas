@@ -55,29 +55,23 @@
         </select>
       </label>
 
-      <label class="campo minhas-reservas__campo">
-        <span class="campo__rotulo">De</span>
-        <app-calendario-reserva modo="consulta" [data]="periodoFiltro().inicio ?? ''"
+      <div class="campo minhas-reservas__campo">
+        <label class="campo__rotulo" for="filtro-data-inicio">De</label>
+        <app-calendario-reserva [data]="periodoFiltro().inicio ?? ''"
           [maxima]="periodoFiltro().fim ?? '9999-12-31'" (dataSelecionada)="selecionarData('inicio', $event)">
-        <input readonly aria-haspopup="dialog" aria-label="Data inicial"
-          class="campo__entrada"
-          type="date"
-          [value]="periodoFiltro().inicio ?? ''"
-          (change)="trocarData('inicio', $event)"
-        /></app-calendario-reserva>
-      </label>
+          <input id="filtro-data-inicio" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
+            [value]="periodoFiltro().inicio ?? ''" />
+        </app-calendario-reserva>
+      </div>
 
-      <label class="campo minhas-reservas__campo">
-        <span class="campo__rotulo">Até</span>
-        <app-calendario-reserva modo="consulta" [data]="periodoFiltro().fim ?? ''"
+      <div class="campo minhas-reservas__campo">
+        <label class="campo__rotulo" for="filtro-data-fim">Até</label>
+        <app-calendario-reserva [data]="periodoFiltro().fim ?? ''"
           [minima]="periodoFiltro().inicio ?? '0001-01-01'" (dataSelecionada)="selecionarData('fim', $event)">
-        <input readonly aria-haspopup="dialog" aria-label="Data final"
-          class="campo__entrada"
-          type="date"
-          [value]="periodoFiltro().fim ?? ''"
-          (change)="trocarData('fim', $event)"
-        /></app-calendario-reserva>
-      </label>
+          <input id="filtro-data-fim" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
+            [value]="periodoFiltro().fim ?? ''" />
+        </app-calendario-reserva>
+      </div>
 
       @if (temFiltroAtivo()) {
         <button

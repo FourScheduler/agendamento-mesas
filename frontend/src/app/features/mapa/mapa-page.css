@@ -76,7 +76,6 @@
 .page-conteudo {
   flex: 1;
   min-height: 0;
-  width: 100%;
   box-sizing: border-box;
   max-width: 1800px;
   margin: 0 auto;
@@ -241,9 +240,7 @@ app-planta-mesas {
 }
 .detalhes__informacoes {
   display: flex;
-  flex: 0 0 auto;
-  min-height: 0;
-  margin: 0;
+  flex: none;
   padding: 0;
 }
 .detalhes dl {
@@ -274,7 +271,9 @@ app-planta-mesas {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
+  outline-color: var(--orange);
 }
+svg:not(:focus-visible) { outline: 0; }
 .detalhes dt span {
   min-width: 0;
 }
@@ -598,7 +597,6 @@ input::placeholder {
     width: 100%;
     max-height: calc(100dvh - max(50px, 6vh));
     height: auto;
-    min-height: 0;
     gap: 1rem;
     padding: 1.5rem 1.25rem max(1.25rem, env(safe-area-inset-bottom));
     border: 1px solid var(--border-soft);

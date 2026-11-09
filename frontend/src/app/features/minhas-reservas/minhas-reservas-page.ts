@@ -11,8 +11,8 @@ import { ToastService } from '../../shared/toast/toast';
 import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
 import { MesaService } from '../mesas/mesa.service';
-import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
+import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
 import { Paginacao } from '../../shared/paginacao/paginacao';
 
 type Filtro = 'ativas' | 'canceladas';
@@ -269,7 +269,9 @@ export class MinhasReservasPage implements OnInit {
 
   podeCancelar(cartao: CartaoReserva): boolean {
     const reserva = cartao.reserva;
-    const podeGerenciar = this.ehAdmin() || reserva.usuarioId === this.auth.usuario()?.id;
+    const podeGerenciar = this.ehAdmin() || (
+      reserva.usuarioId === this.auth.usuario()?.id && this.ehFutura(reserva)
+    );
     return (
       podeGerenciar &&
       reserva.status !== 'CANCELADA' &&
@@ -331,6 +333,10 @@ export class MinhasReservasPage implements OnInit {
 
   ehPendente(status: StatusReserva): boolean {
     return status !== 'CONFIRMADA' && !this.ehCancelada(status);
+  }
+
+  private ehFutura(reserva: Reserva): boolean {
+    return reserva.data >= this.calendario.hoje();
   }
 
   private mensagemDeErro(erro: unknown): string {

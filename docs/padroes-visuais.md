@@ -14,6 +14,11 @@ reserva no dia consultado, respectivamente. Clicar novamente limpa o filtro.
 
 Referência: identidade visual adotada pelo projeto agendamento-salas do Portal Foursys.
 
+Todos os campos de data da lista, do mapa e de Minhas reservas reutilizam
+`app-calendario-reserva`. O componente aceita limites opcionais; os campos de
+agendamento bloqueiam fins de semana e respeitam a janela da reserva, enquanto
+os filtros de histórico permitem datas passadas e fins de semana.
+
 | Uso | Valor |
 | --- | --- |
 | Barra superior e títulos | `#222239` |
