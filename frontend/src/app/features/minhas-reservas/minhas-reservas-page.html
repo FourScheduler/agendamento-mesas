@@ -56,25 +56,23 @@
         </select>
       </label>
 
-      <label class="campo minhas-reservas__campo">
-        <span class="campo__rotulo">De</span>
-        <input
-          class="campo__entrada"
-          type="date"
-          [value]="periodoFiltro().inicio ?? ''"
-          (change)="trocarData('inicio', $event)"
-        />
-      </label>
+      <div class="campo minhas-reservas__campo">
+        <label class="campo__rotulo" for="filtro-data-inicio">De</label>
+        <app-calendario-reserva [data]="periodoFiltro().inicio ?? ''"
+          (dataSelecionada)="trocarData('inicio', $event)">
+          <input id="filtro-data-inicio" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
+            [value]="periodoFiltro().inicio ?? ''" />
+        </app-calendario-reserva>
+      </div>
 
-      <label class="campo minhas-reservas__campo">
-        <span class="campo__rotulo">Até</span>
-        <input
-          class="campo__entrada"
-          type="date"
-          [value]="periodoFiltro().fim ?? ''"
-          (change)="trocarData('fim', $event)"
-        />
-      </label>
+      <div class="campo minhas-reservas__campo">
+        <label class="campo__rotulo" for="filtro-data-fim">Até</label>
+        <app-calendario-reserva [data]="periodoFiltro().fim ?? ''"
+          (dataSelecionada)="trocarData('fim', $event)">
+          <input id="filtro-data-fim" class="campo__entrada" type="date" readonly aria-haspopup="dialog"
+            [value]="periodoFiltro().fim ?? ''" />
+        </app-calendario-reserva>
+      </div>
 
       @if (temFiltroAtivo()) {
         <button

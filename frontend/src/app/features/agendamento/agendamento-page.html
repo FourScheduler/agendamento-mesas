@@ -10,6 +10,7 @@
       <div class="filtro-campo">
         <label class="filtro-data__rotulo" for="data-reserva">Data da reserva</label>
         <app-calendario-reserva [data]="dataSelecionada()" [minima]="todayISO" [maxima]="maxDateISO"
+          [bloquearFinaisDeSemana]="true"
           [desabilitado]="confirmando()" (dataSelecionada)="onDataChange($event)">
         <input
           class="filtro-data__entrada"

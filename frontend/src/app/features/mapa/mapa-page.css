@@ -273,7 +273,9 @@ app-planta-mesas {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
+  outline-color: var(--orange);
 }
+svg:not(:focus-visible) { outline: 0; }
 .detalhes dt span {
   min-width: 0;
 }

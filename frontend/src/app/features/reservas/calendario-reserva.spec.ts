@@ -6,8 +6,12 @@ import { CalendarioReserva } from './calendario-reserva';
   imports: [CalendarioReserva],
   template: `
     <app-calendario-reserva data="2026-10-30" minima="2026-10-26" maxima="2026-11-10"
+      [bloquearFinaisDeSemana]="true"
       (dataSelecionada)="selecionada = $event">
-      <input type="date" readonly value="2026-10-30" />
+      <span>
+        <svg aria-hidden="true"><path d="M1 1" /></svg>
+        <input type="date" readonly value="2026-10-30" />
+      </span>
     </app-calendario-reserva>
   `,
 })
@@ -22,7 +26,7 @@ describe('CalendarioReserva', () => {
     const dialogo = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
     dialogo.showModal = vi.fn(() => dialogo.setAttribute('open', ''));
     dialogo.close = vi.fn(() => dialogo.removeAttribute('open'));
-    fixture.nativeElement.querySelector('input').click();
+    fixture.nativeElement.querySelector('svg path').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     fixture.detectChanges();
     expect(dialogo.open).toBe(true);
     const dia = (data: string) => dialogo.querySelector(`[aria-label="${data}"]`) as HTMLButtonElement;
@@ -47,6 +51,7 @@ describe('CalendarioReserva', () => {
     fixture.componentRef.setInput('data', '2026-10-30');
     fixture.componentRef.setInput('minima', '2026-10-26');
     fixture.componentRef.setInput('maxima', '2026-11-10');
+    fixture.componentRef.setInput('bloquearFinaisDeSemana', true);
     fixture.detectChanges();
     const emitir = vi.fn();
     fixture.componentInstance.dataSelecionada.subscribe(emitir);
@@ -57,5 +62,16 @@ describe('CalendarioReserva', () => {
     fixture.detectChanges();
     fixture.componentInstance.selecionar('2026-10-30');
     expect(emitir).not.toHaveBeenCalled();
+  });
+
+  it('permite datas passadas e fins de semana sem limites de reserva', () => {
+    const fixture = TestBed.createComponent(CalendarioReserva);
+    fixture.componentRef.setInput('data', '');
+    fixture.detectChanges();
+    const emitir = vi.fn();
+    fixture.componentInstance.dataSelecionada.subscribe(emitir);
+    fixture.nativeElement.querySelector('dialog').close = vi.fn();
+    fixture.componentInstance.selecionar('2020-10-31');
+    expect(emitir).toHaveBeenCalledWith('2020-10-31');
   });
 });

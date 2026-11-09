@@ -10,6 +10,7 @@ import { ToastService } from '../../shared/toast/toast';
 import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
 import { MesaService } from '../mesas/mesa.service';
+import { CalendarioReserva } from '../reservas/calendario-reserva';
 
 type Filtro = 'futuras' | 'passadas';
 
@@ -37,7 +38,7 @@ const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA'];
 @Component({
   selector: 'app-minhas-reservas-page',
   standalone: true,
-  imports: [Carregando, Erro, Vazio],
+  imports: [Carregando, Erro, Vazio, CalendarioReserva],
   templateUrl: './minhas-reservas-page.html',
   styleUrl: './minhas-reservas-page.css',
 })
@@ -187,8 +188,7 @@ export class MinhasReservasPage implements OnInit {
     this.buscar();
   }
 
-  trocarData(campo: 'inicio' | 'fim', event: Event): void {
-    const valor = (event.target as HTMLInputElement).value;
+  trocarData(campo: 'inicio' | 'fim', valor: string): void {
     this.periodoFiltro.update((periodo) => ({ ...periodo, [campo]: valor || null }));
     this.buscar();
   }

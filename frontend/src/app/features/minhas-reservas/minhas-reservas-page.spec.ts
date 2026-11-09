@@ -2,8 +2,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
 import { AuthService } from '../../core/auth/auth.service';
 import { Mesa } from '../mesas/mesa';
+import { CalendarioReserva } from '../reservas/calendario-reserva';
 import { MinhasReservasPage } from './minhas-reservas-page';
 
 const mesaDaMaria: Mesa = {
@@ -61,6 +63,26 @@ describe('MinhasReservasPage', () => {
     expect(conteudo).not.toContain('Mesa 002 - TAMBORÉ');
     expect(conteudo).toContain('Para reservar outra mesa, solicite à administração a remoção deste vínculo.');
     expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa button')).toBeNull();
+  });
+
+  it('usa o calendário compartilhado nos dois filtros e permite escolher datas históricas', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    http.expectOne('/api/reservas/minhas').flush([]);
+    http.expectOne('/api/mesas').flush([]);
+    fixture.detectChanges();
+
+    const calendarios = fixture.debugElement.queryAll(By.directive(CalendarioReserva));
+    expect(calendarios).toHaveLength(2);
+    const dialogo = calendarios[0].nativeElement.querySelector('dialog') as HTMLDialogElement;
+    dialogo.close = vi.fn();
+    calendarios[0].componentInstance.selecionar('2020-10-31');
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement.querySelector('#filtro-data-inicio') as HTMLInputElement).value)
+      .toBe('2020-10-31');
+    http.expectOne('/api/reservas/minhas?dataInicio=2020-10-31').flush([]);
+    expect(calendarios[1].componentInstance.bloquearFinaisDeSemana()).toBe(false);
   });
 
   it('informa quando não consegue consultar as mesas atribuídas', () => {

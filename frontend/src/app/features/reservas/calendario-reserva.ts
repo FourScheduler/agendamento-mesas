@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, input, output, signal, viewChild } from '@angular/core';
-import { adicionarDias, formatarData, validarDataReserva } from './data-reserva';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { adicionarDias, formatarData, hojeSaoPaulo, validarDataReserva } from './data-reserva';
 
 @Component({
   selector: 'app-calendario-reserva',
@@ -12,13 +12,13 @@ import { adicionarDias, formatarData, validarDataReserva } from './data-reserva'
   },
   template: `
     <ng-content />
-    <dialog #dialogo aria-label="Escolher dia da reserva" (click)="fecharSeFora($event)"
+    <dialog #dialogo aria-label="Escolher data" (click)="fecharSeFora($event)"
       (keydown)="$event.stopPropagation()">
       <header>
-        <button type="button" aria-label="Mês anterior" [disabled]="mes() <= minima().slice(0, 7)"
+        <button type="button" aria-label="Mês anterior" [disabled]="!!minima() && mes() <= minima().slice(0, 7)"
           (click)="mudarMes(-1)">‹</button>
         <strong aria-live="polite">{{ tituloMes() }}</strong>
-        <button type="button" aria-label="Próximo mês" [disabled]="mes() >= maxima().slice(0, 7)"
+        <button type="button" aria-label="Próximo mês" [disabled]="!!maxima() && mes() >= maxima().slice(0, 7)"
           (click)="mudarMes(1)">›</button>
       </header>
       <div class="dias">
@@ -60,10 +60,13 @@ import { adicionarDias, formatarData, validarDataReserva } from './data-reserva'
   `,
 })
 export class CalendarioReserva {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly data = input.required<string>();
-  readonly minima = input.required<string>();
-  readonly maxima = input.required<string>();
+  readonly minima = input('');
+  readonly maxima = input('');
   readonly desabilitado = input(false);
+  readonly alinharDireita = input(false);
+  readonly bloquearFinaisDeSemana = input(false);
   readonly dataSelecionada = output<string>();
   readonly mes = signal('');
   private readonly dialogo = viewChild.required<ElementRef<HTMLDialogElement>>('dialogo');
@@ -86,17 +89,25 @@ export class CalendarioReserva {
   });
 
   abrir(event: Event) {
-    if (!(event.target instanceof HTMLInputElement) || this.desabilitado()) return;
+    if (!(event.target instanceof Element) || this.desabilitado()) return;
+    const alvo = event.target instanceof HTMLInputElement
+      ? event.target
+      : this.host.nativeElement.querySelector<HTMLInputElement>('input[type="date"]');
+    if (!alvo || alvo.disabled) return;
     event.preventDefault();
-    const data = this.data() >= this.minima() && this.data() <= this.maxima() ? this.data() : this.minima();
+    const atual = this.data();
+    const referencia = /^\d{4}-\d{2}-\d{2}$/.test(atual) ? atual : (this.minima() || hojeSaoPaulo());
+    const data = this.minima() && referencia < this.minima() ? this.minima()
+      : this.maxima() && referencia > this.maxima() ? this.maxima() : referencia;
     this.mes.set(data.slice(0, 7));
     const dialogo = this.dialogo().nativeElement;
-    const campo = event.target.getBoundingClientRect();
-    const largura = Math.min(280, window.innerWidth - 16);
+    const campo = alvo.getBoundingClientRect();
+    const largura = Math.min(296, window.innerWidth - 16);
     const altura = 310;
     const topo = campo.bottom + altura + 4 <= window.innerHeight - 8
       ? campo.bottom + 4 : Math.max(8, campo.top - altura - 4);
-    dialogo.style.left = `${Math.max(8, Math.min(campo.left, window.innerWidth - largura - 8))}px`;
+    const esquerda = this.alinharDireita() ? campo.right - largura : campo.left;
+    dialogo.style.left = `${Math.max(8, Math.min(esquerda, window.innerWidth - largura - 8))}px`;
     dialogo.style.top = `${topo}px`;
     dialogo.showModal();
   }
@@ -122,6 +133,7 @@ export class CalendarioReserva {
   }
 
   private bloqueado(data: string) {
-    return !!validarDataReserva(data, this.minima()) || data > this.maxima();
+    if ((this.minima() && data < this.minima()) || (this.maxima() && data > this.maxima())) return true;
+    return this.bloquearFinaisDeSemana() && !!validarDataReserva(data, this.minima() || undefined);
   }
 }
