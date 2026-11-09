@@ -314,6 +314,18 @@ describe('Reserva diária pela planta', () => {
     http.expectNone('/api/reservas');
   });
 
+  it('revalida o dia antes do POST no mapa mesmo se o temporizador não tiver executado', () => {
+    const fixture = abrir();
+    vi.setSystemTime(new Date('2026-10-29T04:01:00Z'));
+
+    fixture.nativeElement.querySelector('.confirmar').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('hoje ou futura');
+    expect(fixture.componentInstance.reserva.selecionada()).toBeNull();
+    http.expectNone('/api/reservas');
+  });
+
   it('bloqueia seleção enquanto a disponibilidade não foi carregada ou falhou', () => {
     const fixture = TestBed.createComponent(MapaPage);
     TestBed.inject(AuthService).sessao.set({ token: 'token', tipo: 'Bearer', usuario });

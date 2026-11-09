@@ -83,6 +83,8 @@ troca rápida de datas, carregamento, resposta vazia, erro e nova tentativa.
 A confirmação é bloqueada até concluir a consulta da data atual, mesmo se um
 evento antigo tentar selecionar uma mesa durante a atualização. O resumo usa
 dia inteiro e a data de confirmação é a mesma enviada na consulta.
+Antes do POST, o frontend recalcula o dia no fuso de São Paulo e bloqueia uma
+data que tenha expirado desde a consulta, sem depender da execução de um timer.
 
 `data-reserva.spec.ts` cobre formato, datas inexistentes, fuso de São Paulo e os
 limites inclusivos da janela. O backend mantém sua validação autoritativa.
