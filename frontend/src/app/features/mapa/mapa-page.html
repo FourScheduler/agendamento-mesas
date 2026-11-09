@@ -3,7 +3,7 @@
     <div class="mapa__data-modal" [class.mapa__data-modal--sobreposto]="identificador === 'mapa-modal-data-reserva'">
       <div class="campo">
         <label class="campo__rotulo" [id]="identificador + '-rotulo'" [for]="identificador">Dia da reserva</label>
-        <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima" [maxima]="reserva.dataMaxima"
+        <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima()" [maxima]="reserva.dataMaxima()"
           [bloquearFinaisDeSemana]="true"
           [desabilitado]="reserva.confirmando() || enviandoFixacao()" (dataSelecionada)="onDataChange($event)">
           <span class="mapa__data-controle">
@@ -104,11 +104,11 @@
           </dt>
           <dd>
             @if (podeReservar(mesa)) {
-              <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima" [maxima]="reserva.dataMaxima"
+              <app-calendario-reserva [data]="reserva.data()" [minima]="reserva.dataMinima()" [maxima]="reserva.dataMaxima()"
                 [alinharDireita]="true" [bloquearFinaisDeSemana]="true" [desabilitado]="reserva.confirmando() || reserva.cancelando()"
                 (dataSelecionada)="onDataChangeNoPainel($event)">
                 <input #campoDataDetalhes id="data-reserva-detalhes" type="date" class="campo__entrada" readonly aria-haspopup="dialog"
-                  [ngModel]="reserva.data()" [min]="reserva.dataMinima" [max]="reserva.dataMaxima"
+                  [ngModel]="reserva.data()" [min]="reserva.dataMinima()" [max]="reserva.dataMaxima()"
                   [disabled]="reserva.confirmando() || reserva.cancelando()" required />
               </app-calendario-reserva>
             } @else {
