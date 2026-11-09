@@ -107,11 +107,17 @@ export class ReservaDiaria {
     this.confirmarComSolicitante(null);
   }
 
-  confirmarComSolicitante(solicitanteId: number | null) {
+  confirmarComSolicitante(solicitanteId: number | null, aposConfirmar?: () => void) {
+    if (this.confirmando()) return;
     this.calendario.atualizar();
+    if (this.erroData()) {
+      this.iniciarConsulta();
+      return;
+    }
+
     const mesa = this.selecionada();
     const sessao = this.auth.sessao();
-    if (this.confirmando() || !mesa || !sessao || !this.disponibilidadeAtual()) return;
+    if (!mesa || !sessao || !this.disponibilidadeAtual()) return;
     this.confirmando.set(true);
     this.erro.set('');
     this.sucesso.set('');
@@ -120,6 +126,7 @@ export class ReservaDiaria {
         next: () => {
           this.confirmando.set(false);
           if (this.auth.sessao()?.token !== sessao.token) return;
+          aposConfirmar?.();
           this.toast.sucesso('Reserva Confirmada');
           this.calendario.atualizar();
           this.data.set(proximoDiaUtil(this.dataMinima()));

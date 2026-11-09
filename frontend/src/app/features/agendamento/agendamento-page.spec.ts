@@ -96,6 +96,18 @@ describe('Agendamento integrado à reserva diária', () => {
     http.expectNone(r => r.url.includes('/confirmacao'));
   });
 
+  it('revalida o dia antes do POST na lista mesmo se o temporizador não tiver executado', () => {
+    const fixture = abrir();
+    vi.setSystemTime(new Date('2026-10-29T04:01:00Z'));
+
+    fixture.componentInstance.confirmarReserva();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('hoje ou futura');
+    expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
+    http.expectNone('/api/reservas');
+  });
+
   it('trata 400 sem falso sucesso e reconsulta a disponibilidade', () => {
     const fixture = abrir();
     fixture.componentInstance.confirmarReserva();
