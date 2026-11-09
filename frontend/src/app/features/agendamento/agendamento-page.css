@@ -13,11 +13,6 @@
 .agendamento__header-topo {
     margin-bottom: 1.5rem
 }
-.agendamento__passos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem;
-    list-style-position: inside; margin: 1.5rem 0 0; padding: 0; color: var(--mapa-laranja); }
-.agendamento__passos li { padding: 1rem; border: 1px solid var(--border-soft); border-radius: var(--radius); background: var(--card-bg); }
-.agendamento__passos strong { color: var(--navy); font-size: .875rem; }
-.agendamento__passos span { display: block; padding-top: .5rem; color: var(--muted); font-size: .8125rem; line-height: 1.5; }
 
 .filtro-data {
     max-width: 1500px;
@@ -732,5 +727,4 @@ input::placeholder {
         min-height: 96px;
         padding: .875rem
     }
-    .agendamento__passos { grid-template-columns: 1fr; gap: .5rem; }
 }

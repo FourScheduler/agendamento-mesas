@@ -67,11 +67,9 @@
   overflow: hidden;
   background: #f0f4f8;
   border-radius: 0;
-  box-shadow: none;
 }
 .mapa__modal--aberto .mapa {
   z-index: 1;
-  width: 100%;
   height: 100%;
   min-height: 0;
   background: transparent;
@@ -188,6 +186,26 @@
   color: #596174;
   background: #f0f4fa;
 }
+.legenda__itens .legenda__minha,
+.mapa__minha-ampliado {
+  padding-inline: 0.875rem;
+  color: var(--mapa-minha);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.mapa__minha-ampliado {
+  position: absolute;
+  z-index: 2;
+  left: clamp(0.75rem, 2vw, 2rem);
+  bottom: clamp(0.75rem, 2vw, 2rem);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.75rem;
+  border-radius: 12px;
+  background: #fff;
+  pointer-events: none;
+}
 .legenda__itens .legenda__visibilidade {
   padding: 0;
   border: 0;
@@ -196,18 +214,15 @@
 .amostra {
   width: 18px;
   height: 18px;
+  border: 2px solid;
   border-radius: 5px;
   box-shadow: inset 0 0 0 3px rgb(255 255 255 / 70%);
 }
-.amostra--livre {
-  background: #b7f1dc;
-  border: 2px solid #00ad7c;
-}
-.amostra--fixa,
-.amostra--ocupada { background: var(--mapa-laranja-suave); border: 2px solid var(--mapa-laranja); }
-.amostra--inativa {
-  border: 1px dashed #64748b;
-  background: #e5e7eb;
+.amostra--minha {
+  background: var(--mapa-reservada-fundo);
+  border-color: var(--mapa-minha);
+  outline: 1px solid var(--mapa-minha);
+  outline-offset: 2px;
 }
 .mapa__viewport {
   width: 100%;
@@ -235,7 +250,7 @@
 .mapa__desenho {
   margin: 16px auto;
   padding: 36px;
-  border: 14px solid #c0c8ce;
+  border: 14px solid #d0d6da;
   border-radius: 10px;
   background: linear-gradient(115deg, #e8ebed, #d9dddf 55%, #eef0f1);
   box-shadow:
@@ -316,9 +331,9 @@
   gap: 4px;
   padding: 10px 12px;
   margin: 0;
-  border: 2px solid #c6d3ee;
+  border: 2px solid #d6dde1;
   border-radius: 4px;
-  background: linear-gradient(145deg, #fff, #e3eaf6);
+  background: #f7f9fa;
   color: #365a7c;
   text-align: center;
   box-shadow: none;
@@ -389,20 +404,23 @@
 .mesa--unida-inferior { border-top-left-radius: 0; border-top-right-radius: 0; }
 .mesa--unida-superior::before { display: none; }
 .mesa.fixa,
-.mesa.ocupada {
-  border-color: var(--mapa-laranja);
-  background: var(--mapa-laranja-suave);
-  color: var(--mapa-laranja-texto);
+.mesa.ocupada,
+.amostra--ocupada {
+  border-color: var(--mapa-reservada-borda);
+  background: var(--mapa-reservada-fundo);
+  color: var(--mapa-reservada-texto);
 }
-.mesa.livre {
-  border-color: #80d9b8;
-  background: linear-gradient(145deg, #f0fff8, #b9f1dc);
-  color: #007b55;
+.mesa.livre,
+.amostra--livre {
+  border-color: var(--mapa-livre-borda);
+  background: var(--mapa-livre-fundo);
+  color: var(--mapa-livre-texto);
 }
-.mesa.inativa {
-  border: 1.5px dashed #c3cad4;
-  background: #edf0f5;
-  color: #526175;
+.mesa.inativa,
+.amostra--inativa {
+  border: 1.5px dashed var(--mapa-inativa-borda);
+  background: var(--mapa-inativa-fundo);
+  color: var(--mapa-inativa-texto);
 }
 .mesa:disabled {
   cursor: not-allowed;
@@ -581,6 +599,9 @@
   top: 4px;
 }
 @media (max-width: 700px) {
+  .mapa__minha-ampliado {
+    bottom: 5.5rem;
+  }
   .mapa__ferramentas-modal {
     top: 0.875rem;
     left: 0.875rem;
@@ -631,6 +652,4 @@
 .mesa-tooltip { position: fixed; z-index: 1400; width: max-content; max-width: min(280px, calc(100vw - 16px));
   padding: .625rem .875rem; border-radius: 8px; background: var(--navy); color: white;
   font-size: .8125rem; line-height: 1.4; box-shadow: 0 4px 16px #0002; pointer-events: none; overflow-wrap: anywhere; }
-.mesa.mesa--minha { outline: 4px double var(--navy); outline-offset: 4px; }
-.mesa.mesa--minha::after { content: 'Sua mesa'; position: absolute; left: 50%; top: -25px; transform: translateX(-50%);
-  border-radius: 4px; padding: 2px 6px; background: var(--navy); color: white; font-size: 11px; white-space: nowrap; }
+.mesa.mesa--minha { outline: 3px double var(--mapa-minha); outline-offset: 3px; }

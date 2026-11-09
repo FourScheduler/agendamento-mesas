@@ -117,9 +117,6 @@ export class AgendamentoPage {
   readonly todayISO = this.reserva.dataMinima;
   readonly maxDateISO = this.reserva.dataMaxima;
 
-  // UI extras
-  readonly stepAtual = signal(1);
-
   // Indica se há mesa selecionada (para controlar layout responsivo)
   readonly temMesaSelecionada = computed(() => !!this.mesaSelecionada());
 

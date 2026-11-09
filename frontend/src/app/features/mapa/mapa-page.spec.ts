@@ -76,6 +76,57 @@ describe("Barra de reserva do mapa", () => {
     });
   }
 
+  it("reserva espaço para a confirmação pendente sem manter o conteúdo com altura de 100%", () => {
+    const fixture = abrir();
+    fixture.componentInstance.reserva.tentativaPendente.set({
+      chave: "11111111-1111-4111-8111-111111111111", autorId: 7, mesaId: 44,
+      data: fixture.componentInstance.reserva.data(), solicitanteId: null,
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const conteudo = host.querySelector(".page-conteudo") as HTMLElement;
+    const aviso = host.querySelector("app-confirmacao-pendente") as HTMLElement;
+    expect(aviso.querySelector('[role="status"]')).not.toBeNull();
+    expect(aviso.nextElementSibling).toBe(conteudo);
+    expect(getComputedStyle(host).display).toBe("flex");
+    expect(getComputedStyle(host).flexDirection).toBe("column");
+    expect(getComputedStyle(aviso).flexShrink).toBe("0");
+    expect(getComputedStyle(conteudo).flexGrow).toBe("1");
+    expect(getComputedStyle(conteudo).minHeight).toBe("0px");
+    expect(getComputedStyle(host.querySelector(".detalhes")!).overflow).toBe("auto");
+  });
+
+  it.each([
+    ["livre", { ...mesa }, ".amostra--livre"],
+    ["fixa", { ...mesa, tipo: "FIXA" as const }, ".amostra--ocupada"],
+    ["reservada", { ...mesa, ocupada: true }, ".amostra--ocupada"],
+    ["inativa", { ...mesa, ativa: false }, ".amostra--inativa"],
+  ] as const)("usa a mesma paleta na mesa %s, na legenda e no painel", (_, mesaExibida, amostra) => {
+    const fixture = TestBed.createComponent(MapaPage);
+    fixture.detectChanges();
+    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesaExibida]);
+    http.expectOne(request => request.url === "/api/mesas/disponiveis")
+      .flush(mesaExibida.ativa && mesaExibida.tipo === "LIVRE" && !mesaExibida.ocupada ? [mesaExibida] : []);
+    fixture.detectChanges();
+    const estiloOriginal = getComputedStyle(fixture.nativeElement.querySelector("button.mesa"));
+    const estiloMesa = { background: estiloOriginal.background, borderColor: estiloOriginal.borderColor, color: estiloOriginal.color };
+    fixture.nativeElement.querySelector("button.mesa").click();
+    if (mesaExibida.ocupada) {
+      http.expectOne(request => request.urlWithParams.startsWith("/api/reservas/minhas?data=")).flush([]);
+    }
+    fixture.detectChanges();
+
+    const estiloLegenda = getComputedStyle(fixture.nativeElement.querySelector(amostra));
+    const estiloStatus = getComputedStyle(fixture.nativeElement.querySelector(".detalhes__status"));
+    for (const estilo of [estiloLegenda, estiloStatus]) {
+      expect(estilo.background).toBe(estiloMesa.background);
+      expect(estilo.borderColor).toBe(estiloMesa.borderColor);
+      expect(estilo.color).toBe(estiloMesa.color);
+      expect(estilo.background).not.toContain("gradient");
+    }
+  });
+
   it("fecha o mapa ampliado com Escape sem fechar os detalhes da mesa", () => {
     const fixture = abrir();
     const modal = fixture.nativeElement.querySelector(".mapa__modal") as HTMLElement;
@@ -229,9 +280,9 @@ describe("Barra de reserva do mapa", () => {
     expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
     const itensLegenda = fixture.nativeElement.querySelectorAll(".legenda__itens li:not(.legenda__visibilidade)") as NodeListOf<HTMLElement>;
-    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada", "Fixa", "Inativa"]);
+    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada", "Inativa"]);
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--ocupada")).not.toBeNull();
-    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--fixa")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--fixa")).toBeNull();
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--inativa")).not.toBeNull();
     const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
     expect(tooltip.getAttribute("role")).toBe("tooltip");

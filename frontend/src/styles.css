@@ -2,6 +2,16 @@
   --mapa-laranja: #d76822;
   --mapa-laranja-suave: #fff0df;
   --mapa-laranja-texto: #9a4612;
+  --mapa-livre-borda: #a7d7c3;
+  --mapa-livre-fundo: #eaf7f0;
+  --mapa-livre-texto: #007b55;
+  --mapa-reservada-borda: #e1a273;
+  --mapa-reservada-fundo: #fff5eb;
+  --mapa-reservada-texto: var(--mapa-laranja-texto);
+  --mapa-inativa-borda: #c3cad4;
+  --mapa-inativa-fundo: #edf0f5;
+  --mapa-inativa-texto: #526175;
+  --mapa-minha: #2f7187;
   --status-cancelada: #8d4038;
   --status-cancelada-fundo: #f8e5e2;
   --toast-sucesso: #176345;
@@ -131,6 +141,16 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
+}
+
+.admin-mesa-page__ordenar {
+  all: unset;
+  font: inherit;
+  cursor: pointer;
+}
+.admin-mesa-page__ordenar:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 .botao:hover:not(:disabled) {
   background: var(--orange-dark);

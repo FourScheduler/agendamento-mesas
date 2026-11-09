@@ -1,3 +1,6 @@
+<ng-template #identificacaoMinhaMesa>
+  <span class="amostra amostra--minha" aria-hidden="true"></span>Sua mesa
+</ng-template>
 <div
   #modalMapa
   id="mapa-ampliado-dialogo"
@@ -66,6 +69,11 @@
     <button type="button" aria-label="Aumentar zoom do mapa" title="Aumentar zoom"
       [disabled]="zoomMapaAmpliado() >= 2.5" (click)="ajustarZoomMapaAmpliado(0.1)">+</button>
   </div>
+  @if (minhaMesaId() !== null) {
+    <p class="mapa__minha-ampliado" role="status">
+      <ng-container [ngTemplateOutlet]="identificacaoMinhaMesa" />
+    </p>
+  }
 }
 <section class="mapa cartao" [class.mapa--relevo]="relevo" aria-label="Mapa interativo de mesas">
   <header class="mapa__cabecalho">
@@ -86,11 +94,13 @@
         <span class="amostra amostra--ocupada" aria-hidden="true"></span>Reservada
       </li>
       <li>
-        <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa
-      </li>
-      <li>
         <span class="amostra amostra--inativa" aria-hidden="true"></span>Inativa
       </li>
+      @if (minhaMesaId() !== null) {
+        <li class="legenda__minha">
+          <ng-container [ngTemplateOutlet]="identificacaoMinhaMesa" />
+        </li>
+      }
       <li class="legenda__visibilidade">
         <button
           type="button"
@@ -217,14 +227,14 @@
             [disabled]="carregando()"
             [attr.aria-disabled]="!estaDisponivel(mesa)"
             [attr.aria-pressed]="selecionada() === mesa.id"
-            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' ? 'Fixa' : estaOcupada(mesa) ? 'Reservada' : 'Livre na data') + (nomeOcupante(mesa) ? ', ' + nomeOcupante(mesa) : '')"
+            [attr.aria-label]="'Mesa ' + mesa.codigo + ', ' + mesa.regiao + ', ' + (!mesa.ativa ? 'Inativa' : mesa.tipo === 'FIXA' || estaOcupada(mesa) ? 'Reservada' : 'Livre na data') + (nomeOcupante(mesa) ? ', ' + nomeOcupante(mesa) : '')"
             (click)="selecionar(mesa)"
             (focus)="onMesaFocus(mesa); mostrarTooltip(mesa, $event)"
             (blur)="tooltip.set(null)"
             (mouseenter)="mostrarTooltip(mesa, $event)"
             (mouseleave)="tooltip.set(null)"
             (pointerdown)="mostrarTooltip(mesa, $event)"
-            [attr.aria-describedby]="tooltip() ? 'mesa-tooltip' : null"
+            [attr.aria-describedby]="tooltip()?.mesaId === mesa.id ? 'mesa-tooltip' : null"
           >
             @if (planta.posicoes.get(mesa.id)!.superior) {
               <span class="mesa__cadeira mesa__cadeira--superior" aria-hidden="true"></span>

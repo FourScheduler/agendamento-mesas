@@ -1,5 +1,6 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   background: #f0f4f8;
@@ -73,11 +74,16 @@
   margin-top: 1.5rem;
 }
 .page-conteudo {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   box-sizing: border-box;
   max-width: 1800px;
   margin: 0 auto;
   padding: 0.25rem clamp(1rem, 2vw, 2rem);
+}
+app-confirmacao-pendente {
+  flex: none;
 }
 .consulta {
   display: flex;
@@ -155,8 +161,8 @@ app-planta-mesas {
   box-sizing: border-box;
   min-width: 0;
   height: 100%;
-  min-height: 100%;
-  overflow: visible;
+  min-height: 0;
+  overflow: auto;
   align-self: start;
   padding: 1rem 1.25rem;
   border-left: 1px solid var(--border-soft);
@@ -216,27 +222,22 @@ app-planta-mesas {
   height: 0.625rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--muted);
+  background: currentColor;
 }
 .detalhes__status--disponivel {
-  background: linear-gradient(145deg, #f0fff8, #b9f1dc);
-  color: #007b55;
-  border-color: #80d9b8;
+  background: var(--mapa-livre-fundo);
+  color: var(--mapa-livre-texto);
+  border-color: var(--mapa-livre-borda);
 }
 .detalhes__status--reservada {
-  background: var(--mapa-laranja-suave);
-  color: var(--mapa-laranja-texto);
-  border-color: var(--mapa-laranja);
+  background: var(--mapa-reservada-fundo);
+  color: var(--mapa-reservada-texto);
+  border-color: var(--mapa-reservada-borda);
 }
 .detalhes__status--inativa {
-  background: #edf0f5;
-  color: #526175;
-  border: 1px dashed #c3cad4;
-}
-.detalhes__status--disponivel span,
-.detalhes__status--reservada span,
-.detalhes__status--inativa span {
-  background: currentColor;
+  background: var(--mapa-inativa-fundo);
+  color: var(--mapa-inativa-texto);
+  border: 1.5px dashed var(--mapa-inativa-borda);
 }
 .detalhes__informacoes {
   display: flex;
@@ -595,7 +596,7 @@ input::placeholder {
     right: 0;
     bottom: 0;
     width: 100%;
-    max-height: none;
+    max-height: calc(100dvh - max(50px, 6vh));
     height: auto;
     min-height: 0;
     gap: 1rem;
@@ -641,11 +642,9 @@ input::placeholder {
 @media (min-width: 701px) {
   .page-conteudo--com-detalhes {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 340px);
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 28vw, 380px);
     grid-template-rows: minmax(0, 1fr);
-    width: 100%;
     max-width: none;
-    height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;

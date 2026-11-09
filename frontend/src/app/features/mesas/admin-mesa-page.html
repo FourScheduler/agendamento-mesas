@@ -29,7 +29,7 @@
     <div class="admin-mesa-page__conteudo">
       <div class="admin-mesa-page__filtros">
       <div class="admin-mesa-page__busca">
-        <label for="busca" class="visually-hidden">Buscar mesa por número</label>
+        <label for="busca" class="visually-hidden">Buscar mesa, local ou responsável</label>
         <svg class="admin-mesa-page__busca-icone" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <circle cx="11" cy="11" r="8" />
           <path d="M21 21l-4.35-4.35" />
@@ -38,12 +38,12 @@
           id="busca"
           type="text"
           class="campo"
-          placeholder="Buscar por número da mesa (ex.: mesa 10)..."
+          placeholder="Buscar mesa, local ou responsável..."
           [(ngModel)]="busca"
           (input)="onBuscaChange($event)"
           aria-describedby="busca-desc"
         />
-        <span id="busca-desc" class="visually-hidden">Digite um número, por exemplo mesa 10, para filtrar a lista. Sem números, todas as mesas são exibidas.</span>
+        <span id="busca-desc" class="visually-hidden">Busque por número da mesa, local ou nome e e-mail do responsável.</span>
       </div>
       <div class="admin-mesa-page__filtros-tipo" role="group" aria-label="Filtrar por tipo ou status">
         <button
@@ -101,25 +101,6 @@
           <span>Reservadas</span>
         </button>
       </div>
-      <label class="campo">Responsável fixo
-        <input class="campo__entrada" type="search" placeholder="Nome completo ou parcial"
-          [ngModel]="nomeResponsavel()" (ngModelChange)="nomeResponsavel.set($event)" />
-      </label>
-      <label class="campo">Local
-        <select class="campo__entrada" [ngModel]="local()" (ngModelChange)="local.set($event)">
-          <option value="">Todos os locais</option>
-          @for (regiao of locais(); track regiao) { <option [value]="regiao">{{ regiao }}</option> }
-        </select>
-      </label>
-      <label class="campo">Ordenar por
-        <select class="campo__entrada" [ngModel]="ordenacao()" (ngModelChange)="ordenacao.set($event)">
-          <option value="codigo">Número da mesa</option><option value="regiao">Localização</option>
-          <option value="tipo">Tipo</option><option value="responsavel">Responsável</option>
-        </select>
-      </label>
-      <button class="botao botao--contorno" type="button" (click)="descendente.set(!descendente())">
-        {{ descendente() ? 'Decrescente' : 'Crescente' }}
-      </button>
       <button class="botao botao--contorno" type="button" (click)="limparFiltros()">Limpar filtros</button>
       <span class="admin-mesa-page__contagem" role="status">
         <strong>{{ mesasFiltradas().length }}</strong>
@@ -141,11 +122,31 @@
           <table class="admin-mesa-page__tabela" aria-label="Lista de mesas para administração">
             <thead>
               <tr>
-                <th scope="col">Número da mesa</th>
-                <th scope="col">Localização</th>
-                <th scope="col">Tipo</th>
-                <th scope="col">Status</th>
-                <th scope="col">Responsável Fixo</th>
+                <th scope="col" [attr.aria-sort]="ariaOrdenacao('codigo')">
+                  <button type="button" class="admin-mesa-page__ordenar" data-sort="codigo" (click)="ordenarPor('codigo')">
+                    Número da mesa <span aria-hidden="true">{{ indicadorOrdenacao('codigo') }}</span>
+                  </button>
+                </th>
+                <th scope="col" [attr.aria-sort]="ariaOrdenacao('regiao')">
+                  <button type="button" class="admin-mesa-page__ordenar" data-sort="regiao" (click)="ordenarPor('regiao')">
+                    Localização <span aria-hidden="true">{{ indicadorOrdenacao('regiao') }}</span>
+                  </button>
+                </th>
+                <th scope="col" [attr.aria-sort]="ariaOrdenacao('tipo')">
+                  <button type="button" class="admin-mesa-page__ordenar" data-sort="tipo" (click)="ordenarPor('tipo')">
+                    Tipo <span aria-hidden="true">{{ indicadorOrdenacao('tipo') }}</span>
+                  </button>
+                </th>
+                <th scope="col" [attr.aria-sort]="ariaOrdenacao('status')">
+                  <button type="button" class="admin-mesa-page__ordenar" data-sort="status" (click)="ordenarPor('status')">
+                    Status <span aria-hidden="true">{{ indicadorOrdenacao('status') }}</span>
+                  </button>
+                </th>
+                <th scope="col" [attr.aria-sort]="ariaOrdenacao('responsavel')">
+                  <button type="button" class="admin-mesa-page__ordenar" data-sort="responsavel" (click)="ordenarPor('responsavel')">
+                    Responsável fixo <span aria-hidden="true">{{ indicadorOrdenacao('responsavel') }}</span>
+                  </button>
+                </th>
                 <th scope="col">Ações</th>
               </tr>
             </thead>

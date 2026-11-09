@@ -397,6 +397,7 @@ describe('Agendamento integrado à reserva diária', () => {
 
   it('preserva a data na navegação para a planta', () => {
     const fixture = abrir();
+    expect(fixture.nativeElement.textContent).toContain('Ver mapa');
     fixture.componentInstance.irParaMapa();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/mapa'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });

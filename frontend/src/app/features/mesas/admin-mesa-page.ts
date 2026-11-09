@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Observable, Subject, combineLatest, of, timer } from 'rxjs';
-import { catchError, switchMap, tap } from 'rxjs/operators';
+import { catchError, startWith, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { AdminMesaService, UsuarioAtivo } from './admin-mesa.service';
 import { Mesa } from './mesa';
@@ -30,27 +30,29 @@ export class AdminMesaPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
   private readonly calendario = inject(CalendarioSaoPaulo);
-  private readonly buscaMesas$ = new Subject<string>();
+  private readonly recarregarMesas$ = new Subject<void>();
 
   readonly usuario = this.auth.usuario;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
 
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
-  readonly nomeResponsavel = signal('');
-  readonly local = signal('');
-  readonly locais = signal<readonly string[]>([]);
-  readonly ordenacao = signal<'codigo' | 'regiao' | 'tipo' | 'responsavel'>('codigo');
+  readonly ordenacao = signal<'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel'>('codigo');
   readonly descendente = signal(false);
   readonly pagina = signal(0);
   readonly tamanhoPagina = signal(10);
   readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
   readonly mesasFiltradas = computed(() => {
+    const termo = this.busca().trim().toLocaleLowerCase('pt-BR');
+    const termoCodigo = termo.replace(/^mesa\s*/i, '');
     const filtro = this.filtroTipo();
     return this.mesas().filter(mesa => {
-      if (this.local() && mesa.regiao !== this.local()) return false;
-      if (this.nomeResponsavel().trim() && !mesa.responsavel?.nome.toLocaleLowerCase('pt-BR')
-        .includes(this.nomeResponsavel().trim().toLocaleLowerCase('pt-BR'))) return false;
+      const correspondeABusca = !termo
+        || /^\d+$/.test(termoCodigo) && mesa.codigo.includes(termoCodigo)
+        || mesa.regiao.toLocaleLowerCase('pt-BR').includes(termo)
+        || mesa.responsavel?.nome.toLocaleLowerCase('pt-BR').includes(termo)
+        || mesa.responsavel?.email.toLocaleLowerCase('pt-BR').includes(termo);
+      if (!correspondeABusca) return false;
       switch (filtro) {
         case 'fixa': return mesa.tipo === 'FIXA';
         case 'livre': return mesa.ativa && mesa.tipo === 'LIVRE' && !mesa.ocupada;
@@ -60,7 +62,15 @@ export class AdminMesaPage {
       }
     }).sort((a, b) => {
       const campo = this.ordenacao();
-      const valor = (m: Mesa) => campo === 'responsavel' ? m.responsavel?.nome ?? '' : m[campo];
+      const valor = (m: Mesa) => {
+        switch (campo) {
+          case 'codigo': return m.codigo;
+          case 'regiao': return m.regiao;
+          case 'tipo': return m.tipo;
+          case 'status': return m.ativa ? 'Ativa' : 'Inativa';
+          case 'responsavel': return m.responsavel?.nome ?? '';
+        }
+      };
       const ordem = valor(a).localeCompare(valor(b), 'pt-BR', { numeric: true, sensitivity: 'base' });
       return (this.descendente() ? -ordem : ordem) || a.id - b.id;
     });
@@ -108,16 +118,15 @@ export class AdminMesaPage {
 
   constructor() {
     effect(() => {
-      this.busca(); this.nomeResponsavel(); this.local(); this.filtroTipo(); this.ordenacao(); this.descendente();
+      this.busca(); this.filtroTipo(); this.ordenacao(); this.descendente();
       this.pagina.set(0);
     });
-    combineLatest([this.buscaMesas$, toObservable(this.calendario.hoje)]).pipe(
+    combineLatest([this.recarregarMesas$.pipe(startWith(undefined)), toObservable(this.calendario.hoje)]).pipe(
       tap(() => {
         this.carregando.set(true);
         this.erroConsulta.set('');
       }),
-      switchMap(([termo, hoje]) => timer(250).pipe(
-        switchMap(() => this.adminMesa.listarComOcupacao(termo, hoje)),
+      switchMap(([, hoje]) => this.adminMesa.listarComOcupacao(undefined, hoje).pipe(
           catchError(e => {
             this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
             return of([] as readonly Mesa[]);
@@ -125,7 +134,6 @@ export class AdminMesaPage {
       )),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(mesas => {
-      this.locais.update(locais => [...new Set([...locais, ...mesas.map(m => m.regiao)])].sort());
       this.mesas.set(mesas);
       this.carregando.set(false);
     });
@@ -137,27 +145,40 @@ export class AdminMesaPage {
     this.calendario.atualizar();
     this.carregando.set(true);
     this.erroConsulta.set('');
-    this.buscaMesas$.next(this.busca());
+    this.recarregarMesas$.next();
   }
 
   onBuscaChange(event: Event) {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
 
-    this.calendario.atualizar();
     const valor = target.value;
     this.busca.set(valor);
-    this.carregando.set(true);
-    this.erroConsulta.set('');
-    this.buscaMesas$.next(valor);
   }
 
   limparFiltros() {
     this.busca.set('');
-    this.nomeResponsavel.set('');
-    this.local.set('');
     this.filtroTipo.set(null);
     this.carregarMesas();
+  }
+
+  ordenarPor(campo: 'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel') {
+    if (this.ordenacao() === campo) {
+      this.descendente.update(descendente => !descendente);
+    } else {
+      this.ordenacao.set(campo);
+      this.descendente.set(false);
+    }
+  }
+
+  ariaOrdenacao(campo: 'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel'): 'ascending' | 'descending' | 'none' {
+    if (this.ordenacao() !== campo) return 'none';
+    return this.descendente() ? 'descending' : 'ascending';
+  }
+
+  indicadorOrdenacao(campo: 'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel'): string {
+    if (this.ordenacao() !== campo) return '↕';
+    return this.descendente() ? '↓' : '↑';
   }
 
   carregarUsuariosAtivos() {

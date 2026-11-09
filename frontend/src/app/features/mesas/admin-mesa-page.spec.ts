@@ -32,29 +32,25 @@ describe('AdminMesaPage', () => {
     const fixture = TestBed.createComponent(AdminMesaPage);
     const http = TestBed.inject(HttpTestingController);
     try {
-      fixture.detectChanges();
-      vi.advanceTimersByTime(250);
-      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
-        && r.params.get('data') === '2026-11-06').flush([mesa]);
-      fixture.detectChanges();
-      const pagina = fixture.componentInstance;
-      pagina.filtroTipo.set('reservada');
-      const busca = fixture.nativeElement.querySelector('#busca') as HTMLInputElement;
-      busca.value = '044';
-      busca.dispatchEvent(new Event('input'));
-      vi.advanceTimersByTime(250);
-      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
-        && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-06')
-        .flush([{ ...mesa, ocupada: true }]);
-      fixture.detectChanges();
-      expect(pagina.mesasFiltradas()).toHaveLength(1);
-      vi.advanceTimersByTime(90 * 60 * 1000 - 500);
-      fixture.detectChanges();
-      expect(pagina.carregando()).toBe(true);
-      vi.advanceTimersByTime(250);
-      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
-        && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-07')
-        .flush([mesa]);
+    fixture.detectChanges();
+    vi.advanceTimersByTime(250);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
+      && r.params.get('data') === '2026-11-06').flush([mesa]);
+    fixture.detectChanges();
+    const pagina = fixture.componentInstance;
+    pagina.filtroTipo.set('reservada');
+    const busca = fixture.nativeElement.querySelector('#busca') as HTMLInputElement;
+    busca.value = '044';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(pagina.mesasFiltradas()).toHaveLength(0);
+    expect(http.match(r => r.url === '/api/mesas/com-ocupacao')).toHaveLength(0);
+    vi.advanceTimersByTime(90 * 60 * 1000 - 250);
+    fixture.detectChanges();
+    expect(pagina.carregando()).toBe(true);
+    vi.advanceTimersByTime(250);
+    http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
+      && r.params.get('data') === '2026-11-07').flush([mesa]);
       expect(pagina.busca()).toBe('044');
       expect(pagina.filtroTipo()).toBe('reservada');
       expect(pagina.mesasFiltradas()).toHaveLength(0);
@@ -75,7 +71,7 @@ describe('AdminMesaPage', () => {
       { ...mesa, id: 48, codigo: '048', tipo: 'FIXA', ativa: false },
       { ...mesa, id: 49, codigo: '049', ativa: false, ocupada: true },
     ];
-    const listar = vi.fn((termo: string) => of(
+    const listar = vi.fn((termo: string | undefined) => of(
       termo ? mesas.filter(item => item.codigo.includes(termo)) : mesas,
     ));
     TestBed.configureTestingModule({
@@ -116,7 +112,7 @@ describe('AdminMesaPage', () => {
       busca.dispatchEvent(new Event('input'));
       await new Promise<void>(resolve => setTimeout(resolve, 300));
       fixture.detectChanges();
-      expect(listar).toHaveBeenLastCalledWith('045', expect.any(String));
+      expect(listar).toHaveBeenLastCalledWith(undefined, expect.any(String));
       expect(codigos()).toEqual(['045']);
       expect(contagem()).toContain('1 mesa encontrada');
 
@@ -253,7 +249,7 @@ describe('AdminMesaPage', () => {
     }
   });
 
-  it('combina nome parcial sem distinguir caixa, local, tipo, ordenação e paginação', async () => {
+  it('busca por nome e local e ordena pelos cabeçalhos sem perder filtros ou paginação', async () => {
     const mesas = Array.from({ length: 25 }, (_, i): Mesa => ({ ...mesa, id: i + 1,
       codigo: String(i + 1).padStart(3, '0'), tipo: 'FIXA', regiao: i < 20 ? 'Local A' : 'Local B',
       responsavel: { id: i + 10, nome: i % 2 ? 'Ana Silva' : 'Bruna Costa', email: 'teste@exemplo.com' } }));
@@ -264,17 +260,31 @@ describe('AdminMesaPage', () => {
     await new Promise<void>(resolve => setTimeout(resolve, 300));
     fixture.detectChanges();
     expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(10);
+    expect(fixture.nativeElement.querySelectorAll('.admin-mesa-page__filtros input')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('.admin-mesa-page__filtros select')).toHaveLength(0);
     fixture.componentInstance.pagina.set(2);
     fixture.detectChanges();
     expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(5);
-    fixture.componentInstance.nomeResponsavel.set('sILVa');
-    fixture.componentInstance.local.set('Local A');
+    const busca = fixture.nativeElement.querySelector('#busca') as HTMLInputElement;
+    busca.value = 'sILVa';
+    busca.dispatchEvent(new Event('input'));
     fixture.componentInstance.filtroTipo.set('fixa');
-    fixture.componentInstance.descendente.set(true);
     fixture.detectChanges();
     expect(fixture.componentInstance.paginaAtual()).toBe(0);
-    expect(fixture.componentInstance.mesasFiltradas()).toHaveLength(10);
-    expect(fixture.componentInstance.mesasPaginadas()[0].codigo).toBe('020');
+    expect(fixture.componentInstance.mesasFiltradas()).toHaveLength(12);
+
+    const ordenarCodigo = fixture.nativeElement.querySelector('[data-sort="codigo"]') as HTMLButtonElement;
+    ordenarCodigo.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('th[aria-sort="descending"] [data-sort="codigo"]')).not.toBeNull();
+    expect(fixture.componentInstance.mesasPaginadas()[0].codigo).toBe('024');
+
+    busca.value = 'local b';
+    busca.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.mesasFiltradas()).toHaveLength(5);
+    expect(fixture.componentInstance.mesasPaginadas()[0].codigo).toBe('025');
+
     fixture.destroy();
     TestBed.resetTestingModule();
   });

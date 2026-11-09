@@ -29,6 +29,9 @@ describe("PlantaMesas", () => {
       referenciaVisual: { planta: 'DEMO', x: 24, y: 24 } };
     http.expectOne(r => r.url === '/api/mesas/com-ocupacao').flush([ocupada, {
       ...ocupada, id: 45, codigo: '045', ocupada: false, ocupanteNaData: null,
+    }, {
+      ...ocupada, id: 46, codigo: '046', tipo: 'FIXA', ocupada: false, ocupanteNaData: null,
+      responsavel: { id: 8, nome: 'Responsável da Mesa', email: 'privado@teste.com' },
     }]);
     http.expectOne(r => r.url === '/api/mesas/disponiveis').flush([{ ...ocupada, id: 45 }]);
     fixture.detectChanges();
@@ -43,7 +46,12 @@ describe("PlantaMesas", () => {
     (fixture.nativeElement.querySelector('[data-mesa-id="45"]') as HTMLButtonElement)
       .dispatchEvent(new Event('mouseenter'));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#mesa-tooltip').textContent).toContain('Disponível');
+    expect(fixture.nativeElement.querySelector('#mesa-tooltip')).toBeNull();
+    const mesaFixa = fixture.nativeElement.querySelector('[data-mesa-id="46"]') as HTMLButtonElement;
+    mesaFixa.dispatchEvent(new Event('mouseenter'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#mesa-tooltip').textContent).toContain('Responsável da Mesa');
+    expect(fixture.nativeElement.querySelector('#mesa-tooltip').textContent).not.toContain('privado@teste.com');
     expect(fixture.componentInstance.minhaMesaId()).toBeNull();
   });
 
@@ -68,6 +76,8 @@ describe("PlantaMesas", () => {
     await fixture.whenStable();
     expect(centralizar).toHaveBeenCalledTimes(1);
     expect(fixture.nativeElement.querySelector('.mesa--minha')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.legenda__minha')?.textContent.trim()).toBe('Sua mesa');
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.legenda__minha')).fontSize).toBe('0.8125rem');
     expect(fixture.componentInstance.selecionada()).toBeNull();
     fixture.componentRef.setInput('atualizacao', 1);
     fixture.detectChanges();
@@ -77,23 +87,61 @@ describe("PlantaMesas", () => {
     expect(centralizar).toHaveBeenCalledTimes(1);
   });
 
-  it('decora somente em dezembro e permite desabilitar sem interceptar cliques', () => {
+  it.each(['FIXA', 'LIVRE'] as const)('mantém Sua mesa visível ao ampliar uma mesa %s do usuário', tipo => {
+    TestBed.inject(AuthService).sessao.set({ token: 'teste', tipo: 'Bearer',
+      usuario: { id: 7, nome: 'Pessoa', email: 'pessoa@teste.com', perfil: 'USUARIO' } });
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput('data', '2026-11-09');
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.mapa__viewport').scrollTo = vi.fn();
+    const pessoa = { id: 7, nome: 'Pessoa', email: 'pessoa@teste.com' };
+    const minhaMesa: Mesa = {
+      id: 44, codigo: '044', regiao: 'DEMO', tipo, ativa: true, ocupada: tipo === 'LIVRE',
+      responsavel: tipo === 'FIXA' ? pessoa : null, ocupanteNaData: tipo === 'LIVRE' ? pessoa : null,
+      ocupante: null, referenciaVisual: { planta: 'DEMO', x: 24, y: 24 },
+    };
+    http.expectOne(request => request.url === '/api/mesas/com-ocupacao').flush([minhaMesa]);
+    http.expectOne(request => request.url === '/api/mesas/disponiveis').flush([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mapa__minha-ampliado')).toBeNull();
+
+    fixture.nativeElement.querySelector('[aria-label="Ampliar mapa"]').click();
+    fixture.detectChanges();
+    const indicacao = fixture.nativeElement.querySelector('.mapa__minha-ampliado') as HTMLElement;
+    expect(indicacao.textContent?.trim()).toBe('Sua mesa');
+    expect(indicacao.getAttribute('role')).toBe('status');
+    expect(indicacao.closest('.mapa__rodape')).toBeNull();
+    expect(getComputedStyle(indicacao).display).toBe('flex');
+    expect(getComputedStyle(indicacao).pointerEvents).toBe('none');
+    expect(getComputedStyle(indicacao).fontSize).toBe('0.8125rem');
+    expect(indicacao.querySelector('.amostra--minha')).not.toBeNull();
+
+    fixture.nativeElement.querySelector('[aria-label="Fechar mapa ampliado"]').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mapa__minha-ampliado')).toBeNull();
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.mapa__rodape')).display).not.toBe('none');
+  });
+
+  it('decora em novembro e dezembro, permite desabilitar sem interceptar cliques', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-12-10T12:00:00Z'));
     try {
-      const fixture = TestBed.createComponent(PlantaMesas);
-      fixture.detectChanges();
-      http.expectOne('/api/mesas').flush([{
-        id: 44, codigo: '044', regiao: 'TAMBORÉ', tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: null,
-        referenciaVisual: { planta: 'TAMBORÉ', x: 24, y: 24 },
-      }]);
-      fixture.detectChanges();
-      const arvore = fixture.nativeElement.querySelector('.entrada__arvore') as SVGElement;
-      expect(arvore.closest('.entrada')).not.toBeNull();
-      expect(getComputedStyle(arvore).pointerEvents).toBe('none');
-      fixture.componentRef.setInput('decoracaoNatal', false);
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.entrada__arvore')).toBeNull();
+      for (const mes of ['11', '12']) {
+        vi.setSystemTime(new Date(`2026-${mes}-10T12:00:00Z`));
+        const fixture = TestBed.createComponent(PlantaMesas);
+        fixture.detectChanges();
+        http.expectOne('/api/mesas').flush([{
+          id: 44, codigo: '044', regiao: 'TAMBORÉ', tipo: 'LIVRE', ativa: true, ocupada: false, ocupante: null,
+          referenciaVisual: { planta: 'TAMBORÉ', x: 24, y: 24 },
+        }]);
+        fixture.detectChanges();
+        const arvore = fixture.nativeElement.querySelector('.entrada__arvore') as SVGElement;
+        expect(arvore.closest('.entrada')).not.toBeNull();
+        expect(getComputedStyle(arvore).pointerEvents).toBe('none');
+        fixture.componentRef.setInput('decoracaoNatal', false);
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.entrada__arvore')).toBeNull();
+        fixture.destroy();
+      }
     } finally { vi.useRealTimers(); }
   });
 
@@ -471,6 +519,7 @@ describe("PlantaMesas", () => {
 
     expect(modal.getAttribute("role")).toBe("dialog");
     expect(modal.getAttribute("aria-modal")).toBe("true");
+    expect(modal.querySelector(".mapa__minha-ampliado")).toBeNull();
     expect(fixture.componentInstance.mapaAmpliado()).toBe(true);
     expect(fixture.componentInstance.zoomMapaAmpliado()).toBe(1);
     expect(document.activeElement).toBe(
@@ -685,10 +734,9 @@ describe("PlantaMesas", () => {
     expect(estiloReservada.background).toBe(estiloFixa.background);
     expect(estiloReservada.borderColor).toBe(estiloFixa.borderColor);
     expect(estiloReservada.color).toBe(estiloFixa.color);
-    const amostraFixa = fixture.nativeElement.querySelector('.amostra--fixa') as HTMLElement;
     const amostraReservada = fixture.nativeElement.querySelector('.amostra--ocupada') as HTMLElement;
-    expect(getComputedStyle(amostraReservada).background).toBe(getComputedStyle(amostraFixa).background);
-    expect(getComputedStyle(amostraReservada).borderColor).toBe(getComputedStyle(amostraFixa).borderColor);
+    expect(getComputedStyle(amostraReservada).background).toBe(estiloFixa.background);
+    expect(getComputedStyle(amostraReservada).borderColor).toBe(estiloFixa.borderColor);
     (fixture.nativeElement.querySelector(
       '.legenda__visibilidade .botao-icone',
     ) as HTMLButtonElement).click();
