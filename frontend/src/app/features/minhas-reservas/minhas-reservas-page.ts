@@ -307,20 +307,11 @@ export class MinhasReservasPage implements OnInit {
   }
 
   private ehFutura(reserva: Reserva): boolean {
-    return this.momento(reserva) > this.agoraIso();
+    return reserva.data >= this.calendario.hoje();
   }
 
   private momento(reserva: Reserva): string {
     return `${reserva.data}T23:59:59`;
-  }
-
-  private agoraIso(): string {
-    const agora = new Date();
-    const hora = [agora.getHours(), agora.getMinutes(), agora.getSeconds()]
-      .map((parte) => String(parte).padStart(2, '0'))
-      .join(':');
-    const dia = agora.toISOString().split('T')[0];
-    return `${dia}T${hora}`;
   }
 
   private mensagemDeErro(erro: unknown): string {
