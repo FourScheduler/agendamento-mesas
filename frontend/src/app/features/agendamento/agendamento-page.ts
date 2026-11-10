@@ -12,11 +12,12 @@ import { Mesa } from '../mesas/mesa';
 import { Notificacao } from '../../shared/notificacao/notificacao';
 import { ReservaService } from './reserva.service';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
+import { Paginacao } from '../../shared/paginacao/paginacao';
 
 @Component({
   selector: 'app-agendamento-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Notificacao, CalendarioReserva],
+  imports: [CommonModule, FormsModule, Notificacao, CalendarioReserva, Paginacao],
   providers: [ReservaDiaria],
   templateUrl: './agendamento-page.html',
   styleUrl: './agendamento-page.css',
@@ -43,6 +44,13 @@ export class AgendamentoPage {
   readonly busca = signal('');
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
+
+  // Paginação
+  readonly pagina = signal(0);
+  readonly tamanhoPagina = signal(10);
+  readonly paginaAtual = computed(() => Math.min(this.pagina(), Math.max(0, Math.ceil(this.mesasFiltradas().length / this.tamanhoPagina()) - 1)));
+  readonly mesasPaginadas = computed(() => this.mesasFiltradas().slice(
+    this.paginaAtual() * this.tamanhoPagina(), (this.paginaAtual() + 1) * this.tamanhoPagina()));
 
   // Usuários ativos (para admin escolher solicitante)
   readonly usuariosAtivos = signal<readonly UsuarioAdminResumo[]>([]);
@@ -75,7 +83,7 @@ export class AgendamentoPage {
       m.codigo.toLowerCase().includes(termoNormalizado) ||
       m.codigo.toLowerCase().includes(termo) ||
       `mesa ${m.codigo}`.toLowerCase().includes(termo) ||
-      m.regiao.toLowerCase().includes(termo)
+      m.regiao.toLocaleLowerCase('pt-BR').includes(termo)
     );
 
     // Prioriza mesas livres no topo

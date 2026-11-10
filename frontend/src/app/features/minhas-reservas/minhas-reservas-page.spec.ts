@@ -79,7 +79,7 @@ describe('MinhasReservasPage', () => {
     expect(pagina.statusFiltro()).toBe('CONFIRMADA');
     expect(pagina.filtro()).toBe('futuras');
     expect(pagina.podeCancelar(cartaoHoje)).toBe(false);
-    pagina.trocarFiltro('passadas');
+    pagina.trocarFiltro('canceladas');
     expect(pagina.visiveis().map(r => r.data)).toEqual(['2026-11-06', '2026-11-05']);
     http.expectNone('/api/reservas/minhas');
   });
@@ -247,7 +247,7 @@ describe('MinhasReservasPage', () => {
       mesa: { id: 9, codigo: '009', regiao: 'TAMBORÉ' },
     }]);
     http.expectOne('/api/mesas').flush([]);
-    if (caso.data === '2000-01-01') fixture.componentInstance.trocarFiltro('passadas');
+    if (caso.data === '2000-01-01') fixture.componentInstance.trocarFiltro('canceladas');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();
     fixture.componentInstance.cancelarReserva(fixture.componentInstance.cartoes()[0]);

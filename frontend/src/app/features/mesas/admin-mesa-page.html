@@ -135,7 +135,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (mesa of mesasFiltradas(); track mesa.id) {
+              @for (mesa of mesasPaginadas(); track mesa.id) {
                 <tr [class.admin-mesa-page__linha--inativa]="!mesa.ativa">
                   <td class="admin-mesa-page__codigo"><span class="admin-mesa-page__numero">{{ mesa.codigo }}</span></td>
                   <td>{{ mesa.regiao }}</td>
@@ -229,6 +229,9 @@
           </table>
         </div>
       }
+      <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
+        [carregando]="carregando()" (paginaAlterada)="pagina.set($event)"
+        (tamanhoAlterado)="tamanhoPagina.set($event); pagina.set(0)" />
     </div>
   }
 

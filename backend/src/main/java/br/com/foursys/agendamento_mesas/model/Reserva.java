@@ -58,6 +58,9 @@ public class Reserva {
     @Column(name = "cancelada_em")
     private LocalDateTime canceladaEm;
 
+    @Column(name = "chave_requisicao", length = 36)
+    private String chaveRequisicao;
+
     protected Reserva() {
     }
 
