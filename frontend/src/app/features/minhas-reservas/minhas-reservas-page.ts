@@ -53,6 +53,7 @@ export class MinhasReservasPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly mesasService = inject(MesaService);
   private readonly calendario = inject(CalendarioSaoPaulo);
+  private consultaReservas: Subscription | undefined;
 
   readonly reservas = signal<Reserva[]>([]);
   readonly ehAdmin = computed(() => this.auth.usuario()?.perfil === 'ADMIN');
@@ -62,7 +63,6 @@ export class MinhasReservasPage implements OnInit {
   readonly carregando = signal(false);
   readonly erroApi = signal<string | null>(null);
   readonly filtro = signal<Filtro>('ativas');
-  private consulta?: Subscription;
   readonly pagina = signal(0);
   readonly tamanhoPagina = signal(10);
   readonly totalRegistros = signal(0);
@@ -85,15 +85,23 @@ export class MinhasReservasPage implements OnInit {
   readonly cancelamentoEmAndamento = signal<string | null>(null);
 
   readonly visiveis = computed(() => {
-    const lista = this.reservas().filter(reserva =>
-      this.filtro() === 'canceladas' ? reserva.status === 'CANCELADA' : reserva.status !== 'CANCELADA');
+    const lista = this.reservas().filter((reserva) =>
+      this.filtro() === 'ativas'
+        ? !this.ehCancelada(reserva.status) && this.ehFutura(reserva)
+        : this.ehCancelada(reserva.status),
+    );
 
-    return lista;
+    const porMomento = (a: Reserva, b: Reserva) =>
+      a.data.localeCompare(b.data);
+
+    const ascendente = this.filtro() === 'ativas';
+
+    return ascendente ? lista.sort(porMomento) : lista.sort((a, b) => porMomento(b, a));
   });
   readonly paginaAtual = this.pagina;
 
   readonly cartoes = computed<CartaoReserva[]>(() => {
-    const numera = this.filtro() === 'ativas';
+    const numera = !this.periodoPersonalizado() && this.filtro() === 'ativas';
 
     return this.visiveis().map((reserva, indice) => ({
       chave: this.chave(reserva),
@@ -145,9 +153,12 @@ export class MinhasReservasPage implements OnInit {
   }
 
   buscar(): void {
+    this.consultaReservas?.unsubscribe();
     this.calendario.atualizar();
-    this.consulta?.unsubscribe();
     if (this.periodoInvalido()) {
+      this.reservas.set([]);
+      this.totalRegistros.set(0);
+      this.erroApi.set(null);
       this.carregando.set(false);
       return;
     }
@@ -155,7 +166,17 @@ export class MinhasReservasPage implements OnInit {
     const { inicio, fim } = this.periodoFiltro();
 
     const params: { status?: string; dataInicio?: string; dataFim?: string } = {};
-    if (inicio) params.dataInicio = inicio;
+    const inicioEfetivo = this.filtro() === 'ativas'
+      ? (inicio && inicio > this.calendario.hoje() ? inicio : this.calendario.hoje())
+      : inicio;
+    if (inicioEfetivo && fim && fim < inicioEfetivo) {
+      this.reservas.set([]);
+      this.totalRegistros.set(0);
+      this.erroApi.set(null);
+      this.carregando.set(false);
+      return;
+    }
+    if (inicioEfetivo) params.dataInicio = inicioEfetivo;
     if (fim) params.dataFim = fim;
     if (this.statusFiltro()) {
       params.status = this.statusFiltro()!;
@@ -165,9 +186,12 @@ export class MinhasReservasPage implements OnInit {
     this.carregando.set(true);
 
     const consulta = this.reservasService.listarPagina(this.ehAdmin(), {
-      ...params, pagina: this.pagina(), tamanho: this.tamanhoPagina(), canceladas: this.filtro() === 'canceladas',
+      ...params,
+      canceladas: this.filtro() === 'canceladas',
+      pagina: this.pagina(),
+      tamanho: this.tamanhoPagina(),
     });
-    this.consulta = consulta
+    this.consultaReservas = consulta
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (resultado) => {
