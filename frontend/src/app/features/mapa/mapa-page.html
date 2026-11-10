@@ -265,7 +265,7 @@
 
       @if (mesaReservada(mesa) && reservaDoPainel()) {
         @if (podeGerenciarReserva(mesa)) {
-        <div class="detalhes__acoes">
+        <footer class="detalhes__rodape">
           <button class="botao botao--perigo" type="button" (click)="cancelarReserva()"
             [disabled]="reserva.confirmando() || reserva.cancelando()">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -273,7 +273,7 @@
             </svg>
             Cancelar reserva
           </button>
-        </div>
+        </footer>
         }
       }
     </aside>
