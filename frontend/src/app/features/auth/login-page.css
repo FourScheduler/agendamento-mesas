@@ -1,24 +1,83 @@
 :host {
-  display: block;
-  min-height: 100vh;
+  display: flex;
+  min-height: 100%;
   background: var(--page-bg);
 }
 .login-page {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 2rem 1rem;
+  flex: 1;
+  min-width: 0;
+  gap: clamp(2rem, 7vw, 7rem);
+  padding: 3rem 1.5rem;
+  background: linear-gradient(135deg, #f7f8fa, #e5e7eb);
+}
+.apresentacao {
+  width: min(100%, 430px);
+  color: var(--navy);
+}
+.marca {
+  color: var(--orange-dark);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.apresentacao h1 {
+  margin: 1rem 0;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.15;
+}
+.apresentacao > p:not(.marca) {
+  color: var(--muted);
+  line-height: 1.8;
+}
+.ilustracao {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  margin: 2rem auto 0;
+  color: var(--orange-dark);
 }
 .login {
   width: min(100%, 440px);
+  flex-shrink: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgb(34 34 57 / 8%);
+}
+.login .cartao__cabecalho {
+  padding: 2rem 2rem 0;
+  border: 0;
+}
+.login h2 {
+  margin: 0 0 0.5rem;
+}
+.login .campo__entrada,
+.entrar {
+  border-radius: 12px;
 }
 form {
   display: grid;
   gap: 1.25rem;
-  padding: 1.5rem;
+  padding: 2rem;
 }
 .entrar {
   width: 100%;
-  justify-content: space-between;
+  justify-content: center;
+}
+.aviso {
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  .login-page {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .apresentacao { text-align: center; }
+  .ilustracao { display: none; }
 }

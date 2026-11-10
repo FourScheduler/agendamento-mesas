@@ -6,10 +6,46 @@ import {
 } from "@angular/common/http/testing";
 import { PlantaMesas } from "./planta-mesas";
 import { Mesa } from "../mesas/mesa";
+import { AuthService } from "../../core/auth/auth.service";
 import { agruparFileiras, TAMANHO_MESA, PLANTA_TAMBORE_EXIBICAO } from "./planta-layout";
 
 describe("PlantaMesas", () => {
   let http: HttpTestingController;
+
+  it.each(['LIVRE', 'FIXA'] as const)('centraliza a mesa %s do usuário na primeira consulta sem selecionar', (tipo) => {
+    TestBed.inject(AuthService).sessao.set({
+      token: 'teste', tipo: 'Bearer',
+      usuario: { id: 7, nome: 'Maria', email: 'maria@example.com', perfil: 'USUARIO' },
+    });
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput('data', '2026-11-10');
+    fixture.detectChanges();
+    const viewport = fixture.nativeElement.querySelector('.mapa__viewport') as HTMLElement;
+    viewport.scrollTo = vi.fn();
+    const pessoa = { id: 7, nome: 'Maria', email: 'maria@example.com' };
+    http.expectOne('/api/mesas/com-ocupacao?data=2026-11-10').flush([{
+      id: 91, codigo: '091', regiao: 'DEMO', tipo, ativa: true, ocupada: tipo === 'LIVRE',
+      ocupante: '', responsavel: tipo === 'FIXA' ? pessoa : null,
+      ocupanteNaData: tipo === 'LIVRE' ? pessoa : null,
+      referenciaVisual: { planta: 'DEMO', x: 800, y: 600 },
+    }]);
+    http.expectOne('/api/mesas/disponiveis?data=2026-11-10').flush([]);
+    fixture.detectChanges();
+    expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' }));
+    expect(fixture.nativeElement.querySelector('.mesa__diaria').textContent).toBe('Sua reserva');
+    expect(fixture.componentInstance.selecionada()).toBeNull();
+  });
+
+  beforeAll(() => {
+    Object.defineProperties(HTMLElement.prototype, {
+      showPopover: { configurable: true, writable: true, value: vi.fn() },
+      hidePopover: { configurable: true, writable: true, value: vi.fn() },
+    });
+  });
+  afterAll(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'showPopover');
+    Reflect.deleteProperty(HTMLElement.prototype, 'hidePopover');
+  });
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -599,8 +635,67 @@ describe("PlantaMesas", () => {
     const mesas = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
     expect(mesas[0].querySelector('.mesa__estado')).toBeNull();
     expect(mesas[1].querySelector('.mesa__estado')?.textContent).toBe('Livre');
-    expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
+    expect(mesas[2].querySelector('.mesa__estado')?.textContent).toBe('Diária');
+    expect(getComputedStyle(mesas[2].querySelector('.mesa__estado')!).fontSize)
+      .toBe(getComputedStyle(mesas[1].querySelector('.mesa__estado')!).fontSize);
+    expect(mesas[0].querySelector('.mesa__diaria')).toBeNull();
+    expect(mesas[1].querySelector('.mesa__diaria')).toBeNull();
+    expect(mesas[2].classList.contains('ocupada')).toBe(true);
+    expect(mesas[2].querySelector('.mesa__diaria')?.textContent).toBe('Diária');
+    TestBed.inject(AuthService).sessao.set({
+      token: 'teste', tipo: 'Bearer',
+      usuario: { id: 8, nome: 'Pessoa Reservada', email: 'reservada@example.com', perfil: 'USUARIO' },
+    });
+    fixture.detectChanges();
+    expect(mesas[2].querySelector('.mesa__diaria')?.textContent).toBe('Sua reserva');
+    expect(mesas[2].getAttribute('aria-label')).toContain('Sua reserva');
 
+    expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Exemplo');
+    expect(mesas[1].querySelector('.mesa-tooltip')).toBeNull();
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Reservada');
+    expect(mesas[2].hasAttribute('title')).toBe(false);
+    expect(mesas[2].querySelector('.mesa-tooltip')?.getAttribute('aria-hidden')).toBe('true');
+    const tooltip = mesas[2].querySelector('.mesa-tooltip') as HTMLElement;
+    tooltip.showPopover = vi.fn();
+    tooltip.hidePopover = vi.fn();
+    const codigo = mesas[2].querySelector('.mesa__codigo') as HTMLElement;
+    vi.spyOn(mesas[2], 'getBoundingClientRect').mockReturnValue({
+      left: 380, top: 280, width: 140, height: 120,
+      right: 520, bottom: 400, x: 380, y: 280, toJSON: () => ({}),
+    });
+    vi.spyOn(codigo, 'getBoundingClientRect').mockReturnValue({
+      left: 400, top: 300, width: 100, height: 80,
+      right: 500, bottom: 380, x: 400, y: 300, toJSON: () => ({}),
+    });
+    Object.defineProperty(tooltip, 'offsetWidth', { value: 220 });
+    Object.defineProperty(tooltip, 'offsetHeight', { value: 50 });
+    mesas[2].dispatchEvent(new MouseEvent('mouseenter'));
+    expect(tooltip.getAttribute('popover')).toBe('manual');
+    expect(tooltip.showPopover).toHaveBeenCalledOnce();
+    expect(tooltip.style.left).toBe('380px');
+    expect(tooltip.style.top).toBe('315px');
+    expect(tooltip.style.zoom).toBe(String(1 / fixture.componentInstance.escala()));
+    expect(tooltip.style.width).toBe('140px');
+    expect(tooltip.style.maxHeight).toBe('120px');
+    expect(mesas[2].classList.contains('mesa--tooltip')).toBe(true);
+    expect(codigo.textContent).toBe('67');
+    mesas[2].dispatchEvent(new Event('pointerleave'));
+    expect(tooltip.hidePopover).toHaveBeenCalledOnce();
+    expect(mesas[2].classList.contains('mesa--tooltip')).toBe(false);
+    expect(codigo.textContent).toBe('67');
+    for (const evento of ['wheel', 'scroll']) {
+      mesas[2].dispatchEvent(new MouseEvent('mouseenter'));
+      const chamadasAntes = vi.mocked(tooltip.hidePopover).mock.calls.length;
+      fixture.nativeElement.querySelector('.mapa__viewport').dispatchEvent(new Event(evento));
+      expect(tooltip.hidePopover).toHaveBeenCalledTimes(chamadasAntes + 1);
+      expect(mesas[2].classList.contains('mesa--tooltip')).toBe(false);
+    }
+    expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
+
+    const rodape = fixture.nativeElement.querySelector('.mapa__rodape') as HTMLElement;
+    expect(rodape.querySelector('.amostra--fixa')?.parentElement?.textContent?.trim()).toBe('Fixa');
+    expect(rodape.querySelector('.amostra--ocupada')?.parentElement?.textContent?.trim()).toBe('Diária');
+    expect(rodape.textContent).not.toContain('Reservada');
     const mesaFixa = mesas[0];
     (fixture.nativeElement.querySelector(
       '.legenda__visibilidade .botao-icone',
@@ -612,6 +707,7 @@ describe("PlantaMesas", () => {
     expect(getComputedStyle(mesaFixa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
     expect(mesaFixa.querySelector('.mesa__estado')).toBeNull();
     expect(mesas[2].getAttribute('aria-label')).toContain('Pessoa Reservada');
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Reservada');
   });
 
   it("arrasta somente o fundo e libera a captura ao finalizar", () => {

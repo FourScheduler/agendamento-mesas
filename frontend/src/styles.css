@@ -1,3 +1,48 @@
+app-planta-mesas .mesa.ocupada:not(.inativa) {
+  background: #eaf3ff;
+  border-color: #83b4ed;
+  color: #326ca8;
+  filter: none;
+}
+app-planta-mesas .mesa.ocupada.selecionada {
+  outline-color: #83b4ed;
+  box-shadow: 0 0 0 6px rgb(131 180 237 / 12%);
+}
+app-planta-mesas .mesa.ocupada .mesa__diaria {
+  max-width: 100%;
+  color: #326ca8;
+  line-height: 1.2;
+}
+app-planta-mesas .amostra--ocupada {
+  background: #eaf3ff;
+  border: 2px solid #83b4ed;
+}
+app-planta-mesas .mesa--tooltip .mesa__codigo {
+  visibility: hidden;
+}
+app-planta-mesas .mesa-tooltip {
+  box-sizing: border-box;
+  transition: none;
+  animation: none;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 8px 12px;
+  border: 1px solid #71717a;
+  border-radius: 16px;
+  background: #52525b;
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 :root {
   --navy: #222239;
   --navy-soft: #13131f;

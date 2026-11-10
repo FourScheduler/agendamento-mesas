@@ -1,8 +1,18 @@
 <main class="login-page">
+  <section class="apresentacao" aria-labelledby="titulo-apresentacao">
+    <p class="marca">FourScheduler</p>
+    <h1 id="titulo-apresentacao">Seu espaço para trabalhar melhor.</h1>
+    <p>Encontre sua mesa, consulte o mapa e acompanhe suas reservas em um só lugar.</p>
+    <svg class="ilustracao" viewBox="0 0 240 180" fill="none" stroke="currentColor"
+      stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="65" y="20" width="110" height="70" rx="10" />
+      <path d="M120 90v28m-28 0h56M20 135h200M35 135v40m170-40v40M15 115h28m154 0h28" />
+    </svg>
+  </section>
   <section class="login cartao" aria-labelledby="titulo-login">
     <div class="cartao__cabecalho">
-      <h2 id="titulo-login">Entre para acessar o Agendamento de Mesas</h2>
-      <p>Use sua conta de demonstração para consultar as mesas.</p>
+      <h2 id="titulo-login">Boas-vindas</h2>
+      <p>Entre para acessar o Agendamento de Mesas.</p>
     </div>
     <form #form="ngForm" (ngSubmit)="entrar()">
       <div class="campo">
@@ -12,6 +22,7 @@
           id="email"
           name="email"
           type="email"
+          placeholder="Digite seu e-mail"
           [(ngModel)]="email"
           required
           email
@@ -27,6 +38,7 @@
           id="senha"
           name="senha"
           type="password"
+          placeholder="Digite sua senha"
           [(ngModel)]="senha"
           required
           autocomplete="current-password"
@@ -41,11 +53,9 @@
         type="submit"
         [disabled]="form.invalid || entrando()"
       >
-        {{ entrando() ? 'Entrando…' : 'Entrar e acessar agendamento' }}
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-          <path d="M5 12h14m-5-5 5 5-5 5" />
-        </svg>
+        {{ entrando() ? 'Entrando…' : 'Entrar' }}
       </button>
+      <p class="aviso">Use sua conta cadastrada. Nunca compartilhe sua senha.</p>
     </form>
   </section>
 </main>

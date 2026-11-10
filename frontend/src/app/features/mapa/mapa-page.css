@@ -505,10 +505,10 @@ input::placeholder {
 .botao--perigo {
   min-height: 44px;
   padding: 0.625rem 1.25rem;
-  border: 1px solid #f5c6cb;
+  border: 1px solid #dc2626;
   border-radius: 10px;
-  background: #fff5f5;
-  color: #c0392b;
+  background: #dc2626;
+  color: #fff;
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
@@ -519,9 +519,9 @@ input::placeholder {
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .botao--perigo:hover:not(:disabled) {
-  background: #ffecec;
-  border-color: #f5c6cb;
-  color: #a93226;
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
 }
 .botao--perigo:focus-visible {
   outline: 2px solid #e74c3c;

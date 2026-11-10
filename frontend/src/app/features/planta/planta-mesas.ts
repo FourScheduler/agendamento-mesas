@@ -14,8 +14,9 @@ import {
   HostListener,
 } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
-import { NgTemplateOutlet } from "@angular/common";
+import { DOCUMENT, NgTemplateOutlet } from "@angular/common";
 import { Mesa } from "../mesas/mesa";
+import { AuthService } from "../../core/auth/auth.service";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
 import {
@@ -34,6 +35,7 @@ import {
   styleUrl: "./planta-mesas.css",
 })
 export class PlantaMesas {
+  private readonly auth = inject(AuthService);
   readonly data = input('');
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
@@ -255,8 +257,18 @@ export class PlantaMesas {
     this.arrastando.set(false);
   }
   private readonly catalogo = inject(MesaService);
+  private readonly documento = inject(DOCUMENT);
+  private mesaComTooltip: HTMLElement | null = null;
+  private centralizacaoInicialPendente = true;
 
   constructor() {
+    const fecharAoRolar = () => this.ocultarTooltip();
+    this.documento.addEventListener('scroll', fecharAoRolar, true);
+    this.documento.addEventListener('wheel', fecharAoRolar, { capture: true, passive: true });
+    this.destroyRef.onDestroy(() => {
+      this.documento.removeEventListener('scroll', fecharAoRolar, true);
+      this.documento.removeEventListener('wheel', fecharAoRolar, true);
+    });
     effect(() => this.selecionada.set(this.mesaSelecionadaId()));
     afterNextRender(() => {
       const elemento = this.viewport().nativeElement;
@@ -296,6 +308,13 @@ export class PlantaMesas {
           if (data) {
             this.disponibilidadeConsultada.emit(data);
             const mesaInicialId = this.mesaInicialId();
+            if (mesaInicialId === null && this.centralizacaoInicialPendente) {
+              const minhaMesa = mesas.find(mesa => this.suaReserva(mesa));
+              if (minhaMesa) {
+                afterNextRender(() => this.centralizarMesa(minhaMesa.id), { injector: this.injector });
+              }
+            }
+            this.centralizacaoInicialPendente = false;
             if (mesaInicialId !== null) {
               const mesaInicial = mesas.find(mesa => mesa.id === mesaInicialId);
               if (mesaInicial && this.estaDisponivel(mesaInicial)) {
@@ -303,20 +322,7 @@ export class PlantaMesas {
                 this.mesaInicialSelecionada.emit(mesaInicial);
                 afterNextRender(() => {
                   if (this.selecionada() !== mesaInicial.id) return;
-                  const viewport = this.viewport().nativeElement;
-                  const mesa = viewport.querySelector<HTMLElement>(
-                    `button.mesa[data-mesa-id="${mesaInicial.id}"]`,
-                  );
-                  if (!mesa) return;
-                  const area = viewport.getBoundingClientRect();
-                  const alvo = mesa.getBoundingClientRect();
-                  viewport.scrollTo({
-                    left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
-                      - (viewport.clientWidth - alvo.width) / 2,
-                    top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
-                      - (viewport.clientHeight - alvo.height) / 2,
-                    behavior: 'instant',
-                  });
+                  this.centralizarMesa(mesaInicial.id);
                 }, { injector: this.injector });
               }
               else this.mesaInicialInvalidada.emit();
@@ -355,6 +361,64 @@ export class PlantaMesas {
 
   nomeOcupante(mesa: Mesa): string | null {
     return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
+  }
+
+  suaReserva(mesa: Mesa): boolean {
+    const usuarioId = this.auth.usuario()?.id;
+    return usuarioId != null && mesa.ativa && (
+      (this.estaOcupada(mesa) && mesa.ocupanteNaData?.id === usuarioId)
+      || (mesa.tipo === 'FIXA' && mesa.responsavel?.id === usuarioId)
+    );
+  }
+
+  private centralizarMesa(id: number) {
+    const viewport = this.viewport().nativeElement;
+    const mesa = viewport.querySelector<HTMLElement>(`button.mesa[data-mesa-id="${id}"]`);
+    if (!mesa) return;
+    const area = viewport.getBoundingClientRect();
+    const alvo = mesa.getBoundingClientRect();
+    viewport.scrollTo({
+      left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
+        - (viewport.clientWidth - alvo.width) / 2,
+      top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
+        - (viewport.clientHeight - alvo.height) / 2,
+      behavior: 'instant',
+    });
+  }
+
+  abrirTooltip(event: Event) {
+    const mesa = event.currentTarget as HTMLButtonElement;
+    const tooltip = mesa.querySelector<HTMLElement>('.mesa-tooltip');
+    if (!tooltip || mesa.disabled) return;
+    this.ocultarTooltip();
+    const rect = mesa.getBoundingClientRect();
+    tooltip.style.zoom = String(1 / this.escala());
+    tooltip.style.width = `${rect.width}px`;
+    tooltip.style.maxHeight = `${rect.height}px`;
+    tooltip.showPopover();
+    mesa.classList.add('mesa--tooltip');
+    this.mesaComTooltip = mesa;
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.top + (rect.height - tooltip.offsetHeight) / 2}px`;
+  }
+
+  abrirTooltipNoTeclado(event: Event) {
+    if ((event.currentTarget as HTMLElement).matches(':focus-visible')) {
+      this.abrirTooltip(event);
+    }
+  }
+
+  fecharTooltip(event: Event) {
+    const mesa = event.currentTarget as HTMLElement;
+    if (this.mesaComTooltip === mesa) this.ocultarTooltip();
+  }
+
+  private ocultarTooltip() {
+    const mesa = this.mesaComTooltip;
+    if (!mesa) return;
+    mesa.querySelector<HTMLElement>('.mesa-tooltip')?.hidePopover();
+    mesa.classList.remove('mesa--tooltip');
+    this.mesaComTooltip = null;
   }
 
   alternarNomes() {

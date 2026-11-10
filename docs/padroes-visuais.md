@@ -32,6 +32,18 @@ Os tokens básicos já estão em `frontend/src/styles.css`. Ao implementar as te
 
 ## Aplicação no catálogo de mesas
 
+Mesas com reserva diária na data consultada usam fundo `#EAF3FF`, borda
+`#83B4ED` e número `#326CA8`. A identificação usa somente texto `#326CA8`, sem caixa:
+“Diária” para reservas de terceiros e “Sua reserva” quando o ocupante na data
+corresponde ao usuário autenticado. Mesas fixas mantêm suas cores e também
+mostram “Sua reserva” para o responsável autenticado.
+Na primeira consulta do mapa, sem uma mesa indicada na navegação, a planta
+centraliza a reserva diária ou mesa fixa do usuário, sem abrir os detalhes.
+
+A tela de login usa fundo cinza em gradiente, apresentação à esquerda e
+formulário branco à direita. O cartão tem raio de 24px; campos e botão, 12px.
+Em telas pequenas, os blocos ficam empilhados. A ação principal permanece laranja.
+
 A referência local é `agendamento-salas/frontend`, especialmente `shared/topbar`,
 `styles.css` e `features/agendamento`. O catálogo de mesas reutiliza a identidade
 visual e a marca, com componentes próprios para seus contratos de API.
@@ -89,6 +101,17 @@ visual e a marca, com componentes próprios para seus contratos de API.
   ícone de olho ficam juntos em uma barra flutuante translúcida no canto superior
   esquerdo. A data abre o calendário de seleção e atualiza a disponibilidade; o
   olho alterna a exibição dos nomes dos ocupantes.
+  Ao passar o mouse sobre uma mesa, o nome do ocupante na data ou do responsável
+  fixo aparece em um popup arredondado somente com o nome,
+  mesmo quando os nomes estao ocultos no desenho.
+  O popup compacto tem fundo cinza-escuro `#52525b`, raio de 16px,
+  texto branco de 12px e largura limitada à mesa, com quebra de linha
+  entre nome e sobrenomes conforme o espaço disponível.
+  Fica centralizado
+  no lugar do numero da mesa apontada, ocultando-o temporariamente enquanto
+  estiver aberto. Ao sair, o numero reaparece. Tambem aparece no foco por teclado.
+  Usa a camada superior do navegador (Popover API), sem recorte pela planta
+  ou sobreposicao pelos demais elementos.
   As instruções aparecem ao passar o mouse sobre o ícone de informação,
   sem ação de clique; foco por teclado também permite ler a dica.
   O dia da reserva e as ações da consulta ficam no cabeçalho do mapa,

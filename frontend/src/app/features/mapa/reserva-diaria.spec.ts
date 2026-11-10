@@ -27,6 +27,17 @@ const mockToastService = {
 
 describe('Reserva diária pela planta', () => {
   let http: HttpTestingController;
+  beforeAll(() => {
+    Object.defineProperties(HTMLElement.prototype, {
+      showPopover: { configurable: true, writable: true, value: vi.fn() },
+      hidePopover: { configurable: true, writable: true, value: vi.fn() },
+    });
+  });
+  afterAll(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'showPopover');
+    Reflect.deleteProperty(HTMLElement.prototype, 'hidePopover');
+  });
+
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
@@ -232,7 +243,7 @@ describe('Reserva diária pela planta', () => {
     expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-disabled')).toBe('true');
     expect(fixture.nativeElement.querySelector('.mesa').classList.contains('ocupada')).toBe(true);
     expect(fixture.nativeElement.querySelector('.mesa').getAttribute('aria-label')).toContain('Reservada');
-    expect(fixture.nativeElement.querySelector('.mesa__estado')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.mesa__estado.mesa__diaria')?.textContent).toBe('Diária');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
   });
 
