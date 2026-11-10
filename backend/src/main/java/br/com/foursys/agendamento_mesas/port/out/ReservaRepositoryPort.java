@@ -6,9 +6,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Component
 public interface ReservaRepositoryPort {
@@ -22,7 +25,14 @@ public interface ReservaRepositoryPort {
 
     Optional<Long> buscarUsuarioId(Long reservaId);
 
+    Optional<Reserva> buscarPorAutorEChave(Long autorId, String chave);
+
+    int excluirCanceladasAte(LocalDateTime limite, int tamanhoLote);
+
     List<Reserva> buscarTodos();
+
+    Page<Reserva> listarPagina(Long usuarioId, LocalDate inicio, LocalDate fim,
+        Collection<StatusReserva> status, Pageable pagina);
 
     List<Reserva> buscarOcupacoesNaData(LocalDate data, Collection<Long> mesaIds,
         Collection<StatusReserva> bloqueios);

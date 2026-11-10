@@ -48,6 +48,10 @@ describe("PlantaMesas", () => {
   });
 
   beforeEach(() => {
+    // Mock scrollTo for JSDOM test environment
+    Element.prototype.scrollTo = vi.fn();
+    HTMLElement.prototype.scrollTo = vi.fn();
+    
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });

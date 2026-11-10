@@ -4,14 +4,54 @@ import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.model.Reserva;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
+    @Query(value = """
+        select r from Reserva r join fetch r.mesa join fetch r.usuario left join fetch r.criadoPor
+        where (:usuarioId is null or r.usuario.id = :usuarioId)
+          and (:inicio is null or r.data >= :inicio) and (:fim is null or r.data <= :fim)
+          and r.status in :status
+        """, countQuery = """
+        select count(r) from Reserva r
+        where (:usuarioId is null or r.usuario.id = :usuarioId)
+          and (:inicio is null or r.data >= :inicio) and (:fim is null or r.data <= :fim)
+          and r.status in :status
+        """)
+    Page<Reserva> listarPagina(@Param("usuarioId") Long usuarioId, @Param("inicio") LocalDate inicio,
+        @Param("fim") LocalDate fim, @Param("status") Collection<StatusReserva> status, Pageable pagina);
+
+    @Query("""
+        select r from Reserva r join fetch r.mesa join fetch r.usuario join fetch r.criadoPor
+        where r.criadoPor.id = :autorId and r.chaveRequisicao = :chave
+        """)
+    Optional<Reserva> buscarPorAutorEChave(@Param("autorId") Long autorId, @Param("chave") String chave);
+
+    @Query("""
+        select r.id from Reserva r
+        where r.status = br.com.foursys.agendamento_mesas.enums.StatusReserva.CANCELADA
+          and r.canceladaEm <= :limite
+        order by r.canceladaEm, r.id
+        """)
+    List<Long> buscarCanceladasParaRetencao(@Param("limite") LocalDateTime limite, Pageable pagina);
+
+    @Modifying
+    @Query("""
+        delete from Reserva r where r.id in :ids
+          and r.status = br.com.foursys.agendamento_mesas.enums.StatusReserva.CANCELADA
+          and r.canceladaEm <= :limite
+        """)
+    int excluirCanceladasAte(@Param("ids") Collection<Long> ids, @Param("limite") LocalDateTime limite);
+
     @Query("select r.usuario.id from Reserva r where r.id = :id")
     Optional<Long> buscarUsuarioId(@Param("id") Long id);
 

@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.controller;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.PaginaResponse;
 import br.com.foursys.agendamento_mesas.enums.StatusReserva;
 import br.com.foursys.agendamento_mesas.service.ReservaService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -29,5 +30,16 @@ public class AdminReservaController {
         @RequestParam(required = false) StatusReserva status
     ) {
         return reservaService.listarTodas(data, dataInicio, dataFim, status);
+    }
+
+    @GetMapping("/pagina")
+    public PaginaResponse<ReservaResponse> listarPagina(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+        @RequestParam(required = false) StatusReserva status,
+        @RequestParam(defaultValue = "false") boolean canceladas,
+        @RequestParam(defaultValue = "0") int pagina,
+        @RequestParam(defaultValue = "10") int tamanho) {
+        return reservaService.listarPagina(null, dataInicio, dataFim, status, canceladas, pagina, tamanho);
     }
 }

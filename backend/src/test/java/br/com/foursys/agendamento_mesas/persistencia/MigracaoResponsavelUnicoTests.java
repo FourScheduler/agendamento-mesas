@@ -19,13 +19,19 @@ class MigracaoResponsavelUnicoTests {
         jdbc.update("UPDATE mesas SET responsavel_id = 1 WHERE id = 1");
         var mesasAntes = jdbc.queryForList("SELECT * FROM mesas ORDER BY id");
         var usuariosAntes = jdbc.queryForList("SELECT * FROM usuarios ORDER BY id");
-        var reservasAntes = jdbc.queryForList("SELECT * FROM reservas ORDER BY id");
+        var reservasAntes = jdbc.queryForList("""
+            SELECT id, mesa_id, usuario_id, data, status, criada_em, criado_por_id, confirmada_em, cancelada_em
+            FROM reservas ORDER BY id
+            """);
 
         var flyway = Flyway.configure().dataSource(ds).locations("classpath:db/migration").load();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(2);
         assertThat(jdbc.queryForList("SELECT * FROM mesas ORDER BY id")).isEqualTo(mesasAntes);
         assertThat(jdbc.queryForList("SELECT * FROM usuarios ORDER BY id")).isEqualTo(usuariosAntes);
-        assertThat(jdbc.queryForList("SELECT * FROM reservas ORDER BY id")).isEqualTo(reservasAntes);
+        assertThat(jdbc.queryForList("""
+            SELECT id, mesa_id, usuario_id, data, status, criada_em, criado_por_id, confirmada_em, cancelada_em
+            FROM reservas ORDER BY id
+            """)).isEqualTo(reservasAntes);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
     }
 

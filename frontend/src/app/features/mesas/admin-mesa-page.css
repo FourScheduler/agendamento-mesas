@@ -193,6 +193,10 @@
   text-align: center;
 }
 
+.admin-mesa-page__ordenar {
+  border: none;
+}
+
 .admin-mesa-page__codigo {
   font-family: monospace;
   font-weight: 600;
