@@ -31,10 +31,7 @@
         }
       </svg>
     </button>
-  </div>
-  <button type="button"
-    class="mapa__controle-modal mapa__nomes-ampliado mapa__fechar-ampliado mapa__alternar-nomes-modal"
-    style="right: calc(clamp(0.75rem, 2vw, 2rem) + 3.25rem)" (click)="alternarNomes()"
+    <button type="button" class="mapa__controle-modal mapa__alternar-nomes-modal" (click)="alternarNomes()"
     [attr.aria-pressed]="mostrarNomes()"
     [attr.aria-label]="mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes'"
     [attr.title]="mostrarNomes() ? 'Ocultar nomes dos ocupantes' : 'Mostrar nomes dos ocupantes'">
@@ -46,7 +43,8 @@
         <path d="m3 3 18 18" />
       }
     </svg>
-  </button>
+    </button>
+  </div>
   <button #botaoFecharMapa type="button" class="mapa__fechar-ampliado"
     aria-label="Fechar mapa ampliado" title="Fechar mapa ampliado"
     (click)="fecharMapaAmpliado()">
@@ -82,6 +80,15 @@
       <p class="subtitulo">
         Selecione uma mesa disponível para reservar o dia inteiro.
       </p>
+      @if (exibirNatal()) {
+        <svg class="mapa__natal" viewBox="0 0 64 80" width="42" height="52" aria-hidden="true" focusable="false">
+          <path d="m32 4 5 10h-10z" fill="#bd8c45" />
+          <path d="M32 15 13 38h9L7 58h15L4 71h56L42 58h15L42 38h9z" fill="#32725c" />
+          <path d="M27 71h10v9H27z" fill="#8c5b40" />
+          <path d="m17 42 29 13M13 61l34 7" stroke="#e6c598" stroke-width="3" fill="none" />
+          <circle cx="30" cy="31" r="3" fill="#e7b49a" /><circle cx="24" cy="55" r="3" fill="#e7b49a" />
+        </svg>
+      }
     </div>
     <ng-content select="[consulta-mapa]" />
   </header>
@@ -124,6 +131,15 @@
           >
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
             <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </li>
+      <li class="legenda__visibilidade">
+        <button class="botao-icone" type="button" (click)="natalAtivo.set(!natalAtivo())"
+          [attr.aria-pressed]="exibirNatal()" aria-label="Alternar decoração de Natal" title="Alternar decoração de Natal">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 3 6 7h-3l5 7H4l5-7H6zM12 17v4" />
           </svg>
         </button>
       </li>
@@ -220,6 +236,10 @@
             [class.fixa]="mesa.ativa && mesa.tipo === 'FIXA'"
             [class.selecionada]="selecionada() === mesa.id"
             [class.mesa--minha]="minhaMesaId() === mesa.id"
+            [style.outline-style]="destacarMinhaMesa(mesa) ? 'solid' : null"
+            [style.outline-width.px]="destacarMinhaMesa(mesa) ? 2 : null"
+            [style.outline-color]="destacarMinhaMesa(mesa) ? '#25664d' : null"
+            [style.outline-offset.px]="destacarMinhaMesa(mesa) ? 2 : null"
             [style.left.px]="planta.posicoes.get(mesa.id)!.x"
             [style.top.px]="planta.posicoes.get(mesa.id)!.y"
             [style.width.px]="planta.tamanhoMesa.largura"
@@ -236,6 +256,7 @@
             (pointerdown)="mostrarTooltip(mesa, $event)"
             [attr.aria-describedby]="tooltip()?.mesaId === mesa.id ? 'mesa-tooltip' : null"
           >
+            <span class="mesa__tooltip" aria-hidden="true">{{ tooltipMesa(mesa) }}</span>
             @if (planta.posicoes.get(mesa.id)!.superior) {
               <span class="mesa__cadeira mesa__cadeira--superior" aria-hidden="true"></span>
             }
@@ -243,6 +264,9 @@
               <span class="mesa__cadeira mesa__cadeira--inferior" aria-hidden="true"></span>
             }
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
+            @if (mesaReservadaId() === mesa.id) {
+              <span class="mesa__sua" aria-hidden="true">Sua mesa</span>
+            }
             @if (mostrarNomes()) {
               @if (nomeOcupante(mesa); as nome) {
                 <span class="mesa__ocupante">{{ nome }}</span>

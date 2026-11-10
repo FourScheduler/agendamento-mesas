@@ -217,11 +217,11 @@ describe('Reserva diária pela planta', () => {
     expect(request.request.body).toEqual({ mesaId: 44, data: '2026-10-28' });
     request.flush({ id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario });
     fixture.detectChanges();
-    carregar([mesa], '2026-10-27');
+    carregar([mesa], '2026-10-28');
     fixture.detectChanges();
     expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva Confirmada', 'Reserva para 28/10/2026.');
     expect(mockToastService.sucesso).toHaveBeenCalledTimes(1);
-    expect(fixture.componentInstance.reserva.data()).toBe('2026-10-27');
+    expect(fixture.componentInstance.reserva.data()).toBe('2026-10-28');
     expect(fixture.nativeElement.querySelector('.mesa').disabled).toBe(false);
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
 
@@ -282,7 +282,7 @@ describe('Reserva diária pela planta', () => {
         id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario,
       });
       fixture.detectChanges();
-      carregar([mesa], '2026-10-27');
+      carregar([mesa], '2026-10-28');
       fixture.detectChanges();
       expect(fixture.componentInstance.reserva.sucesso()).toBe('');
       expect(fixture.componentInstance.reserva.erro()).toBe('');
@@ -318,7 +318,7 @@ describe('Reserva diária pela planta', () => {
       expect(repetida.request.body).toEqual(request.request.body);
       repetida.flush({ id: 9, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario });
       fixture.detectChanges();
-      carregar([mesa], '2026-10-27');
+      carregar([mesa], '2026-10-28');
       fixture.detectChanges();
       expect(fixture.componentInstance.reserva.tentativaPendente()).toBeNull();
       expect(mockToastService.sucesso).toHaveBeenCalledTimes(1);

@@ -13,7 +13,7 @@ import { Erro } from '../../shared/estados/erro';
 import { Vazio } from '../../shared/estados/vazio';
 import { ToastService } from '../../shared/toast/toast';
 import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
-import { Paginacao } from '../../shared/paginacao/paginacao';
+import { EstadoPaginacao, Paginacao } from '../../shared/paginacao';
 import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
@@ -37,10 +37,12 @@ export class AdminMesaPage {
 
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
+  readonly nomeResponsavel = signal('');
+  readonly local = signal('');
+  readonly locais = computed(() => [...new Set(this.mesas().map(mesa => mesa.regiao))].sort());
   readonly ordenacao = signal<'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel'>('codigo');
   readonly descendente = signal(false);
-  readonly pagina = signal(0);
-  readonly tamanhoPagina = signal(10);
+  readonly paginacao = new EstadoPaginacao();
   readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
   readonly mesasFiltradas = computed(() => {
     const termo = this.busca().trim().toLocaleLowerCase('pt-BR');
@@ -52,7 +54,9 @@ export class AdminMesaPage {
         || mesa.regiao.toLocaleLowerCase('pt-BR').includes(termo)
         || mesa.responsavel?.nome.toLocaleLowerCase('pt-BR').includes(termo)
         || mesa.responsavel?.email.toLocaleLowerCase('pt-BR').includes(termo);
-      if (!correspondeABusca) return false;
+      const responsavel = this.nomeResponsavel().trim().toLocaleLowerCase('pt-BR');
+      if (!correspondeABusca || (responsavel && !mesa.responsavel?.nome.toLocaleLowerCase('pt-BR').includes(responsavel))
+        || (this.local() && mesa.regiao !== this.local())) return false;
       switch (filtro) {
         case 'fixa': return mesa.tipo === 'FIXA';
         case 'livre': return mesa.ativa && mesa.tipo === 'LIVRE' && !mesa.ocupada;
@@ -75,10 +79,7 @@ export class AdminMesaPage {
       return (this.descendente() ? -ordem : ordem) || a.id - b.id;
     });
   });
-  readonly paginaAtual = computed(() => Math.min(this.pagina(),
-    Math.max(0, Math.ceil(this.mesasFiltradas().length / this.tamanhoPagina()) - 1)));
-  readonly mesasPaginadas = computed(() => this.mesasFiltradas().slice(
-    this.paginaAtual() * this.tamanhoPagina(), (this.paginaAtual() + 1) * this.tamanhoPagina()));
+  readonly mesasPaginadas = computed(() => this.paginacao.recortar(this.mesasFiltradas()));
   readonly carregando = signal(false);
   readonly erroConsulta = signal('');
 
@@ -119,7 +120,7 @@ export class AdminMesaPage {
   constructor() {
     effect(() => {
       this.busca(); this.filtroTipo(); this.ordenacao(); this.descendente();
-      this.pagina.set(0);
+      this.paginacao.reiniciar();
     });
     combineLatest([this.recarregarMesas$.pipe(startWith(undefined)), toObservable(this.calendario.hoje)]).pipe(
       tap(() => {
@@ -158,6 +159,8 @@ export class AdminMesaPage {
 
   limparFiltros() {
     this.busca.set('');
+    this.nomeResponsavel.set('');
+    this.local.set('');
     this.filtroTipo.set(null);
     this.carregarMesas();
   }
@@ -174,11 +177,6 @@ export class AdminMesaPage {
   ariaOrdenacao(campo: 'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel'): 'ascending' | 'descending' | 'none' {
     if (this.ordenacao() !== campo) return 'none';
     return this.descendente() ? 'descending' : 'ascending';
-  }
-
-  indicadorOrdenacao(campo: 'codigo' | 'regiao' | 'tipo' | 'status' | 'responsavel'): string {
-    if (this.ordenacao() !== campo) return '↕';
-    return this.descendente() ? '↓' : '↑';
   }
 
   carregarUsuariosAtivos() {
@@ -206,6 +204,7 @@ export class AdminMesaPage {
   }
 
   abrirModalFixar(mesa: Mesa) {
+    if (this.confirmando()) return;
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('fixar');
     this.usuarioSelecionado.set(null);
@@ -217,6 +216,7 @@ export class AdminMesaPage {
   }
 
   abrirModalDesfixar(mesa: Mesa) {
+    if (this.confirmando()) return;
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('desfixar');
     this.erroAcao.set('');
@@ -224,6 +224,7 @@ export class AdminMesaPage {
   }
 
   abrirModalAlterarResponsavel(mesa: Mesa) {
+    if (this.confirmando()) return;
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('alterar-responsavel');
     this.usuarioSelecionado.set(null);
@@ -235,6 +236,7 @@ export class AdminMesaPage {
   }
 
   abrirModalAtivar(mesa: Mesa) {
+    if (this.confirmando()) return;
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('ativar');
     this.erroAcao.set('');
@@ -242,6 +244,7 @@ export class AdminMesaPage {
   }
 
   abrirModalInativar(mesa: Mesa) {
+    if (this.confirmando()) return;
     this.mesaSelecionadaParaAcao.set(mesa);
     this.acaoEmAndamento.set('inativar');
     this.erroAcao.set('');
@@ -386,7 +389,7 @@ export class AdminMesaPage {
       case 'alterar-responsavel': {
         const usuario = this.getUsuarioSelecionado();
         return usuario
-          ? `O novo responsável será ${usuario.nome}.`
+          ? `Mesa ${mesa.codigo}: alterar de ${mesa.responsavel?.nome ?? 'sem responsável'} para ${usuario.nome} (${usuario.email})?`
           : 'Selecione o novo responsável para esta mesa.';
       }
       case 'ativar': {

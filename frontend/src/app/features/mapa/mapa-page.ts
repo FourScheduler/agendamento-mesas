@@ -74,6 +74,12 @@ export class MapaPage {
   );
   private readonly termosBuscaSolicitante = new Subject<string>();
   private reservaPainelRequest = 0;
+  readonly mesaReservadaId = computed(() => {
+    const usuarioId = this.usuario()?.id;
+    if (usuarioId == null) return null;
+    return this.mesasCatalogo().find(m => m.ocupanteNaData?.id === usuarioId)?.id
+      ?? this.mesasCatalogo().find(m => m.responsavel?.id === usuarioId)?.id ?? null;
+  });
 
   constructor() {
     const usuarioAtual = this.usuario();

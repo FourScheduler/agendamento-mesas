@@ -106,6 +106,16 @@
         <strong>{{ mesasFiltradas().length }}</strong>
         {{ mesasFiltradas().length === 1 ? 'mesa encontrada' : 'mesas encontradas' }}
       </span>
+      <label class="campo">Responsável
+        <input class="campo__entrada" type="search" placeholder="Nome completo ou parcial"
+          [ngModel]="nomeResponsavel()" (ngModelChange)="nomeResponsavel.set($event)" />
+      </label>
+      <label class="campo">Local
+        <select class="campo__entrada" [ngModel]="local()" (ngModelChange)="local.set($event)">
+          <option value="">Todos os locais</option>
+          @for (regiao of locais(); track regiao) { <option [value]="regiao">{{ regiao }}</option> }
+        </select>
+      </label>
       </div>
 
       @if (carregando()) {
@@ -124,27 +134,27 @@
               <tr>
                 <th scope="col" [attr.aria-sort]="ariaOrdenacao('codigo')">
                   <button type="button" class="admin-mesa-page__ordenar" data-sort="codigo" (click)="ordenarPor('codigo')">
-                    Número da mesa <span aria-hidden="true">{{ indicadorOrdenacao('codigo') }}</span>
+                    Número da mesa <span class="admin-mesa-page__indicador" [attr.data-direcao]="ariaOrdenacao('codigo')" aria-hidden="true"></span>
                   </button>
                 </th>
                 <th scope="col" [attr.aria-sort]="ariaOrdenacao('regiao')">
                   <button type="button" class="admin-mesa-page__ordenar" data-sort="regiao" (click)="ordenarPor('regiao')">
-                    Localização <span aria-hidden="true">{{ indicadorOrdenacao('regiao') }}</span>
+                    Localização <span class="admin-mesa-page__indicador" [attr.data-direcao]="ariaOrdenacao('regiao')" aria-hidden="true"></span>
                   </button>
                 </th>
                 <th scope="col" [attr.aria-sort]="ariaOrdenacao('tipo')">
                   <button type="button" class="admin-mesa-page__ordenar" data-sort="tipo" (click)="ordenarPor('tipo')">
-                    Tipo <span aria-hidden="true">{{ indicadorOrdenacao('tipo') }}</span>
+                    Tipo <span class="admin-mesa-page__indicador" [attr.data-direcao]="ariaOrdenacao('tipo')" aria-hidden="true"></span>
                   </button>
                 </th>
                 <th scope="col" [attr.aria-sort]="ariaOrdenacao('status')">
                   <button type="button" class="admin-mesa-page__ordenar" data-sort="status" (click)="ordenarPor('status')">
-                    Status <span aria-hidden="true">{{ indicadorOrdenacao('status') }}</span>
+                    Status <span class="admin-mesa-page__indicador" [attr.data-direcao]="ariaOrdenacao('status')" aria-hidden="true"></span>
                   </button>
                 </th>
                 <th scope="col" [attr.aria-sort]="ariaOrdenacao('responsavel')">
                   <button type="button" class="admin-mesa-page__ordenar" data-sort="responsavel" (click)="ordenarPor('responsavel')">
-                    Responsável fixo <span aria-hidden="true">{{ indicadorOrdenacao('responsavel') }}</span>
+                    Responsável fixo <span class="admin-mesa-page__indicador" [attr.data-direcao]="ariaOrdenacao('responsavel')" aria-hidden="true"></span>
                   </button>
                 </th>
                 <th scope="col">Ações</th>
@@ -245,9 +255,9 @@
           </table>
         </div>
       }
-      <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
-        [carregando]="carregando()" (paginaAlterada)="pagina.set($event)"
-        (tamanhoAlterado)="tamanhoPagina.set($event); pagina.set(0)" />
+      <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginacao.pagina()" [tamanho]="paginacao.tamanho()"
+        [desabilitado]="carregando()" (paginaAlterada)="paginacao.pagina.set($event)"
+        (tamanhoAlterado)="paginacao.alterarTamanho($event)" />
     </div>
 
   @if (mesaSelecionadaParaAcao() && acaoEmAndamento()) {
@@ -284,7 +294,7 @@
                 @if (getUsuarioSelecionado(); as usuario) {
                   <span class="modal__mesa-icone" aria-hidden="true">{{ iniciaisUsuario(usuario.nome) }}</span>
                   <span class="usuario-selecionado__dados">
-                    <span class="admin-mesa-page__email">Fixar para</span>
+                    <span class="admin-mesa-page__email">{{ acaoEmAndamento() === 'alterar-responsavel' ? 'Novo responsável' : 'Fixar para' }}</span>
                     <strong>{{ usuario.nome }}</strong>
                     <span class="admin-mesa-page__email">{{ usuario.email }}</span>
                   </span>
@@ -298,6 +308,9 @@
                   Trocar
                 </button>
               </div>
+              @if (acaoEmAndamento() === 'alterar-responsavel') {
+                <p class="modal__mensagem" role="status">{{ getMensagemConfirmacao() }}</p>
+              }
             } @else {
               <p class="modal__mensagem">{{ getMensagemConfirmacao() }}</p>
               <div class="modal__campo">

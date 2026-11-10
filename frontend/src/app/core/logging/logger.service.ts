@@ -6,6 +6,8 @@ interface ContextoLog {
   correlationId?: string;
   status?: number;
   duracaoMs?: number;
+  reservaId?: number;
+  mesaId?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,6 +25,8 @@ export class LoggerService {
       correlationId: contexto.correlationId,
       status: contexto.status,
       duracaoMs: contexto.duracaoMs,
+      reservaId: contexto.reservaId,
+      mesaId: contexto.mesaId,
     });
   }
 }

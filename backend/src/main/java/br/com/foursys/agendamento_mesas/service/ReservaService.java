@@ -256,6 +256,17 @@ public class ReservaService {
         }
     }
 
+    private String normalizarChave(String chave) {
+        if (chave == null) return null;
+        try {
+            String normalizada = UUID.fromString(chave).toString();
+            if (!normalizada.equalsIgnoreCase(chave)) throw new IllegalArgumentException();
+            return normalizada;
+        } catch (IllegalArgumentException e) {
+            throw new DadosInvalidosException("Idempotency-Key deve ser um UUID válido.");
+        }
+    }
+
     //Métodos Utilitários
     public Reserva buscarReserva(Long idReserva) {
         return reservaRepositoryPort.buscarPorId(idReserva)

@@ -4,6 +4,8 @@ export interface Reserva {
   readonly status: 'PENDENTE' | 'CONFIRMADA' | 'CANCELADA';
   readonly data: string;
   readonly criadaEm: string;
+  readonly canceladaEm?: string | null;
+  readonly chaveRequisicao?: string | null;
   readonly confirmadaEm?: string;
   readonly criador?: {
     readonly id: number;

@@ -35,6 +35,7 @@ export class ReservaDiaria {
 
   readonly dataMinima = this.calendario.hoje;
   readonly dataMaxima = computed(() => adicionarDias(this.dataMinima(), 15));
+  readonly tentativaPendente = signal<TentativaReserva | null>(this.lerTentativa());
   readonly data = signal(this.dataInicial());
   readonly erroData = computed(() => validarDataReserva(this.data(), this.dataMinima()));
   private readonly dataConsultada = signal<{ data: string; hoje: string } | null>(null);
@@ -46,8 +47,8 @@ export class ReservaDiaria {
   readonly cancelando = signal(false);
   readonly erro = signal('');
   readonly sucesso = signal('');
+  readonly ultimaConfirmada = signal<Reserva | null>(null);
   readonly atualizacao = signal(0);
-  readonly tentativaPendente = signal<TentativaReserva | null>(this.lerTentativa());
   private readonly reservaParaCancelar = signal<{ id: number; mesaId: number } | null>(null);
 
   constructor() {
@@ -182,7 +183,7 @@ export class ReservaDiaria {
     this.sucesso.set('');
     this.logger.info('reserva.confirmacao.inicio', { correlationId: tentativa.chave });
     this.reservas.criar(tentativa.mesaId, tentativa.data, tentativa.solicitanteId ?? undefined, tentativa.chave).pipe(
-      timeout(20000),
+      timeout(15000),
       catchError((erro: unknown) => {
         if (this.auth.sessao()?.token !== sessao.token) return EMPTY;
         if (erro instanceof TimeoutError || erro instanceof HttpErrorResponse && (erro.status === 0 || erro.status >= 500)) {
@@ -233,6 +234,7 @@ export class ReservaDiaria {
   private concluirConfirmacao(reserva: Reserva) {
     const chave = this.tentativaPendente()?.chave;
     this.salvarTentativa(null);
+    this.ultimaConfirmada.set(reserva.status === 'CONFIRMADA' ? reserva : null);
     this.logger.info('reserva.confirmacao.reconciliada', { correlationId: chave });
     const aposConfirmar = this.aposConfirmar;
     this.aposConfirmar = undefined;
@@ -240,7 +242,7 @@ export class ReservaDiaria {
     if (reserva.status === 'CANCELADA') this.toast.aviso('Reserva já cancelada', 'A tentativa foi localizada, mas a reserva não está mais ativa.');
     else this.toast.sucesso('Reserva Confirmada', `Reserva para ${formatarData(reserva.data)}.`);
     this.calendario.atualizar();
-    this.data.set(reserva.status === 'CANCELADA' ? reserva.data : proximoDiaUtil(this.dataMinima()));
+    this.data.set(reserva.data);
     this.iniciarConsulta();
     this.sincronizarContexto(null);
     this.atualizacao.update(valor => valor + 1);
@@ -288,23 +290,24 @@ export class ReservaDiaria {
 
   /** Cancela uma reserva pelo ID. */
   cancelarReserva(reservaId: number, mesaId: number, aposCancelar?: () => void) {
-    if (this.cancelando() || this.confirmando()) return;
+    const token = this.auth.token();
+    if (!token || this.cancelando() || this.confirmando()) return;
     this.cancelando.set(true);
     this.erro.set('');
     this.sucesso.set('');
-    this.reservaParaCancelar.set({ id: reservaId, mesaId });
+    this.logger.info('reserva.cancelamento.inicio', { reservaId, mesaId });
     this.reservas.cancelar(reservaId)
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           this.cancelando.set(false);
-          this.reservaParaCancelar.set(null);
+          if (this.auth.token() !== token) return;
           aposCancelar?.();
           this.toast.sucesso('Reserva cancelada');
           this.atualizarDisponibilidade();
         },
         error: (erro: HttpErrorResponse) => {
           this.cancelando.set(false);
-          this.reservaParaCancelar.set(null);
+          if (this.auth.token() !== token) return;
           const detalhe = typeof erro.error?.detail === 'string' ? erro.error.detail : '';
           if (erro.status === 409) {
             this.erro.set(detalhe || 'A reserva já está cancelada.');
@@ -327,7 +330,9 @@ export class ReservaDiaria {
 
   private dataInicial(): string {
     this.calendario.atualizar();
-    return this.route.snapshot.queryParamMap.get('data') ?? proximoDiaUtil(this.dataMinima());
+    return this.tentativaPendente()?.data
+      ?? this.route.snapshot.queryParamMap.get('data')
+      ?? proximoDiaUtil(this.dataMinima());
   }
 
   private sincronizarContexto(mesaId: number | null) {

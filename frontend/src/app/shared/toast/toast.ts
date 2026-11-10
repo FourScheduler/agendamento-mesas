@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, inject, signal, computed } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 
 export type ToastTipo = 'sucesso' | 'erro' | 'info' | 'aviso';
 
@@ -11,29 +11,35 @@ export interface Toast {
   fixado?: boolean;
 }
 
+interface ContagemToast {
+  restante: number;
+  inicio: number;
+  timer?: ReturnType<typeof setTimeout>;
+  pausas: Set<'mouse' | 'foco' | 'fixado'>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ToastService {
-  private readonly _toasts = signal<Toast[]>([]);
-  private _proximoId = 0;
-  private readonly contagens = new Map<number, {
-    restante: number; inicio: number; timer?: ReturnType<typeof setTimeout>; pausas: Set<'mouse' | 'foco' | 'fixado'>;
-  }>();
-
-  readonly toasts = computed(() => this._toasts());
+  private readonly itens = signal<Toast[]>([]);
+  private readonly contagens = new Map<number, ContagemToast>();
+  private proximoId = 0;
+  readonly toasts = computed(() => this.itens());
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.limpar());
   }
 
   mostrar(toast: Omit<Toast, 'id'>): number {
-    const id = ++this._proximoId;
-    const novo: Toast = { id, ...toast };
-    this._toasts.update((lista) => [...lista, novo]);
-
-    const ms = toast.duracao ?? 10000;
-    this.contagens.set(id, { restante: ms, inicio: 0, pausas: new Set(ms <= 0 || toast.fixado ? ['fixado'] : []) });
-    this.retomar(id);
-
+    const id = ++this.proximoId;
+    const duracao = toast.duracao ?? 10000;
+    const fixado = toast.fixado === true || duracao <= 0;
+    this.itens.update(lista => [...lista, { ...toast, id, fixado }]);
+    this.contagens.set(id, {
+      restante: Math.max(0, duracao),
+      inicio: 0,
+      pausas: new Set<'mouse' | 'foco' | 'fixado'>(fixado ? ['fixado'] : []),
+    });
+    this.agendar(id);
     return id;
   }
 
@@ -53,18 +59,7 @@ export class ToastService {
     return this.mostrar({ tipo: 'aviso', titulo, mensagem, duracao });
   }
 
-  remover(id: number): void {
-    clearTimeout(this.contagens.get(id)?.timer);
-    this.contagens.delete(id);
-    this._toasts.update((lista) => lista.filter((t) => t.id !== id));
-  }
-
-  limpar(): void {
-    for (const id of this.contagens.keys()) this.remover(id);
-    this._toasts.set([]);
-  }
-
-  pausar(id: number, origem: 'mouse' | 'foco' | 'fixado', pausado: boolean) {
+  pausar(id: number, origem: 'mouse' | 'foco' | 'fixado', pausado: boolean): void {
     const contagem = this.contagens.get(id);
     if (!contagem) return;
     if (contagem.timer !== undefined) {
@@ -74,11 +69,24 @@ export class ToastService {
     }
     if (pausado) contagem.pausas.add(origem);
     else contagem.pausas.delete(origem);
-    if (origem === 'fixado') this._toasts.update(lista => lista.map(t => t.id === id ? { ...t, fixado: pausado } : t));
-    this.retomar(id);
+    if (origem === 'fixado') {
+      this.itens.update(lista => lista.map(item => item.id === id ? { ...item, fixado: pausado } : item));
+    }
+    this.agendar(id);
   }
 
-  private retomar(id: number) {
+  remover(id: number): void {
+    const timer = this.contagens.get(id)?.timer;
+    if (timer !== undefined) clearTimeout(timer);
+    this.contagens.delete(id);
+    this.itens.update(lista => lista.filter(item => item.id !== id));
+  }
+
+  limpar(): void {
+    for (const id of [...this.contagens.keys()]) this.remover(id);
+  }
+
+  private agendar(id: number): void {
     const contagem = this.contagens.get(id);
     if (!contagem || contagem.pausas.size > 0 || contagem.timer !== undefined) return;
     contagem.inicio = Date.now();

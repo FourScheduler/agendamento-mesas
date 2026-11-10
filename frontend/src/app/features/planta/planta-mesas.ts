@@ -37,8 +37,6 @@ import {
 })
 export class PlantaMesas {
   private readonly auth = inject(AuthService);
-  readonly decoracaoNatal = input(true);
-  readonly mostrarArvore = computed(() => this.decoracaoNatal() && ['11', '12'].includes(hojeSaoPaulo().slice(5, 7)));
   readonly minhaMesaId = computed(() => {
     const usuarioId = this.auth.usuario()?.id;
     if (usuarioId == null) return null;
@@ -51,6 +49,14 @@ export class PlantaMesas {
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionadaId = input<number | null>(null);
+  readonly mesaReservadaId = input<number | null>(null);
+  readonly decoracaoNatal = input<boolean | null>(null);
+  readonly natalAtivo = signal(['11', '12'].includes(
+    new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', month: '2-digit' }).format(new Date()),
+  ));
+  readonly exibirNatal = computed(() => this.decoracaoNatal() ?? this.natalAtivo());
+  readonly mostrarArvore = computed(() => this.exibirNatal() && ['11', '12'].includes(hojeSaoPaulo().slice(5, 7)));
+  private focoAutomatico = '';
   readonly mesaSelecionada = output<{ readonly mesa: Mesa; readonly disponivel: boolean }>();
   readonly mesaInicialSelecionada = output<Mesa>();
   readonly mesasCarregadas = output<readonly Mesa[]>();
@@ -212,6 +218,7 @@ export class PlantaMesas {
   }
 
   onMapaModalKeydown(event: KeyboardEvent) {
+    if (!this.mapaAmpliado()) return;
     if (event.key === "Escape") {
       event.preventDefault();
       this.fecharMapaAmpliado();
@@ -271,6 +278,15 @@ export class PlantaMesas {
 
   constructor() {
     effect(() => this.selecionada.set(this.mesaSelecionadaId()));
+    effect(() => {
+      const id = this.mesaReservadaId();
+      const data = this.data();
+      const chave = `${data}:${id}`;
+      if (id == null || this.mesaInicialId() !== null || this.carregando()
+        || !this.mesas().some(mesa => mesa.id === id) || this.focoAutomatico === chave) return;
+      this.focoAutomatico = chave;
+      afterNextRender(() => { if (this.data() === data && this.mesaReservadaId() === id) this.centralizarMesa(id); }, { injector: this.injector });
+    });
     afterNextRender(() => {
       const elemento = this.viewport().nativeElement;
       const ajustar = (largura: number, altura: number) => {
@@ -303,7 +319,6 @@ export class PlantaMesas {
       }).subscribe({
         next: ({ mesas, disponiveis }) => {
           this.mesas.set(mesas);
-          this.mesasCarregadas.emit(mesas);
           this.disponiveis.set(disponiveis ? new Set(disponiveis.map(m => m.id)) : null);
           this.mesasDisponiveisCarregadas.emit(this.disponiveis());
           this.carregando.set(false);
@@ -317,20 +332,7 @@ export class PlantaMesas {
                 this.mesaInicialSelecionada.emit(mesaInicial);
                 afterNextRender(() => {
                   if (this.selecionada() !== mesaInicial.id) return;
-                  const viewport = this.viewport().nativeElement;
-                  const mesa = viewport.querySelector<HTMLElement>(
-                    `button.mesa[data-mesa-id="${mesaInicial.id}"]`,
-                  );
-                  if (!mesa) return;
-                  const area = viewport.getBoundingClientRect();
-                  const alvo = mesa.getBoundingClientRect();
-                  viewport.scrollTo({
-                    left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
-                      - (viewport.clientWidth - alvo.width) / 2,
-                    top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
-                      - (viewport.clientHeight - alvo.height) / 2,
-                    behavior: 'instant',
-                  });
+                  this.centralizarMesa(mesaInicial.id);
                 }, { injector: this.injector });
               }
               else this.mesaInicialInvalidada.emit();
@@ -347,6 +349,7 @@ export class PlantaMesas {
               }
             }
           }
+          this.mesasCarregadas.emit(mesas);
         },
         error: (erro: HttpErrorResponse) => {
           this.carregando.set(false);
@@ -373,13 +376,25 @@ export class PlantaMesas {
       && (!this.data() || this.disponiveis()?.has(mesa.id) === true);
   }
 
+  destacarMinhaMesa(mesa: Mesa): boolean {
+    return this.minhaMesaId() === mesa.id && this.selecionada() !== mesa.id;
+  }
+
   estaOcupada(mesa: Mesa): boolean {
     return mesa.ativa && mesa.tipo === 'LIVRE' && !!this.data()
       && this.disponiveis() !== null && !this.disponiveis()!.has(mesa.id);
   }
 
   nomeOcupante(mesa: Mesa): string | null {
-    return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
+    return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || null;
+  }
+
+  tooltipMesa(mesa: Mesa): string {
+    const pessoa = this.nomeOcupante(mesa);
+    if (pessoa) return `${mesa.ocupanteNaData ? 'Reservada por' : 'Responsável'}: ${pessoa}`;
+    if (!mesa.ativa) return 'Mesa inativa';
+    if (mesa.tipo === 'FIXA') return 'Mesa fixa sem responsável confirmado';
+    return this.estaDisponivel(mesa) ? 'Disponível nesta data' : 'Reservada nesta data';
   }
 
   mostrarTooltip(mesa: Mesa, evento: Event) {

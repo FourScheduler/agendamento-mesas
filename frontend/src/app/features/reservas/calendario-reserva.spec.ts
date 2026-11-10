@@ -20,6 +20,18 @@ class HostCalendario {
 }
 
 describe('CalendarioReserva', () => {
+  it('permite fim de semana e datas históricas no filtro de consulta', () => {
+    const fixture = TestBed.createComponent(CalendarioReserva);
+    fixture.componentRef.setInput('data', '2025-10-25');
+    fixture.componentRef.setInput('modo', 'consulta');
+    fixture.detectChanges();
+    const emitir = vi.fn();
+    fixture.componentInstance.dataSelecionada.subscribe(emitir);
+    const dialogo = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    dialogo.close = vi.fn();
+    fixture.componentInstance.selecionar('2025-10-25');
+    expect(emitir).toHaveBeenCalledWith('2025-10-25');
+  });
   it('bloqueia sábados, domingos e datas fora da janela e permite escolher dia útil em outro mês', () => {
     const fixture = TestBed.createComponent(HostCalendario);
     fixture.detectChanges();

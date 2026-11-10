@@ -1,6 +1,6 @@
 <header class="agendamento__header">
   <div class="agendamento__header-topo">
-    <p class="eyebrow">Agendamento de Mesas</p>
+    <p class="eyebrow">Seu espaço de trabalho</p>
     <h1 class="titulo">Escolha uma mesa</h1>
     <p class="subtitulo">Selecione a data, escolha uma mesa livre e confirme</p>
     <button class="botao botao--contorno" type="button" (click)="irParaReservas()">Minhas reservas</button>
@@ -167,9 +167,9 @@
       }
     </div>
     }
-    <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
-      [carregando]="carregandoMesas()" (paginaAlterada)="pagina.set($event)"
-      (tamanhoAlterado)="tamanhoPagina.set($event); pagina.set(0)" />
+    <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginacao.pagina()" [tamanho]="paginacao.tamanho()"
+      [desabilitado]="carregandoMesas()" (paginaAlterada)="paginacao.pagina.set($event)"
+      (tamanhoAlterado)="paginacao.alterarTamanho($event)" />
   </section>
 
   <!-- Lado direito: resumo da reserva (aparece apenas quando há mesa selecionada) -->

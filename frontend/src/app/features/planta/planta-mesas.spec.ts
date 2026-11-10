@@ -75,7 +75,10 @@ describe("PlantaMesas", () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(centralizar).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.querySelector('.mesa--minha')).not.toBeNull();
+    const mesaPropria = fixture.nativeElement.querySelector('.mesa--minha') as HTMLElement;
+    expect(mesaPropria).not.toBeNull();
+    expect(getComputedStyle(mesaPropria).outlineStyle).toBe('solid');
+    expect(getComputedStyle(mesaPropria).outlineWidth).toBe('2px');
     expect(fixture.nativeElement.querySelector('.legenda__minha')?.textContent.trim()).toBe('Sua mesa');
     expect(getComputedStyle(fixture.nativeElement.querySelector('.legenda__minha')).fontSize).toBe('0.8125rem');
     expect(fixture.componentInstance.selecionada()).toBeNull();
@@ -535,6 +538,10 @@ describe("PlantaMesas", () => {
     ) as HTMLButtonElement;
     expect(botaoData.classList.contains("mapa__alternar-data-modal")).toBe(true);
     expect(botaoData.getAttribute("aria-pressed")).toBe("false");
+    const botaoNomes = fixture.nativeElement.querySelector('.mapa__alternar-nomes-modal') as HTMLButtonElement;
+    expect(botaoNomes.parentElement).toBe(botaoData.parentElement);
+    expect(botaoNomes.style.right).toBe('');
+    expect(botaoNomes.classList.contains('mapa__fechar-ampliado')).toBe(false);
     expect(dataMapa.style.display).toBe("none");
     botaoData.click();
     fixture.detectChanges();
@@ -595,6 +602,19 @@ describe("PlantaMesas", () => {
     modal.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     fixture.detectChanges();
     expect(fixture.componentInstance.mapaAmpliado()).toBe(false);
+  });
+
+  it('não captura Tab e Escape da página quando o modal está fechado', () => {
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush([]);
+    fixture.detectChanges();
+    const modal = fixture.nativeElement.querySelector('.mapa__modal') as HTMLElement;
+    for (const key of ['Tab', 'Escape']) {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      modal.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
   });
 
   it("ajusta a escala do modal para enquadrar a planta na largura e altura disponíveis", () => {

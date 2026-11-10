@@ -40,6 +40,7 @@
     </div>
 
     <div class="minhas-reservas__campos">
+      @if (filtro() === 'ativas') {
       <label class="campo minhas-reservas__campo">
         <span class="campo__rotulo">Status</span>
         <select
@@ -48,12 +49,13 @@
           [disabled]="filtro() === 'canceladas'"
           (change)="trocarStatus($event)"
         >
-          <option value="">Todos os status</option>
+          <option value="">Todas as ativas</option>
           @for (opcao of opcoesStatus; track opcao) {
             <option [value]="opcao">{{ rotuloStatus(opcao) }}</option>
           }
         </select>
       </label>
+      }
 
       <div class="campo minhas-reservas__campo">
         <label class="campo__rotulo" for="filtro-data-inicio">De</label>
@@ -85,6 +87,8 @@
     </div>
     <p class="minhas-reservas__detalhes">Ativas reúne reservas não canceladas, inclusive dias já encerrados. O período pode ser combinado com a situação.</p>
   </div>
+
+  <p class="subtitulo">Ativas reúne reservas pendentes e confirmadas, inclusive datas anteriores. Canceladas são exibidas separadamente.</p>
 
   @if (periodoInvalido()) {
     <p class="campo__erro minhas-reservas__aviso" role="alert">

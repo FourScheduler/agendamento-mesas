@@ -54,7 +54,7 @@ describe('Agendamento integrado à reserva diária', () => {
   });
 
   function consulta(data = '2026-10-28') {
-    return http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === data);
+    return http.expectOne(r => r.url.includes('/api/mesas/disponiveis') && r.urlWithParams.includes(data));
   }
   function alterarCampo(fixture: ReturnType<typeof TestBed.createComponent<AgendamentoPage>>, data: string) {
     const campo = fixture.nativeElement.querySelector('#data-reserva') as HTMLInputElement;
@@ -90,13 +90,13 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-28');
     request.flush({ id: 9, status: 'CONFIRMADA', data: '2026-10-28', mesa, solicitante: usuario });
     fixture.detectChanges();
-    consulta('2026-10-27').flush([mesa]);
+    consulta('2026-10-28').flush([mesa]);
     fixture.detectChanges();
     expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva Confirmada', 'Reserva para 28/10/2026.');
-    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-27');
+    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-28');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith([], expect.objectContaining({
-      queryParams: { data: '2026-10-27', mesaId: null },
+      queryParams: { data: '2026-10-28', mesaId: null },
     }));
     http.expectNone(r => r.url.includes('/confirmacao'));
   });
@@ -113,7 +113,7 @@ describe('Agendamento integrado à reserva diária', () => {
     http.expectNone('/api/reservas');
   });
 
-  it('retorna para hoje em São Paulo, sem confundir a data UTC com a data reservada', () => {
+  it('mantém a data reservada sem confundir o dia em São Paulo com a data UTC', () => {
     vi.setSystemTime(new Date('2026-10-28T01:00:00Z'));
     const fixture = abrir();
     fixture.componentInstance.confirmarReserva();
@@ -121,9 +121,9 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(request.request.body.data).toBe('2026-10-28');
     request.flush({ id: 9, status: 'CONFIRMADA', data: '2026-10-28', mesa, solicitante: usuario });
     fixture.detectChanges();
-    consulta('2026-10-27').flush([mesa]);
+    consulta('2026-10-28').flush([mesa]);
     fixture.detectChanges();
-    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-27');
+    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-28');
     expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva Confirmada', 'Reserva para 28/10/2026.');
   });
 
@@ -142,11 +142,11 @@ describe('Agendamento integrado à reserva diária', () => {
       id: 21, data: '2026-10-28', status: 'CONFIRMADA', mesa, solicitante: usuario,
     });
     fixture.detectChanges();
-    consulta('2026-10-27').flush([mesa]);
+    consulta('2026-10-28').flush([mesa]);
     fixture.detectChanges();
     expect(mockToastService.sucesso).toHaveBeenCalledTimes(1);
     expect(fixture.componentInstance.reserva.tentativaPendente()).toBeNull();
-    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-27');
+    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-28');
     http.expectNone('/api/reservas');
   });
 
@@ -161,7 +161,7 @@ describe('Agendamento integrado à reserva diária', () => {
     const restaurada = TestBed.createComponent(AgendamentoPage);
     http.expectOne('/api/mesas').flush([mesa]);
     restaurada.detectChanges();
-    consulta('2026-10-27').flush([mesa]);
+    consulta('2026-10-28').flush([mesa]);
     restaurada.detectChanges();
     expect(restaurada.componentInstance.reserva.tentativaPendente()?.chave).toBe(chave);
     expect(restaurada.nativeElement.querySelector('.confirmacao-pendente')).not.toBeNull();
@@ -204,14 +204,14 @@ describe('Agendamento integrado à reserva diária', () => {
     fixture.detectChanges();
     consulta().flush(mesas);
     fixture.detectChanges();
-    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(10);
-    fixture.componentInstance.pagina.set(2);
+    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(12);
+    fixture.componentInstance.paginacao.pagina.set(2);
     fixture.detectChanges();
-    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(5);
+    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(12);
     fixture.componentInstance.local.set('Local A');
     fixture.componentInstance.busca.set('01');
     fixture.detectChanges();
-    expect(fixture.componentInstance.paginaAtual()).toBe(0);
+    expect(fixture.componentInstance.paginacao.pagina()).toBe(1);
     expect(fixture.componentInstance.mesasFiltradas().every(m => m.regiao === 'Local A' && m.codigo.includes('01'))).toBe(true);
     fixture.componentInstance.limparFiltros();
     fixture.detectChanges();
@@ -449,7 +449,7 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(confirmacao.request.body).toEqual({ mesaId: 44, data: '2026-10-28', solicitanteId: 8 });
     confirmacao.flush({ id: 9, status: 'CONFIRMADA', data: '2026-10-28', mesa, solicitante: { id: 8 } });
     fixture.detectChanges();
-    consulta('2026-10-27').flush([mesa]);
+    consulta('2026-10-28').flush([mesa]);
   });
 
   it('usa a data digitada no campo na consulta, no resumo e na confirmação diária', () => {
@@ -474,10 +474,10 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(confirmacao.request.body).toEqual({ mesaId: 53, data: '2026-10-29' });
     confirmacao.flush({ id: 9, status: 'CONFIRMADA', data: '2026-10-29', mesa: novaMesa, solicitante: usuario });
     fixture.detectChanges();
-    consulta('2026-10-27').flush([mesa]);
+    consulta('2026-10-29').flush([mesa]);
     fixture.detectChanges();
     expect(mockToastService.sucesso).toHaveBeenCalledWith('Reserva Confirmada', 'Reserva para 29/10/2026.');
-    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-27');
+    expect(fixture.componentInstance.dataSelecionada()).toBe('2026-10-29');
   });
 
   for (const [data, mensagem] of [

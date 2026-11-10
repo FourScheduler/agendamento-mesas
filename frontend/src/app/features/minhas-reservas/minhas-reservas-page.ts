@@ -66,6 +66,7 @@ export class MinhasReservasPage implements OnInit {
   readonly pagina = signal(0);
   readonly tamanhoPagina = signal(10);
   readonly totalRegistros = signal(0);
+  private versaoConsulta = 0;
 
   readonly statusFiltro = signal<StatusReserva | null>(null);
   readonly periodoFiltro = signal<PeriodoPersonalizado>({ inicio: null, fim: null });
@@ -157,13 +158,16 @@ export class MinhasReservasPage implements OnInit {
     const params: { status?: string; dataInicio?: string; dataFim?: string } = {};
     if (inicio) params.dataInicio = inicio;
     if (fim) params.dataFim = fim;
-    if (this.statusFiltro()) {
+    if (this.filtro() === 'canceladas') {
+      params.status = 'CANCELADA';
+    } else if (this.statusFiltro()) {
       params.status = this.statusFiltro()!;
     }
 
     this.erroApi.set(null);
     this.carregando.set(true);
 
+    const versao = ++this.versaoConsulta;
     const consulta = this.reservasService.listarPagina(this.ehAdmin(), {
       ...params, pagina: this.pagina(), tamanho: this.tamanhoPagina(), canceladas: this.filtro() === 'canceladas',
     });
@@ -171,6 +175,7 @@ export class MinhasReservasPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (resultado) => {
+          if (versao !== this.versaoConsulta) return;
           if (resultado.totalRegistros > 0 && this.pagina() >= resultado.totalPaginas) {
             this.pagina.set(resultado.totalPaginas - 1);
             this.buscar();
@@ -181,6 +186,7 @@ export class MinhasReservasPage implements OnInit {
           this.carregando.set(false);
         },
         error: (erro: unknown) => {
+          if (versao !== this.versaoConsulta) return;
           this.reservas.set([]);
           this.totalRegistros.set(0);
           this.carregando.set(false);
@@ -223,6 +229,10 @@ export class MinhasReservasPage implements OnInit {
     this.periodoFiltro.update((periodo) => ({ ...periodo, [campo]: valor || null }));
     this.pagina.set(0);
     this.buscar();
+  }
+
+  definirData(campo: 'inicio' | 'fim', valor: string): void {
+    this.selecionarData(campo, valor);
   }
 
   limparFiltros(): void {

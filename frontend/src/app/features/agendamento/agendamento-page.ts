@@ -12,7 +12,7 @@ import { Mesa } from '../mesas/mesa';
 import { ReservaService } from './reserva.service';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
 import { ConfirmacaoPendente } from '../reservas/confirmacao-pendente';
-import { Paginacao } from '../../shared/paginacao/paginacao';
+import { EstadoPaginacao, Paginacao } from '../../shared/paginacao';
 
 @Component({
   selector: 'app-agendamento-page',
@@ -44,11 +44,8 @@ export class AgendamentoPage {
   readonly busca = signal('');
   readonly local = signal('');
   readonly locais = computed(() => [...new Set(this.todasMesas().map(m => m.regiao))].sort());
-  readonly pagina = signal(0);
-  readonly tamanhoPagina = signal(10);
-  readonly paginaAtual = computed(() => Math.min(this.pagina(), Math.max(0, Math.ceil(this.mesasFiltradas().length / this.tamanhoPagina()) - 1)));
-  readonly mesasPaginadas = computed(() => this.mesasFiltradas().slice(
-    this.paginaAtual() * this.tamanhoPagina(), (this.paginaAtual() + 1) * this.tamanhoPagina()));
+  readonly paginacao = new EstadoPaginacao();
+  readonly mesasPaginadas = computed(() => this.paginacao.recortar(this.mesasFiltradas()));
   readonly carregandoMesas = signal(false);
   readonly erroConsulta = signal('');
   readonly erroCatalogo = signal('');
@@ -121,7 +118,7 @@ export class AgendamentoPage {
   readonly temMesaSelecionada = computed(() => !!this.mesaSelecionada());
 
   constructor() {
-    effect(() => { this.busca(); this.local(); this.dataSelecionada(); this.pagina.set(0); });
+    effect(() => { this.busca(); this.local(); this.dataSelecionada(); this.paginacao.reiniciar(); });
     this.termosBuscaSolicitante.pipe(
       distinctUntilChanged(),
       tap(termo => {

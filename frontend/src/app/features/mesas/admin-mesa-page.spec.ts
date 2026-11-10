@@ -259,24 +259,28 @@ describe('AdminMesaPage', () => {
     fixture.detectChanges();
     await new Promise<void>(resolve => setTimeout(resolve, 300));
     fixture.detectChanges();
-    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(10);
-    expect(fixture.nativeElement.querySelectorAll('.admin-mesa-page__filtros input')).toHaveLength(1);
-    expect(fixture.nativeElement.querySelectorAll('.admin-mesa-page__filtros select')).toHaveLength(0);
-    fixture.componentInstance.pagina.set(2);
+    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(12);
+    expect(fixture.nativeElement.querySelector('#busca')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.admin-mesa-page__filtros select')).toHaveLength(1);
+    fixture.componentInstance.paginacao.pagina.set(3);
     fixture.detectChanges();
-    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(5);
+    expect(fixture.componentInstance.mesasPaginadas()).toHaveLength(1);
     const busca = fixture.nativeElement.querySelector('#busca') as HTMLInputElement;
     busca.value = 'sILVa';
     busca.dispatchEvent(new Event('input'));
     fixture.componentInstance.filtroTipo.set('fixa');
     fixture.detectChanges();
-    expect(fixture.componentInstance.paginaAtual()).toBe(0);
+    expect(fixture.componentInstance.paginacao.pagina()).toBe(1);
     expect(fixture.componentInstance.mesasFiltradas()).toHaveLength(12);
 
     const ordenarCodigo = fixture.nativeElement.querySelector('[data-sort="codigo"]') as HTMLButtonElement;
+    const indicadorCodigo = ordenarCodigo.querySelector('.admin-mesa-page__indicador') as HTMLElement;
+    expect(indicadorCodigo.getAttribute('data-direcao')).toBe('ascending');
+    expect(indicadorCodigo.textContent).toBe('');
     ordenarCodigo.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('th[aria-sort="descending"] [data-sort="codigo"]')).not.toBeNull();
+    expect(indicadorCodigo.getAttribute('data-direcao')).toBe('descending');
     expect(fixture.componentInstance.mesasPaginadas()[0].codigo).toBe('024');
 
     busca.value = 'local b';

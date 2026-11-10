@@ -1058,6 +1058,75 @@ public class ReservaApiTests {
         assertThat(reservas.contar()).isEqualTo(1);
     }
 
+    @Test
+    void repeteChaveAposCommitSemDuplicarERejeitaOutroPayload() throws Exception {
+        String chave = java.util.UUID.randomUUID().toString();
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave);
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
+                .header("Idempotency-Key", chave.toUpperCase(java.util.Locale.ROOT)).contentType(MediaType.APPLICATION_JSON).content(corpo(mesa, HOJE)))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(criada.id()))
+            .andExpect(jsonPath("$.chaveRequisicao").value(chave));
+        assertThat(reservas.contar()).isEqualTo(1);
+        assertThatThrownBy(() -> service.criar(new CriarReservaRequest(outraMesa.getId(), HOJE, null), identidade(maria), chave))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void chaveInvalidaERejeitadaEChaveEIsoladaPorAutor() throws Exception {
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
+                .header("Idempotency-Key", "invalida").contentType(MediaType.APPLICATION_JSON).content(corpo(mesa, HOJE)))
+            .andExpect(status().isBadRequest());
+        assertThat(reservas.contar()).isZero();
+        String chave = java.util.UUID.randomUUID().toString();
+        var criada = service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave);
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(joao))
+                .header("Idempotency-Key", chave).contentType(MediaType.APPLICATION_JSON).content(corpo(outraMesa, HOJE)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.usuarioId").value(joao.getId()))
+            .andExpect(jsonPath("$.id").value(org.hamcrest.Matchers.not(criada.id())));
+        assertThat(reservas.contar()).isEqualTo(2);
+        service.cancelar(criada.id(), identidade(maria));
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(maria))
+                .header("Idempotency-Key", chave).contentType(MediaType.APPLICATION_JSON).content(corpo(mesa, HOJE)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value(criada.id()))
+            .andExpect(jsonPath("$.status").value("CANCELADA"));
+        assertThat(reservas.contar()).isEqualTo(2);
+    }
+
+    @Test
+    void mesmaChaveConcorrenteRetornaMesmaReserva() throws Exception {
+        String chave = java.util.UUID.randomUUID().toString();
+        var ids = disputar(
+            () -> service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave).id().intValue(),
+            () -> service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave).id().intValue());
+        assertThat(ids.get(0)).isEqualTo(ids.get(1));
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
+    @Test
+    void administradoresCruzadosReservamSemInverterLocksDosUsuarios() throws Exception {
+        var outroAdmin = usuarios.salvar(new Usuario("Admin 2", "admin2@teste.com", "hash", PerfilUsuario.ADMIN, true));
+        assertThat(disputar(
+            () -> { service.criar(new CriarReservaRequest(mesa.getId(), HOJE, outroAdmin.getId()), identidade(admin)); return 201; },
+            () -> { service.criar(new CriarReservaRequest(outraMesa.getId(), HOJE, admin.getId()), identidade(outroAdmin)); return 201; }
+        )).containsOnly(201);
+        assertThat(reservas.contar()).isEqualTo(2);
+    }
+
+    @Test
+    void rollbackLiberaChaveDaConfirmacaoParaNovaTentativa() {
+        String chave = java.util.UUID.randomUUID().toString();
+        assertThatThrownBy(() -> transacao().executeWithoutResult(tx -> {
+            service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave);
+            throw new IllegalStateException("Falha depois do flush");
+        })).isInstanceOf(IllegalStateException.class);
+        assertThat(reservas.contar()).isZero();
+        assertThat(service.criar(new CriarReservaRequest(mesa.getId(), HOJE, null), identidade(maria), chave).chaveRequisicao()).isEqualTo(chave);
+        assertThat(reservas.contar()).isEqualTo(1);
+    }
+
     ResultActions criar(Usuario usuario, Mesa mesa, LocalDate data) throws Exception {
         return mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(usuario))
                 .contentType(MediaType.APPLICATION_JSON).content(corpo(mesa, data)));

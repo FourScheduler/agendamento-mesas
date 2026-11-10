@@ -1,3 +1,7 @@
+.minhas-reservas .minhas-reservas__cartao { position:relative; }
+.minhas-reservas .minhas-reservas__status { position:absolute; right:1rem; top:1rem; }
+.minhas-reservas .minhas-reservas__nomeLinha { padding-right:7rem; min-height:2rem; }
+.minhas-reservas .minhas-reservas__acoes { padding-top:1.75rem; }
 .minhas-reservas > * {
   width: 100%;
   max-width: 62rem;

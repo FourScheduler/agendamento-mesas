@@ -44,7 +44,7 @@ public interface ReservaJpaRepository extends JpaRepository<Reserva, Long> {
         """)
     List<Long> buscarCanceladasParaRetencao(@Param("limite") LocalDateTime limite, Pageable pagina);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         delete from Reserva r where r.id in :ids
           and r.status = br.com.foursys.agendamento_mesas.enums.StatusReserva.CANCELADA

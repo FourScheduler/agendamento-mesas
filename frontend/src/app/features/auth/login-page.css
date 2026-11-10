@@ -39,3 +39,13 @@ form {
   width: 100%;
   justify-content: space-between;
 }
+
+.login-apresentacao { max-width:470px; }
+.login-apresentacao h1 { color:var(--navy); font-size:clamp(2rem,4vw,3.5rem); line-height:1.12; margin:1rem 0; }
+.login-apresentacao p,.login-apresentacao li { color:var(--muted); line-height:1.7; }
+.login-apresentacao ul { padding-left:1.25rem; margin-top:1.5rem; }
+.cartao__cabecalho { padding:2rem 1.5rem 1rem; }
+.cartao__cabecalho h2 { color:var(--navy); font-size:1.65rem; margin:.5rem 0; }
+.cartao__cabecalho p { color:var(--muted); line-height:1.5; }
+.login__erro { padding:.75rem; border-radius:8px; color:var(--erro-texto); background:var(--erro-fundo); }
+@media(max-width:760px) { .login-page { flex-direction:column; gap:1.5rem; } .login-apresentacao { width:min(100%,440px); } .login-apresentacao ul { display:none; } }

@@ -20,7 +20,8 @@ public record ReservaResponse(
     LocalDateTime canceladaEm,
     MesaResumo mesa,
     SolicitanteResumo solicitante,
-    CriadorResumo criador
+    CriadorResumo criador,
+    String chaveRequisicao
 ) {
     public record MesaResumo(Long id, String codigo, String regiao) {}
     public record SolicitanteResumo(Long id, String nome, String email) {}
@@ -42,7 +43,8 @@ public record ReservaResponse(
             reserva.getCanceladaEm(),
             new MesaResumo(mesa.getId(), mesa.getCodigo(), mesa.getRegiao()),
             new SolicitanteResumo(usuario.getId(), usuario.getNome(), usuario.getEmail()),
-            criador == null ? null : new CriadorResumo(criador.getId(), criador.getNome(), criador.getPapel())
+            criador == null ? null : new CriadorResumo(criador.getId(), criador.getNome(), criador.getPapel()),
+            reserva.getChaveRequisicao()
         );
     }
 }

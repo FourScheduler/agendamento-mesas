@@ -53,8 +53,9 @@ describe("Barra de reserva do mapa", () => {
     vi.useRealTimers();
   });
 
-  function abrir(mesaExibida: Mesa = mesa) {
+  function abrir(mesaExibida: Mesa = mesa, data?: string) {
     const fixture = TestBed.createComponent(MapaPage);
+    if (data) fixture.componentInstance.reserva.alterarData(data);
     fixture.detectChanges();
     http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http
@@ -94,6 +95,7 @@ describe("Barra de reserva do mapa", () => {
     expect(getComputedStyle(aviso).flexShrink).toBe("0");
     expect(getComputedStyle(conteudo).flexGrow).toBe("1");
     expect(getComputedStyle(conteudo).minHeight).toBe("0px");
+    expect(getComputedStyle(conteudo).width).toBe("100%");
     expect(getComputedStyle(host.querySelector(".detalhes")!).overflow).toBe("auto");
   });
 
@@ -201,7 +203,7 @@ describe("Barra de reserva do mapa", () => {
     const olho = fixture.nativeElement.querySelector(
       ".mapa__alternar-nomes-modal",
     ) as HTMLButtonElement;
-    expect(ferramentas.contains(olho)).toBe(false);
+    expect(ferramentas.contains(olho)).toBe(true);
     expect(olho.getAttribute("aria-pressed")).toBe("false");
     olho.click();
     fixture.detectChanges();
@@ -260,8 +262,8 @@ describe("Barra de reserva do mapa", () => {
       vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
         return new DOMRect(710, 920, 100, 60);
       });
-      http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
-      http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+      http.expectOne(request => request.urlWithParams.startsWith("/api/mesas/com-ocupacao")).flush([mesa]);
+      http.expectOne(request => request.urlWithParams.startsWith("/api/mesas/disponiveis")).flush([mesa]);
       fixture.detectChanges();
       const botao = fixture.nativeElement.querySelector("button.mesa") as HTMLButtonElement;
       expect(botao.classList.contains("selecionada")).toBe(true);
@@ -447,20 +449,24 @@ describe("Barra de reserva do mapa", () => {
       .flush([mesa]);
   });
 
-  it("fecha os detalhes após confirmar e não deixa uma confirmação sem mesa selecionada", () => {
-    const fixture = abrir();
+  it("fecha os detalhes após confirmar e não deixa uma confirmação sem mesa selecionada", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-27T12:00:00Z"));
+    const fixture = abrir(mesa, "2026-10-28");
 
     (fixture.nativeElement.querySelector(".confirmar") as HTMLButtonElement).click();
     const request = http.expectOne("/api/reservas");
     request.flush({ id: 9, data: "2026-10-28", status: "CONFIRMADA" });
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     expect(fixture.componentInstance.detalhesAbertos()).toBe(false);
     expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
     expect(fixture.nativeElement.querySelector(".confirmar")).toBeNull();
-    http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
-    http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
+    http.expectOne(request => request.urlWithParams.startsWith("/api/mesas/com-ocupacao")).flush([mesa]);
+    http.expectOne(request => request.urlWithParams.startsWith("/api/mesas/disponiveis")).flush([mesa]);
     fixture.detectChanges();
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
   });
@@ -626,7 +632,7 @@ describe("Barra de reserva do mapa", () => {
       mesa: { id: 44, codigo: "044", regiao: "TAMBORÉ" },
     }]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector(".botao--perigo")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".detalhes footer .botao--perigo")).not.toBeNull();
   });
 
   it("permite limpar a seleção sem enviar reserva", () => {
