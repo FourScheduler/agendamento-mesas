@@ -27,6 +27,17 @@ const mockToastService = {
 
 describe('Reserva diária pela planta', () => {
   let http: HttpTestingController;
+  beforeAll(() => {
+    Object.defineProperties(HTMLElement.prototype, {
+      showPopover: { configurable: true, writable: true, value: vi.fn() },
+      hidePopover: { configurable: true, writable: true, value: vi.fn() },
+    });
+  });
+  afterAll(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'showPopover');
+    Reflect.deleteProperty(HTMLElement.prototype, 'hidePopover');
+  });
+
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();

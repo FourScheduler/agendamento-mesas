@@ -39,7 +39,7 @@ const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA'];
 @Component({
   selector: 'app-minhas-reservas-page',
   standalone: true,
-  imports: [Carregando, Erro, Vazio],
+  imports: [Carregando, Erro, Vazio, CalendarioReserva],
   templateUrl: './minhas-reservas-page.html',
   styleUrl: './minhas-reservas-page.css',
 })
