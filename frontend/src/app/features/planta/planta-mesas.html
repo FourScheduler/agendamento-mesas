@@ -209,11 +209,12 @@
             (click)="fecharTooltip($event); selecionar(mesa)"
             (mouseenter)="abrirTooltip($event)"
             (mouseleave)="fecharTooltip($event)"
-            (focus)="onMesaFocus(mesa); abrirTooltip($event)"
+            (pointerleave)="fecharTooltip($event)"
+            (focus)="onMesaFocus(mesa); abrirTooltipNoTeclado($event)"
             (blur)="fecharTooltip($event)"
           >
             @if (nomeOcupante(mesa); as nome) {
-              <span class="mesa-tooltip" popover="manual" aria-hidden="true">{{ mesa.codigo }} - {{ nome }}</span>
+              <span class="mesa-tooltip" popover="manual" aria-hidden="true">{{ nome }}</span>
             }
             @if (planta.posicoes.get(mesa.id)!.superior) {
               <span class="mesa__cadeira mesa__cadeira--superior" aria-hidden="true"></span>

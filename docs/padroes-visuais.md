@@ -94,9 +94,12 @@ visual e a marca, com componentes próprios para seus contratos de API.
   esquerdo. A data abre o calendário de seleção e atualiza a disponibilidade; o
   olho alterna a exibição dos nomes dos ocupantes.
   Ao passar o mouse sobre uma mesa, o nome do ocupante na data ou do responsável
-  fixo aparece em um popup arredondado no formato `000 - Nome Responsavel`,
-  preservando o codigo completo, mesmo quando os nomes estao ocultos no desenho.
-  O popup tem fundo cinza-escuro, texto branco de 18px e fica centralizado
+  fixo aparece em um popup arredondado somente com o nome,
+  mesmo quando os nomes estao ocultos no desenho.
+  O popup compacto tem fundo cinza-escuro `#52525b`, raio de 16px,
+  texto branco de 12px e largura limitada à mesa, com quebra de linha
+  entre nome e sobrenomes conforme o espaço disponível.
+  Fica centralizado
   no lugar do numero da mesa apontada, ocultando-o temporariamente enquanto
   estiver aberto. Ao sair, o numero reaparece. Tambem aparece no foco por teclado.
   Usa a camada superior do navegador (Popover API), sem recorte pela planta

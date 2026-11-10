@@ -2,21 +2,24 @@ app-planta-mesas .mesa--tooltip .mesa__codigo {
   visibility: hidden;
 }
 app-planta-mesas .mesa-tooltip {
+  transition: none;
+  animation: none;
   position: fixed;
   inset: auto;
   margin: 0;
   width: max-content;
-  min-width: 220px;
-  max-width: min(360px, calc(100vw - 16px));
-  padding: 14px 20px;
-  border: 1px solid #4b5563;
-  border-radius: 12px;
-  background: #27272a;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 8px 12px;
+  border: 1px solid #71717a;
+  border-radius: 16px;
+  background: #52525b;
   color: #fff;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-  font-size: 18px;
+  font-size: 12px;
   line-height: 1.4;
+  white-space: normal;
   overflow-wrap: anywhere;
+  overflow: hidden;
   pointer-events: none;
 }
 

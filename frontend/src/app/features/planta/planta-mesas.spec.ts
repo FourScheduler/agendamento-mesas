@@ -612,15 +612,19 @@ describe("PlantaMesas", () => {
     expect(mesas[1].querySelector('.mesa__estado')?.textContent).toBe('Livre');
     expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
 
-    expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('065 - Pessoa Exemplo');
+    expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Exemplo');
     expect(mesas[1].querySelector('.mesa-tooltip')).toBeNull();
-    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('067 - Pessoa Reservada');
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Reservada');
     expect(mesas[2].hasAttribute('title')).toBe(false);
     expect(mesas[2].querySelector('.mesa-tooltip')?.getAttribute('aria-hidden')).toBe('true');
     const tooltip = mesas[2].querySelector('.mesa-tooltip') as HTMLElement;
     tooltip.showPopover = vi.fn();
     tooltip.hidePopover = vi.fn();
     const codigo = mesas[2].querySelector('.mesa__codigo') as HTMLElement;
+    vi.spyOn(mesas[2], 'getBoundingClientRect').mockReturnValue({
+      left: 380, top: 280, width: 140, height: 120,
+      right: 520, bottom: 400, x: 380, y: 280, toJSON: () => ({}),
+    });
     vi.spyOn(codigo, 'getBoundingClientRect').mockReturnValue({
       left: 400, top: 300, width: 100, height: 80,
       right: 500, bottom: 380, x: 400, y: 300, toJSON: () => ({}),
@@ -632,12 +636,21 @@ describe("PlantaMesas", () => {
     expect(tooltip.showPopover).toHaveBeenCalledOnce();
     expect(tooltip.style.left).toBe('340px');
     expect(tooltip.style.top).toBe('315px');
+    expect(tooltip.style.zoom).toBe(String(1 / fixture.componentInstance.escala()));
+    expect(tooltip.style.width).toBe('140px');
     expect(mesas[2].classList.contains('mesa--tooltip')).toBe(true);
     expect(codigo.textContent).toBe('67');
-    mesas[2].dispatchEvent(new MouseEvent('mouseleave'));
+    mesas[2].dispatchEvent(new Event('pointerleave'));
     expect(tooltip.hidePopover).toHaveBeenCalledOnce();
     expect(mesas[2].classList.contains('mesa--tooltip')).toBe(false);
     expect(codigo.textContent).toBe('67');
+    for (const evento of ['wheel', 'scroll']) {
+      mesas[2].dispatchEvent(new MouseEvent('mouseenter'));
+      const chamadasAntes = vi.mocked(tooltip.hidePopover).mock.calls.length;
+      fixture.nativeElement.querySelector('.mapa__viewport').dispatchEvent(new Event(evento));
+      expect(tooltip.hidePopover).toHaveBeenCalledTimes(chamadasAntes + 1);
+      expect(mesas[2].classList.contains('mesa--tooltip')).toBe(false);
+    }
     expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
 
     const mesaFixa = mesas[0];
@@ -651,7 +664,7 @@ describe("PlantaMesas", () => {
     expect(getComputedStyle(mesaFixa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
     expect(mesaFixa.querySelector('.mesa__estado')).toBeNull();
     expect(mesas[2].getAttribute('aria-label')).toContain('Pessoa Reservada');
-    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('067 - Pessoa Reservada');
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Reservada');
   });
 
   it("arrasta somente o fundo e libera a captura ao finalizar", () => {

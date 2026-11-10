@@ -14,7 +14,7 @@ import {
   HostListener,
 } from "@angular/core";
 import { HttpErrorResponse } from "@angular/common/http";
-import { NgTemplateOutlet } from "@angular/common";
+import { DOCUMENT, NgTemplateOutlet } from "@angular/common";
 import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
@@ -255,8 +255,17 @@ export class PlantaMesas {
     this.arrastando.set(false);
   }
   private readonly catalogo = inject(MesaService);
+  private readonly documento = inject(DOCUMENT);
+  private mesaComTooltip: HTMLElement | null = null;
 
   constructor() {
+    const fecharAoRolar = () => this.ocultarTooltip();
+    this.documento.addEventListener('scroll', fecharAoRolar, true);
+    this.documento.addEventListener('wheel', fecharAoRolar, { capture: true, passive: true });
+    this.destroyRef.onDestroy(() => {
+      this.documento.removeEventListener('scroll', fecharAoRolar, true);
+      this.documento.removeEventListener('wheel', fecharAoRolar, true);
+    });
     effect(() => this.selecionada.set(this.mesaSelecionadaId()));
     afterNextRender(() => {
       const elemento = this.viewport().nativeElement;
@@ -361,10 +370,14 @@ export class PlantaMesas {
     const mesa = event.currentTarget as HTMLButtonElement;
     const tooltip = mesa.querySelector<HTMLElement>('.mesa-tooltip');
     if (!tooltip || mesa.disabled) return;
+    this.ocultarTooltip();
     const codigo = mesa.querySelector<HTMLElement>('.mesa__codigo')!;
     const rect = codigo.getBoundingClientRect();
+    tooltip.style.zoom = String(1 / this.escala());
+    tooltip.style.width = `${mesa.getBoundingClientRect().width}px`;
     tooltip.showPopover();
     mesa.classList.add('mesa--tooltip');
+    this.mesaComTooltip = mesa;
     tooltip.style.left = `${Math.max(8, Math.min(
       rect.left + (rect.width - tooltip.offsetWidth) / 2,
       window.innerWidth - tooltip.offsetWidth - 8,
@@ -375,10 +388,23 @@ export class PlantaMesas {
     ))}px`;
   }
 
+  abrirTooltipNoTeclado(event: Event) {
+    if ((event.currentTarget as HTMLElement).matches(':focus-visible')) {
+      this.abrirTooltip(event);
+    }
+  }
+
   fecharTooltip(event: Event) {
     const mesa = event.currentTarget as HTMLElement;
+    if (this.mesaComTooltip === mesa) this.ocultarTooltip();
+  }
+
+  private ocultarTooltip() {
+    const mesa = this.mesaComTooltip;
+    if (!mesa) return;
     mesa.querySelector<HTMLElement>('.mesa-tooltip')?.hidePopover();
     mesa.classList.remove('mesa--tooltip');
+    this.mesaComTooltip = null;
   }
 
   alternarNomes() {
