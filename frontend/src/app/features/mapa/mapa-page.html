@@ -119,6 +119,11 @@
             <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
           }
 
+          @if (mesa.tipo === 'FIXA' && mesa.responsavel) {
+            <dt>Responsável</dt>
+            <dd>{{ mesa.responsavel.nome }}</dd>
+          }
+
           @if (mesa.ocupanteNaData) {
             <dt>
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
