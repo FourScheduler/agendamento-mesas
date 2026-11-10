@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Subject, combineLatest, of } from 'rxjs';
-import { catchError, debounceTime, switchMap } from 'rxjs/operators';
+import { catchError, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth/auth.service';
 import { AdminMesaService, UsuarioAtivo } from './admin-mesa.service';
 import { Mesa } from './mesa';
@@ -29,6 +29,8 @@ export class AdminMesaPage {
   private readonly toast = inject(ToastService);
   private readonly calendario = inject(CalendarioSaoPaulo);
   private readonly buscaMesas$ = new Subject<string>();
+  private readonly recarregarMesas$ = new Subject<void>();
+  private readonly buscaAplicada = signal('');
 
   readonly usuario = this.auth.usuario;
   readonly perfil = computed(() => this.auth.usuario()?.perfil ?? '');
@@ -38,7 +40,15 @@ export class AdminMesaPage {
   readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
   readonly mesasFiltradas = computed(() => {
     const filtro = this.filtroTipo();
+    const termo = this.normalizarBusca(this.buscaAplicada());
+    const codigo = termo.replace(/^mesa\s+/, '');
     return this.mesas().filter(mesa => {
+      if (termo && ![
+        this.normalizarBusca(mesa.codigo).includes(codigo),
+        this.normalizarBusca(mesa.regiao).includes(termo),
+        this.normalizarBusca(mesa.responsavel?.nome ?? '').includes(termo),
+        this.normalizarBusca(mesa.responsavel?.email ?? '').includes(termo),
+      ].some(Boolean)) return false;
       switch (filtro) {
         case 'fixa': return mesa.tipo === 'FIXA';
         case 'livre': return mesa.ativa && mesa.tipo === 'LIVRE' && !mesa.ocupada;
@@ -86,14 +96,20 @@ export class AdminMesaPage {
   }
 
   constructor() {
+    this.buscaMesas$.pipe(
+      debounceTime(250),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(termo => this.buscaAplicada.set(termo));
     combineLatest([
-      this.buscaMesas$.pipe(debounceTime(250)),
+      this.recarregarMesas$,
       toObservable(this.calendario.hoje),
     ]).pipe(
-      switchMap(([termo, hoje]) => {
+      switchMap(([, hoje]) => {
         this.carregando.set(true);
+        this.mesas.set([]);
         this.erroConsulta.set('');
-        return this.adminMesa.listarComOcupacao(termo, hoje).pipe(
+        return this.adminMesa.listarComOcupacao('', hoje).pipe(
           catchError(e => {
             this.erroConsulta.set(this.extrairMensagemErro(e, 'Não foi possível carregar as mesas.'));
             return of([] as readonly Mesa[]);
@@ -113,7 +129,11 @@ export class AdminMesaPage {
     this.calendario.atualizar();
     this.carregando.set(true);
     this.erroConsulta.set('');
-    this.buscaMesas$.next(this.busca());
+    this.recarregarMesas$.next();
+  }
+
+  private normalizarBusca(valor: string): string {
+    return valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   }
 
   onBuscaChange(event: Event) {

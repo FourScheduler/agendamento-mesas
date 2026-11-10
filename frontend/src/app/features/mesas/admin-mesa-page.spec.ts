@@ -35,7 +35,7 @@ describe('AdminMesaPage', () => {
       fixture.detectChanges();
       vi.advanceTimersByTime(250);
       http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
-        && r.params.get('data') === '2026-11-06').flush([mesa]);
+        && r.params.get('data') === '2026-11-06').flush([{ ...mesa, ocupada: true }]);
       fixture.detectChanges();
       const pagina = fixture.componentInstance;
       pagina.filtroTipo.set('reservada');
@@ -43,15 +43,13 @@ describe('AdminMesaPage', () => {
       busca.value = '044';
       busca.dispatchEvent(new Event('input'));
       vi.advanceTimersByTime(250);
-      http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
-        && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-06')
-        .flush([{ ...mesa, ocupada: true }]);
+      http.expectNone('/api/mesas/com-ocupacao');
       fixture.detectChanges();
       expect(pagina.mesasFiltradas()).toHaveLength(1);
       vi.advanceTimersByTime(90 * 60 * 1000 - 500);
       fixture.detectChanges();
       http.expectOne(r => r.url === '/api/mesas/com-ocupacao'
-        && r.params.get('termo') === '044' && r.params.get('data') === '2026-11-07')
+        && !r.params.has('termo') && r.params.get('data') === '2026-11-07')
         .flush([mesa]);
       expect(pagina.busca()).toBe('044');
       expect(pagina.filtroTipo()).toBe('reservada');
@@ -114,7 +112,7 @@ describe('AdminMesaPage', () => {
       busca.dispatchEvent(new Event('input'));
       await new Promise<void>(resolve => setTimeout(resolve, 300));
       fixture.detectChanges();
-      expect(listar).toHaveBeenLastCalledWith('045', expect.any(String));
+      expect(listar).toHaveBeenCalledTimes(1);
       expect(codigos()).toEqual(['045']);
       expect(contagem()).toContain('1 mesa encontrada');
 
@@ -130,6 +128,43 @@ describe('AdminMesaPage', () => {
     } finally {
       fixture.destroy();
       TestBed.resetTestingModule();
+    }
+  });
+
+  it('busca número, localização e responsável sem recriar o campo nem consultar por letra', () => {
+    vi.useFakeTimers();
+    const listar = vi.fn(() => of([
+      mesa,
+      { ...mesa, id: 45, codigo: '045', regiao: 'Alphaville', tipo: 'FIXA' as const,
+        responsavel: { id: 7, nome: 'João Silva', email: 'joao@example.com' } },
+    ]));
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        { provide: AdminMesaService, useValue: { listarComOcupacao: listar } }],
+    });
+    const fixture = TestBed.createComponent(AdminMesaPage);
+    try {
+      fixture.detectChanges();
+      const campo = fixture.nativeElement.querySelector('#busca') as HTMLInputElement;
+      campo.focus();
+      for (const [termo, esperado] of [
+        ['mesa 044', '044'], ['tambore', '044'], ['alphaville', '045'],
+        ['JOAO', '045'], ['joao@example.com', '045'], ['inexistente', ''], ['', '044,045'],
+      ]) {
+        campo.value = termo;
+        campo.dispatchEvent(new Event('input'));
+        vi.advanceTimersByTime(250);
+        fixture.detectChanges();
+        expect(fixture.componentInstance.mesasFiltradas().map(m => m.codigo).join(',')).toBe(esperado);
+        expect(fixture.nativeElement.querySelector('#busca')).toBe(campo);
+        expect(document.activeElement).toBe(campo);
+        expect(fixture.componentInstance.carregando()).toBe(false);
+      }
+      expect(listar).toHaveBeenCalledTimes(1);
+    } finally {
+      fixture.destroy();
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
     }
   });
 
