@@ -116,7 +116,8 @@ public class ReservaService {
         mesaRepositoryPort.buscarPorResponsavelId(usuario.getId()).ifPresent(vinculada -> {
             boolean reservaPropria = usuario.getId().equals(autenticado.id());
             String mensagem = reservaPropria
-                ? "Você já possui uma mesa fixa vinculada ao seu usuário e não pode realizar outra reserva."
+                ? "Você já possui a mesa fixa " + vinculada.getCodigo()
+                    + " vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo."
                 : usuario.getNome() + " já possui a mesa fixa " + vinculada.getCodigo()
                     + " vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.";
             throw new UsuarioComMesaFixaException(vinculada.getId(), vinculada.getCodigo(), mensagem);
