@@ -19,7 +19,6 @@ import { Mesa } from "../mesas/mesa";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
-import { hojeSaoPaulo } from '../reservas/data-reserva';
 import {
   PLANTA_TAMBORE_EXIBICAO,
   TAMANHO_MESA,
@@ -50,12 +49,6 @@ export class PlantaMesas {
   readonly mesaInicialId = input<number | null>(null);
   readonly mesaSelecionadaId = input<number | null>(null);
   readonly mesaReservadaId = input<number | null>(null);
-  readonly decoracaoNatal = input<boolean | null>(null);
-  readonly natalAtivo = signal(['11', '12'].includes(
-    new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', month: '2-digit' }).format(new Date()),
-  ));
-  readonly exibirNatal = computed(() => this.decoracaoNatal() ?? this.natalAtivo());
-  readonly mostrarArvore = computed(() => this.exibirNatal() && ['11', '12'].includes(hojeSaoPaulo().slice(5, 7)));
   private focoAutomatico = '';
   readonly mesaSelecionada = output<{ readonly mesa: Mesa; readonly disponivel: boolean }>();
   readonly mesaInicialSelecionada = output<Mesa>();

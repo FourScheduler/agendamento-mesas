@@ -80,15 +80,6 @@
       <p class="subtitulo">
         Selecione uma mesa disponível para reservar o dia inteiro.
       </p>
-      @if (exibirNatal()) {
-        <svg class="mapa__natal" viewBox="0 0 64 80" width="42" height="52" aria-hidden="true" focusable="false">
-          <path d="m32 4 5 10h-10z" fill="#bd8c45" />
-          <path d="M32 15 13 38h9L7 58h15L4 71h56L42 58h15L42 38h9z" fill="#32725c" />
-          <path d="M27 71h10v9H27z" fill="#8c5b40" />
-          <path d="m17 42 29 13M13 61l34 7" stroke="#e6c598" stroke-width="3" fill="none" />
-          <circle cx="30" cy="31" r="3" fill="#e7b49a" /><circle cx="24" cy="55" r="3" fill="#e7b49a" />
-        </svg>
-      }
     </div>
     <ng-content select="[consulta-mapa]" />
   </header>
@@ -131,15 +122,6 @@
           >
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
             <circle cx="12" cy="12" r="3" />
-          </svg>
-        </button>
-      </li>
-      <li class="legenda__visibilidade">
-        <button class="botao-icone" type="button" (click)="natalAtivo.set(!natalAtivo())"
-          [attr.aria-pressed]="exibirNatal()" aria-label="Alternar decoração de Natal" title="Alternar decoração de Natal">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m12 3 6 7h-3l5 7H4l5-7H6zM12 17v4" />
           </svg>
         </button>
       </li>
@@ -205,14 +187,6 @@
             [style.height.px]="layoutTambore.entrada.altura"
           >
             Entrada
-            @if (mostrarArvore()) {
-              <svg class="entrada__arvore" viewBox="0 0 80 110" focusable="false">
-                <path d="M34 88h12v19H34z" fill="#79533c" />
-                <path d="M40 12 16 48h12L9 73h15L3 95h74L56 73h15L52 48h12z" fill="#25664d" />
-                <path d="m40 0 3 8 9 1-7 6 2 9-7-5-7 5 2-9-7-6 9-1z" fill="#bf8e49" />
-                <g fill="#e1ae80"><circle cx="32" cy="46" r="3" /><circle cx="48" cy="66" r="3" /><circle cx="26" cy="84" r="3" /><circle cx="56" cy="88" r="3" /></g>
-              </svg>
-            }
           </div>
           @for (estrutura of layoutTambore.estruturas; track $index) {
           <div

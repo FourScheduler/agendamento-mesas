@@ -125,7 +125,7 @@ describe("PlantaMesas", () => {
     expect(getComputedStyle(fixture.nativeElement.querySelector('.mapa__rodape')).display).not.toBe('none');
   });
 
-  it('decora em novembro e dezembro, permite desabilitar sem interceptar cliques', () => {
+  it('não exibe decoração sazonal em novembro nem dezembro', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
       for (const mes of ['11', '12']) {
@@ -137,12 +137,8 @@ describe("PlantaMesas", () => {
           referenciaVisual: { planta: 'TAMBORÉ', x: 24, y: 24 },
         }]);
         fixture.detectChanges();
-        const arvore = fixture.nativeElement.querySelector('.entrada__arvore') as SVGElement;
-        expect(arvore.closest('.entrada')).not.toBeNull();
-        expect(getComputedStyle(arvore).pointerEvents).toBe('none');
-        fixture.componentRef.setInput('decoracaoNatal', false);
-        fixture.detectChanges();
-        expect(fixture.nativeElement.querySelector('.entrada__arvore')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.mapa__natal, .entrada__arvore')).toBeNull();
+        expect(fixture.nativeElement.querySelector('[aria-label="Alternar decoração de Natal"]')).toBeNull();
         fixture.destroy();
       }
     } finally { vi.useRealTimers(); }
