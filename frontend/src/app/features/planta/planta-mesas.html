@@ -83,10 +83,10 @@
         <span class="amostra amostra--livre" aria-hidden="true"></span>Livre
       </li>
       <li>
-        <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa
+        <span class="amostra amostra--fixa" aria-hidden="true"></span>Fixa / Reservada
       </li>
       <li>
-        <span class="amostra amostra--ocupada" aria-hidden="true"></span>Diária
+        <span class="amostra amostra--sua-reserva" aria-hidden="true"></span>Sua reserva
       </li>
       <li>
         <span class="amostra amostra--inativa" aria-hidden="true"></span>Inativa
@@ -200,6 +200,7 @@
             [class.ocupada]="estaOcupada(mesa)"
             [class.inativa]="!mesa.ativa"
             [class.fixa]="mesa.ativa && mesa.tipo === 'FIXA'"
+            [class.sua-reserva]="suaReserva(mesa)"
             [class.selecionada]="selecionada() === mesa.id"
             [style.left.px]="planta.posicoes.get(mesa.id)!.x"
             [style.top.px]="planta.posicoes.get(mesa.id)!.y"
@@ -226,10 +227,16 @@
               <span class="mesa__cadeira mesa__cadeira--inferior" aria-hidden="true"></span>
             }
             <span class="mesa__codigo">{{ codigoExibido(mesa.codigo) }}</span>
-            @if (estaOcupada(mesa) || suaReserva(mesa)) {
-              <span class="mesa__estado mesa__diaria">{{ suaReserva(mesa) ? 'Sua reserva' : 'Diária' }}</span>
+            @if (suaReserva(mesa)) {
+              @if (!mostrarNomes()) {
+                <span class="mesa__estado mesa__estado--sua-reserva">{{ 'Sua reserva' }}</span>
+              } @else {
+                @if (nomeOcupante(mesa); as nome) {
+                  <span class="mesa__ocupante">{{ nome }}</span>
+                }
+              }
             }
-            @if (mostrarNomes()) {
+            @if (!suaReserva(mesa) && mostrarNomes()) {
               @if (nomeOcupante(mesa); as nome) {
                 <span class="mesa__ocupante">{{ nome }}</span>
               }

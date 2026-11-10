@@ -1,7 +1,10 @@
 app-planta-mesas .mesa.ocupada:not(.inativa) {
-  background: #eaf3ff;
-  border-color: #83b4ed;
-  color: #326ca8;
+  background: linear-gradient(
+      145deg,
+      #fffafa,
+      #fff0f0);
+  border-color: #f1b5b5;
+  color: #a83d3d;
   filter: none;
 }
 app-planta-mesas .mesa.ocupada.selecionada {
@@ -10,7 +13,7 @@ app-planta-mesas .mesa.ocupada.selecionada {
 }
 app-planta-mesas .mesa.ocupada .mesa__diaria {
   max-width: 100%;
-  color: #326ca8;
+  color: #a83d3d;
   line-height: 1.2;
 }
 app-planta-mesas .amostra--ocupada {
