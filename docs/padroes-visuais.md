@@ -35,7 +35,10 @@ Os tokens básicos já estão em `frontend/src/styles.css`. Ao implementar as te
 Mesas com reserva diária na data consultada usam fundo `#EAF3FF`, borda
 `#83B4ED` e número `#326CA8`. A identificação usa somente texto `#326CA8`, sem caixa:
 “Diária” para reservas de terceiros e “Sua reserva” quando o ocupante na data
-corresponde ao usuário autenticado. Mesas fixas mantêm a identificação própria.
+corresponde ao usuário autenticado. Mesas fixas mantêm suas cores e também
+mostram “Sua reserva” para o responsável autenticado.
+Na primeira consulta do mapa, sem uma mesa indicada na navegação, a planta
+centraliza a reserva diária ou mesa fixa do usuário, sem abrir os detalhes.
 
 A tela de login usa fundo cinza em gradiente, apresentação à esquerda e
 formulário branco à direita. O cartão tem raio de 24px; campos e botão, 12px.

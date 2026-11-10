@@ -259,6 +259,7 @@ export class PlantaMesas {
   private readonly catalogo = inject(MesaService);
   private readonly documento = inject(DOCUMENT);
   private mesaComTooltip: HTMLElement | null = null;
+  private centralizacaoInicialPendente = true;
 
   constructor() {
     const fecharAoRolar = () => this.ocultarTooltip();
@@ -307,6 +308,13 @@ export class PlantaMesas {
           if (data) {
             this.disponibilidadeConsultada.emit(data);
             const mesaInicialId = this.mesaInicialId();
+            if (mesaInicialId === null && this.centralizacaoInicialPendente) {
+              const minhaMesa = mesas.find(mesa => this.suaReserva(mesa));
+              if (minhaMesa) {
+                afterNextRender(() => this.centralizarMesa(minhaMesa.id), { injector: this.injector });
+              }
+            }
+            this.centralizacaoInicialPendente = false;
             if (mesaInicialId !== null) {
               const mesaInicial = mesas.find(mesa => mesa.id === mesaInicialId);
               if (mesaInicial && this.estaDisponivel(mesaInicial)) {
@@ -314,20 +322,7 @@ export class PlantaMesas {
                 this.mesaInicialSelecionada.emit(mesaInicial);
                 afterNextRender(() => {
                   if (this.selecionada() !== mesaInicial.id) return;
-                  const viewport = this.viewport().nativeElement;
-                  const mesa = viewport.querySelector<HTMLElement>(
-                    `button.mesa[data-mesa-id="${mesaInicial.id}"]`,
-                  );
-                  if (!mesa) return;
-                  const area = viewport.getBoundingClientRect();
-                  const alvo = mesa.getBoundingClientRect();
-                  viewport.scrollTo({
-                    left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
-                      - (viewport.clientWidth - alvo.width) / 2,
-                    top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
-                      - (viewport.clientHeight - alvo.height) / 2,
-                    behavior: 'instant',
-                  });
+                  this.centralizarMesa(mesaInicial.id);
                 }, { injector: this.injector });
               }
               else this.mesaInicialInvalidada.emit();
@@ -369,8 +364,26 @@ export class PlantaMesas {
   }
 
   suaReserva(mesa: Mesa): boolean {
-    return this.estaOcupada(mesa) && mesa.ocupanteNaData != null
-      && mesa.ocupanteNaData.id === this.auth.usuario()?.id;
+    const usuarioId = this.auth.usuario()?.id;
+    return usuarioId != null && mesa.ativa && (
+      (this.estaOcupada(mesa) && mesa.ocupanteNaData?.id === usuarioId)
+      || (mesa.tipo === 'FIXA' && mesa.responsavel?.id === usuarioId)
+    );
+  }
+
+  private centralizarMesa(id: number) {
+    const viewport = this.viewport().nativeElement;
+    const mesa = viewport.querySelector<HTMLElement>(`button.mesa[data-mesa-id="${id}"]`);
+    if (!mesa) return;
+    const area = viewport.getBoundingClientRect();
+    const alvo = mesa.getBoundingClientRect();
+    viewport.scrollTo({
+      left: viewport.scrollLeft + alvo.left - area.left - viewport.clientLeft
+        - (viewport.clientWidth - alvo.width) / 2,
+      top: viewport.scrollTop + alvo.top - area.top - viewport.clientTop
+        - (viewport.clientHeight - alvo.height) / 2,
+      behavior: 'instant',
+    });
   }
 
   abrirTooltip(event: Event) {

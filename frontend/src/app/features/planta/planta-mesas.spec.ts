@@ -12,6 +12,30 @@ import { agruparFileiras, TAMANHO_MESA, PLANTA_TAMBORE_EXIBICAO } from "./planta
 describe("PlantaMesas", () => {
   let http: HttpTestingController;
 
+  it.each(['LIVRE', 'FIXA'] as const)('centraliza a mesa %s do usuário na primeira consulta sem selecionar', (tipo) => {
+    TestBed.inject(AuthService).sessao.set({
+      token: 'teste', tipo: 'Bearer',
+      usuario: { id: 7, nome: 'Maria', email: 'maria@example.com', perfil: 'USUARIO' },
+    });
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput('data', '2026-11-10');
+    fixture.detectChanges();
+    const viewport = fixture.nativeElement.querySelector('.mapa__viewport') as HTMLElement;
+    viewport.scrollTo = vi.fn();
+    const pessoa = { id: 7, nome: 'Maria', email: 'maria@example.com' };
+    http.expectOne('/api/mesas/com-ocupacao?data=2026-11-10').flush([{
+      id: 91, codigo: '091', regiao: 'DEMO', tipo, ativa: true, ocupada: tipo === 'LIVRE',
+      ocupante: '', responsavel: tipo === 'FIXA' ? pessoa : null,
+      ocupanteNaData: tipo === 'LIVRE' ? pessoa : null,
+      referenciaVisual: { planta: 'DEMO', x: 800, y: 600 },
+    }]);
+    http.expectOne('/api/mesas/disponiveis?data=2026-11-10').flush([]);
+    fixture.detectChanges();
+    expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' }));
+    expect(fixture.nativeElement.querySelector('.mesa__diaria').textContent).toBe('Sua reserva');
+    expect(fixture.componentInstance.selecionada()).toBeNull();
+  });
+
   beforeAll(() => {
     Object.defineProperties(HTMLElement.prototype, {
       showPopover: { configurable: true, writable: true, value: vi.fn() },
