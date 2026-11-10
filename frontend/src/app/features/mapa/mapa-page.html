@@ -115,12 +115,13 @@
               <span>{{ formatarData(reserva.data()) }}</span>
             }
           </dd>
+          @if (mesa.ocupante && !mesaReservada(mesa)) {
+            <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
+          }
+
           @if (mesa.tipo === 'FIXA' && mesa.responsavel) {
             <dt>Responsável</dt>
             <dd>{{ mesa.responsavel.nome }}</dd>
-          }
-          @if (mesa.ocupante && !mesaReservada(mesa)) {
-            <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
           }
 
           @if (mesa.ocupanteNaData) {
