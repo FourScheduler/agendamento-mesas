@@ -449,6 +449,45 @@
   color: #526175;
   box-shadow: none;
 }
+
+/* Sua reserva - destaque especial com pulsação suave */
+.mesa.sua-reserva {
+  border-color: var(--muted);
+  background: var(--muted);
+  color: var(--muted);
+  box-shadow:
+    0 0 0 2px #ffd49b,
+    0 4px 12px rgb(217 119 50 / 20%),
+    inset 0 0 0 1px rgb(255 148 24 / 30%);
+  animation: mesa-pulsar 1.5s ease-in-out infinite;
+}
+
+.mesa.sua-reserva .mesa__codigo {
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(217 119 50 / 25%);
+}
+
+@keyframes mesa-pulsar {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px #ffd49b,
+      0 4px 12px rgb(217 119 50 / 20%),
+      inset 0 0 0 1px rgb(255 148 24 / 30%);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgb(255 148 24 / 25%),
+      0 6px 16px rgb(217 119 50 / 30%),
+      inset 0 0 0 1px rgb(255 148 24 / 40%);
+  }
+}
+
+/* Respeitar prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .mesa.sua-reserva {
+    animation: none;
+  }
+}
 .mesa:disabled {
   cursor: not-allowed;
 }
