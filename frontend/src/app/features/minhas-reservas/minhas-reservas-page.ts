@@ -1,4 +1,5 @@
 import { DestroyRef, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -13,6 +14,7 @@ import { Mesa } from '../mesas/mesa';
 import { MesaService } from '../mesas/mesa.service';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
 import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
+import { Paginacao } from '../../shared/paginacao/paginacao';
 
 type Filtro = 'ativas' | 'canceladas';
 
@@ -35,12 +37,12 @@ const ROTULOS_STATUS: Record<StatusReserva, string> = {
   PENDENTE: 'Pendente',
 };
 
-const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'CANCELADA'];
+const OPCOES_STATUS: StatusReserva[] = ['CONFIRMADA', 'PENDENTE'];
 
 @Component({
   selector: 'app-minhas-reservas-page',
   standalone: true,
-  imports: [Carregando, Erro, Vazio, CalendarioReserva],
+  imports: [Carregando, Erro, Vazio, CalendarioReserva, Paginacao],
   templateUrl: './minhas-reservas-page.html',
   styleUrl: './minhas-reservas-page.css',
 })
@@ -94,6 +96,7 @@ export class MinhasReservasPage implements OnInit {
 
     return ascendente ? lista.sort(porMomento) : lista.sort((a, b) => porMomento(b, a));
   });
+  readonly paginaAtual = this.pagina;
 
   readonly cartoes = computed<CartaoReserva[]>(() => {
     const numera = !this.periodoPersonalizado() && this.filtro() === 'ativas';
@@ -101,7 +104,7 @@ export class MinhasReservasPage implements OnInit {
     return this.visiveis().map((reserva, indice) => ({
       chave: this.chave(reserva),
       reserva,
-      posicao: numera ? indice + 1 : null,
+      posicao: numera ? this.paginaAtual() * this.tamanhoPagina() + indice + 1 : null,
     }));
   });
 
@@ -150,6 +153,7 @@ export class MinhasReservasPage implements OnInit {
   buscar(): void {
     this.consultaReservas?.unsubscribe();
     this.calendario.atualizar();
+    this.consulta?.unsubscribe();
     if (this.periodoInvalido()) {
       this.reservas.set([]);
       this.erroApi.set(null);
@@ -175,12 +179,19 @@ export class MinhasReservasPage implements OnInit {
     this.consultaReservas = consulta
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (reservas) => {
-          this.reservas.set([...reservas]);
+        next: (resultado) => {
+          if (resultado.totalRegistros > 0 && this.pagina() >= resultado.totalPaginas) {
+            this.pagina.set(resultado.totalPaginas - 1);
+            this.buscar();
+            return;
+          }
+          this.reservas.set([...resultado.conteudo]);
+          this.totalRegistros.set(resultado.totalRegistros);
           this.carregando.set(false);
         },
         error: (erro: unknown) => {
           this.reservas.set([]);
+          this.totalRegistros.set(0);
           this.carregando.set(false);
           this.erroApi.set(this.mensagemDeErro(erro));
         },
@@ -189,20 +200,42 @@ export class MinhasReservasPage implements OnInit {
 
   trocarFiltro(filtro: Filtro): void {
     this.filtro.set(filtro);
+    this.statusFiltro.set(null);
+    this.pagina.set(0);
+    this.buscar();
+  }
+
+  trocarPagina(pagina: number) {
+    this.pagina.set(pagina);
+    this.buscar();
+  }
+
+  trocarTamanho(tamanho: number) {
+    this.tamanhoPagina.set(tamanho);
+    this.pagina.set(0);
+    this.buscar();
   }
 
   trocarStatus(event: Event): void {
     const valor = (event.target as HTMLSelectElement).value;
     this.statusFiltro.set(valor ? (valor as StatusReserva) : null);
+    this.pagina.set(0);
     this.buscar();
   }
 
-  trocarData(campo: 'inicio' | 'fim', valor: string): void {
+  trocarData(campo: 'inicio' | 'fim', event: Event): void {
+    const valor = (event.target as HTMLInputElement).value;
+    this.selecionarData(campo, valor);
+  }
+
+  selecionarData(campo: 'inicio' | 'fim', valor: string): void {
     this.periodoFiltro.update((periodo) => ({ ...periodo, [campo]: valor || null }));
+    this.pagina.set(0);
     this.buscar();
   }
 
   limparFiltros(): void {
+    this.pagina.set(0);
     this.statusFiltro.set(null);
     this.periodoFiltro.set({ inicio: null, fim: null });
     this.buscar();
@@ -232,7 +265,7 @@ export class MinhasReservasPage implements OnInit {
   }
 
   chave(reserva: Reserva): string {
-    return `${reserva.data}-${reserva.mesa.id}`;
+    return String(reserva.id);
   }
 
   rotuloStatus(status: StatusReserva): string {
@@ -246,12 +279,11 @@ export class MinhasReservasPage implements OnInit {
   podeCancelar(cartao: CartaoReserva): boolean {
     const reserva = cartao.reserva;
     const podeGerenciar = this.ehAdmin() || (
-      reserva.usuarioId === this.auth.usuario()?.id &&
-      this.ehFutura(reserva)
+      reserva.usuarioId === this.auth.usuario()?.id && this.ehFutura(reserva)
     );
     return (
       podeGerenciar &&
-      reserva.status === 'CONFIRMADA' &&
+      reserva.status !== 'CANCELADA' &&
       reserva.id != null
     );
   }
@@ -277,7 +309,7 @@ export class MinhasReservasPage implements OnInit {
     this.calendario.atualizar();
     const id = cartao.reserva.id;
 
-    if (id == null || !this.podeCancelar(cartao)) {
+    if (id == null || !this.podeCancelar(cartao) || this.cancelamentoEmAndamento() !== null) {
       return;
     }
 
@@ -314,10 +346,6 @@ export class MinhasReservasPage implements OnInit {
 
   private ehFutura(reserva: Reserva): boolean {
     return reserva.data >= this.calendario.hoje();
-  }
-
-  private momento(reserva: Reserva): string {
-    return `${reserva.data}T23:59:59`;
   }
 
   private mensagemDeErro(erro: unknown): string {

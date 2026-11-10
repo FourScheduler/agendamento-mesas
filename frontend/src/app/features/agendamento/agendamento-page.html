@@ -101,7 +101,7 @@
       <p class="mesas-livres__vazio" role="status">Nenhuma mesa encontrada para a pesquisa.</p>
     } @else {
     <div class="mesas-livres__grid" role="listbox" aria-label="Mesas disponíveis">
-      @for (mesa of mesasFiltradas(); track mesa.id) {
+      @for (mesa of mesasPaginadas(); track mesa.id) {
         <article class="mesa-card"
           [class.mesa-card--selecionada]="mesaSelecionada()?.id === mesa.id"
           [class.mesa-card--indisponivel]="!estaDisponivel(mesa)"
@@ -149,6 +149,9 @@
       }
     </div>
     }
+    <app-paginacao [total]="mesasFiltradas().length" [pagina]="paginaAtual()" [tamanho]="tamanhoPagina()"
+      [carregando]="carregandoMesas()" (paginaAlterada)="pagina.set($event)"
+      (tamanhoAlterado)="tamanhoPagina.set($event); pagina.set(0)" />
   </section>
 
   <!-- Lado direito: resumo da reserva (aparece apenas quando há mesa selecionada) -->

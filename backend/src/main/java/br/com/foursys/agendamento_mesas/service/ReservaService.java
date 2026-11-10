@@ -1,6 +1,7 @@
 package br.com.foursys.agendamento_mesas.service;
 
 import br.com.foursys.agendamento_mesas.dto.response.ReservaResponse;
+import br.com.foursys.agendamento_mesas.dto.response.PaginaResponse;
 import br.com.foursys.agendamento_mesas.exceptions.MesaNaoEncontradaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaJaCanceladaException;
 import br.com.foursys.agendamento_mesas.exceptions.ReservaNaoEncontradaException;
@@ -29,7 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class ReservaService {
@@ -56,6 +62,11 @@ public class ReservaService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReservaResponse criar(CriarReservaRequest request, UsuarioAutenticado autenticado) {
+        return criar(request, autenticado, null);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public ReservaResponse criar(CriarReservaRequest request, UsuarioAutenticado autenticado, String chaveRequisicao) {
         if (autenticado == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticação obrigatória.");
         }
@@ -69,12 +80,31 @@ public class ReservaService {
             throw new DadosInvalidosException("Campo 'mesaId' deve ser um inteiro positivo.");
         }
 
-        datas.validar(request.data());
-
         Long solicitanteId = request.solicitanteId() != null ? request.solicitanteId() : autenticado.id();
-        Usuario usuario = usuarioRepositoryPort.buscarParaReserva(solicitanteId)
-            .filter(Usuario::isAtivo)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitante inativo ou inexistente."));
+        if (solicitanteId <= 0) throw new DadosInvalidosException("Solicitante deve ser um inteiro positivo.");
+        String chave = chaveRequisicao == null ? null : validarChave(chaveRequisicao);
+        // Inclui o autor antes da mesa: a FK criado_por_id também pode adquirir lock no MySQL.
+        var usuarios = new HashMap<Long, Usuario>();
+        Stream.of(autenticado.id(), solicitanteId).distinct().sorted().forEach(id -> {
+            Usuario bloqueado = usuarioRepositoryPort.buscarParaReserva(id)
+                .filter(Usuario::isAtivo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitante inativo ou inexistente."));
+            usuarios.put(id, bloqueado);
+        });
+        Usuario usuario = usuarios.get(solicitanteId);
+        if (chave != null) {
+            var existente = reservaRepositoryPort.buscarPorAutorEChave(autenticado.id(), chave);
+            if (existente.isPresent()) {
+                Reserva reserva = existente.get();
+                if (!Objects.equals(reserva.getMesa().getId(), request.mesaId())
+                    || !Objects.equals(reserva.getData(), request.data())
+                    || !Objects.equals(reserva.getUsuario().getId(), solicitanteId)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Chave de confirmação já utilizada para outra reserva.");
+                }
+                return ReservaResponse.toResponse(reserva);
+            }
+        }
+        datas.validar(request.data());
 
         Mesa mesa = mesaRepositoryPort.buscarParaReserva(request.mesaId()).orElseThrow(() ->
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + request.mesaId() + " não encontrada."));
@@ -113,12 +143,8 @@ public class ReservaService {
         }
 
         Reserva reserva = new Reserva(mesa, usuario, request.data(), StatusReserva.CONFIRMADA);
-        reserva.setCriadoPor(autenticado.perfil() == PerfilUsuario.ADMIN && !usuario.getId().equals(autenticado.id())
-            ? usuarioRepositoryPort.buscarPorId(autenticado.id())
-                .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Administrador autenticado não encontrado."
-                ))
-            : usuario);
+        reserva.setCriadoPor(usuarios.get(autenticado.id()));
+        reserva.setChaveRequisicao(chave);
         reserva.setConfirmadaEm(LocalDateTime.now(relogio));
         return ReservaResponse.toResponse(reservaRepositoryPort.salvarESincronizar(reserva));
         // O proxy transacional efetua o commit antes de devolver o resultado ao controller.
@@ -145,6 +171,24 @@ public class ReservaService {
             .stream()
             .map(ReservaResponse::toResponse)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<ReservaResponse> listarPagina(Long usuarioId, LocalDate inicio, LocalDate fim,
+            StatusReserva status, boolean canceladas, int pagina, int tamanho) {
+        validarFiltrosConsulta(null, inicio, fim);
+        if (pagina < 0 || tamanho < 1 || tamanho > 100) {
+            throw new DadosInvalidosException("Página deve ser não negativa e tamanho deve estar entre 1 e 100.");
+        }
+        if (status != null && canceladas != (status == StatusReserva.CANCELADA)) {
+            throw new DadosInvalidosException("Status incompatível com a situação selecionada.");
+        }
+        var estados = status != null ? List.of(status)
+            : canceladas ? List.of(StatusReserva.CANCELADA) : List.copyOf(ReservaRepositoryPort.BLOQUEIA_MESA);
+        var direcao = canceladas ? Sort.Direction.DESC : Sort.Direction.ASC;
+        var resultado = reservaRepositoryPort.listarPagina(usuarioId, inicio, fim, estados,
+            PageRequest.of(pagina, tamanho, Sort.by(direcao, "data", "id")));
+        return PaginaResponse.de(resultado.map(ReservaResponse::toResponse));
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -182,6 +226,23 @@ public class ReservaService {
         reserva.setStatus(StatusReserva.CANCELADA);
 
         reservaRepositoryPort.salvarESincronizar(reserva);
+    }
+
+    @Transactional(readOnly = true)
+    public ReservaResponse consultarConfirmacao(String chave, UsuarioAutenticado usuario) {
+        return reservaRepositoryPort.buscarPorAutorEChave(usuario.id(), validarChave(chave))
+            .map(ReservaResponse::toResponse)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Confirmação ainda não localizada."));
+    }
+
+    private String validarChave(String chave) {
+        try {
+            String normalizada = UUID.fromString(chave).toString();
+            if (!normalizada.equalsIgnoreCase(chave)) throw new IllegalArgumentException();
+            return normalizada;
+        } catch (IllegalArgumentException e) {
+            throw new DadosInvalidosException("Idempotency-Key deve ser um UUID válido.");
+        }
     }
 
     private void validarFiltrosConsulta(

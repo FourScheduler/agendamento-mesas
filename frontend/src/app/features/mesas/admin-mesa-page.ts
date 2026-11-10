@@ -13,11 +13,12 @@ import { Erro } from '../../shared/estados/erro';
 import { Vazio } from '../../shared/estados/vazio';
 import { ToastService } from '../../shared/toast/toast';
 import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
+import { Paginacao } from '../../shared/paginacao/paginacao';
 
 @Component({
   selector: 'app-admin-mesa-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, Carregando, Erro, Vazio],
+  imports: [CommonModule, FormsModule, Carregando, Erro, Vazio, Paginacao],
   templateUrl: './admin-mesa-page.html',
   styleUrl: './admin-mesa-page.css',
 })
@@ -38,6 +39,14 @@ export class AdminMesaPage {
   readonly mesas = signal<readonly Mesa[]>([]);
   readonly busca = signal('');
   readonly filtroTipo = signal<'fixa' | 'livre' | 'inativa' | 'reservada' | null>(null);
+
+  // Paginação
+  readonly pagina = signal(0);
+  readonly tamanhoPagina = signal(10);
+  readonly paginaAtual = computed(() => Math.min(this.pagina(), Math.max(0, Math.ceil(this.mesasFiltradas().length / this.tamanhoPagina()) - 1)));
+  readonly mesasPaginadas = computed(() => this.mesasFiltradas().slice(
+    this.paginaAtual() * this.tamanhoPagina(), (this.paginaAtual() + 1) * this.tamanhoPagina()));
+
   readonly mesasFiltradas = computed(() => {
     const filtro = this.filtroTipo();
     const termo = this.normalizarBusca(this.buscaAplicada());
