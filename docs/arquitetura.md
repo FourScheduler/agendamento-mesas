@@ -9,7 +9,26 @@ Projeto independente baseado nos padrões técnicos do agendamento-salas.
 
 O backend possui a aplicação Spring Boot com persistência MySQL (Flyway), autenticação local (Spring Security + JWT) e CORS para `/api/**` restrito à porta 4201 do frontend. Não há integrações externas. O servidor inicia sem `.env`; configurações opcionais são documentadas em `backend/.env.example`. Em desenvolvimento o JWT usa segredo padrão no `application.yaml`, sobrescrevível por `JWT_SECRET`.
 
-O frontend usa bootstrap standalone, HttpClient e tokens visuais. O componente raiz hospeda o `Layout` com a barra de navegação e `RouterOutlet`. As rotas `/login`, `/agendamento`, `/mapa` e `/minhas-reservas` preservam a organização da develop; a rota inicial redireciona para agendamento, com acesso autenticado. Minhas reservas lista as reservas do usuário e, separadamente, suas mesas fixas atribuídas, sem permitir que o usuário remova a atribuição. Reservas diárias criadas por administradores em nome de um usuário também aparecem ao beneficiário, que pode cancelá-las; a autoria é persistida e preservada no cancelamento. Administradores consultam a lista completa em `/api/admin/reservas` e continuam podendo cancelar reservas de terceiros.
+O frontend usa bootstrap standalone, HttpClient e tokens visuais. O componente raiz hospeda o `Layout` com a barra de navegação e `RouterOutlet`. As rotas `/login`, `/agendamento`, `/mapa` e `/minhas-reservas` preservam a organização da develop; a rota inicial redireciona para `/mapa`, com acesso autenticado, tanto para ADMIN quanto para USUARIO. Minhas reservas lista as reservas do usuário e, separadamente, suas mesas fixas atribuídas, sem permitir que o usuário remova a atribuição. Reservas diárias criadas por administradores em nome de um usuário também aparecem ao beneficiário, que pode cancelá-las; a autoria é persistida e preservada no cancelamento. Administradores consultam a lista completa em `/api/admin/reservas` e continuam podendo cancelar reservas de terceiros.
+
+## Entrada e navegação
+
+- A raiz `/` e rotas desconhecidas direcionam para `/mapa`. Sem sessão válida,
+  o guard abre `/login`; o mapa não é liberado antes de autenticar.
+- Após login sem retorno explícito, ADMIN e USUARIO entram em `/mapa`.
+  Acessar `/login` com sessão válida também direciona para `/mapa`.
+- Atualizar a página ou abrir um link direto preserva a rota e seus parâmetros.
+  Quando existe token armazenado, o perfil é restaurado pela API antes de liberar
+  o acesso. Token rejeitado retorna ao login; data e mesa válidas são preservadas
+  para retorno ao mapa ou à lista após autenticar.
+- Um retorno explícito para `/agendamento` continua sendo respeitado pelo login.
+  A administração `/admin/mesas` permanece exclusiva de ADMIN; isso não altera
+  o destino inicial comum aos dois perfis.
+- Os botões **Listar mesas** do mapa, de Minhas reservas e da administração levam
+  a `/agendamento`. No mapa, o retorno leva a data e a mesa selecionada, quando
+  houver. Minhas reservas e administração abrem a lista sem seleção explícita.
+- Voltar/avançar usa o histórico do Router e restaura a URL, inclusive a data.
+  Não há um novo dashboard nem mudança de regras ou contratos de reserva.
 
 `AuthService` compartilha a sessão entre as telas, persiste o token em `localStorage` e carrega o perfil real por `/api/auth/perfil` antes de liberar a navegação protegida após recarregar. Logout e respostas `401` limpam a sessão e retornam ao login. `ReservaDiaria` compartilha o estado e a confirmação entre a lista de mesas e o mapa. As duas telas usam data inteira, permitem revisar o solicitante e tratam `400`, `401` e `409`, atualizando a disponibilidade. A data é preservada por query param ao alternar entre lista e planta.
 

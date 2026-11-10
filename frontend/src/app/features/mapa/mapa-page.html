@@ -31,7 +31,7 @@
     <ng-container [ngTemplateOutlet]="calendarioReserva"
       [ngTemplateOutletContext]="{ identificador: 'data-reserva' }" />
     <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando() || reserva.cancelando()">
-    Mesas livres
+    Listar mesas
   </button>
     <button id="atualizar-disponibilidade" type="button" class="botao" aria-label="Atualizar disponibilidade" (click)="reserva.atualizarDisponibilidade()"
       [disabled]="reserva.confirmando() || reserva.cancelando() || !reserva.data()">

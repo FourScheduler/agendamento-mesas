@@ -6,6 +6,29 @@ A issue #7 implementa criação diária com confirmação direta, autoria e seri
 
 Para datas e fuso horário no frontend, consulte o [roteiro de validação da issue #75](validacao-issue-75.md), com os cenários de virada de dia e comandos de teste.
 
+## Entrada pelo mapa e retorno à lista
+
+`app.routes.spec.ts` cobre raiz autenticada e acesso ao login para ADMIN e
+USUARIO, entrada anônima, inicialização por link direto com token persistido,
+rejeição de token expirado e preservação dos parâmetros de data/mesa.
+Os botões Listar mesas são acionados nas três telas (mapa, administração e
+Minhas reservas), verificando texto acessível e destino `/agendamento`.
+`login-page.spec.ts` cobre o destino `/mapa` após autenticação dos dois perfis;
+`reserva-diaria.spec.ts` verifica o clique em Listar mesas levando data e mesa.
+
+Voltar/avançar é exercitado com o Router e a plataforma de navegação de testes do
+Angular, verificando a URL restaurada e a consulta de disponibilidade na data.
+A atualização da página é representada por uma inicialização sem sessão em
+memória, apenas com token persistido e URL direta. Esses testes não substituem
+um navegador real nem validam o fallback de rotas do servidor de hospedagem.
+
+Para conferência manual no ambiente publicado, repetir com ADMIN e USUARIO:
+entrar pela raiz, atualizar `/mapa?data=AAAA-MM-DD&mesaId=ID` com dados válidos,
+clicar Listar mesas e usar voltar/avançar. Conferir data, seleção quando válida,
+título da tela e ausência de erro 404 ao atualizar. Com token expirado, conferir
+o login e os parâmetros de retorno. O resultado visual/manual deve ser registrado
+separadamente; não é comprovado pela suíte jsdom.
+
 ## Datas inválidas (`400`)
 
 | # | Cenário | Request | Esperado |
