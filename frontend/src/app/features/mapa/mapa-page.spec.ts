@@ -269,8 +269,9 @@ describe("Barra de reserva do mapa", () => {
     expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
     const itensLegenda = fixture.nativeElement.querySelectorAll(".legenda__itens li:not(.legenda__visibilidade)") as NodeListOf<HTMLElement>;
-    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Fixa", "Diária", "Inativa"]);
-    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--ocupada")).not.toBeNull();
+    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Fixa / Reservada", "Sua reserva", "Inativa"]);
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--fixa")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--sua-reserva")).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--inativa")).not.toBeNull();
     const tooltip = fixture.nativeElement.querySelector("#mapa-informacoes") as HTMLElement;
     expect(tooltip.getAttribute("role")).toBe("tooltip");

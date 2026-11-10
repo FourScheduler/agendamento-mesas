@@ -32,7 +32,7 @@ describe("PlantaMesas", () => {
     http.expectOne('/api/mesas/disponiveis?data=2026-11-10').flush([]);
     fixture.detectChanges();
     expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' }));
-    expect(fixture.nativeElement.querySelector('.mesa__diaria').textContent).toBe('Sua reserva');
+    expect(fixture.nativeElement.querySelector('.mesa__estado--sua-reserva').textContent).toBe('Sua reserva');
     expect(fixture.componentInstance.selecionada()).toBeNull();
   });
 
@@ -639,19 +639,18 @@ describe("PlantaMesas", () => {
     const mesas = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
     expect(mesas[0].querySelector('.mesa__estado')).toBeNull();
     expect(mesas[1].querySelector('.mesa__estado')?.textContent).toBe('Livre');
-    expect(mesas[2].querySelector('.mesa__estado')?.textContent).toBe('Diária');
-    expect(getComputedStyle(mesas[2].querySelector('.mesa__estado')!).fontSize)
-      .toBe(getComputedStyle(mesas[1].querySelector('.mesa__estado')!).fontSize);
-    expect(mesas[0].querySelector('.mesa__diaria')).toBeNull();
-    expect(mesas[1].querySelector('.mesa__diaria')).toBeNull();
+    // Outras reservas não mostram rótulo "Diária" na mesa
+    expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
+    expect(mesas[0].querySelector('.mesa__estado--sua-reserva')).toBeNull();
+    expect(mesas[1].querySelector('.mesa__estado--sua-reserva')).toBeNull();
     expect(mesas[2].classList.contains('ocupada')).toBe(true);
-    expect(mesas[2].querySelector('.mesa__diaria')?.textContent).toBe('Diária');
+    expect(mesas[2].querySelector('.mesa__estado--sua-reserva')).toBeNull();
     TestBed.inject(AuthService).sessao.set({
       token: 'teste', tipo: 'Bearer',
       usuario: { id: 8, nome: 'Pessoa Reservada', email: 'reservada@example.com', perfil: 'USUARIO' },
     });
     fixture.detectChanges();
-    expect(mesas[2].querySelector('.mesa__diaria')?.textContent).toBe('Sua reserva');
+    expect(mesas[2].querySelector('.mesa__estado--sua-reserva')?.textContent).toBe('Sua reserva');
     expect(mesas[2].getAttribute('aria-label')).toContain('Sua reserva');
 
     expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Exemplo');
@@ -697,9 +696,9 @@ describe("PlantaMesas", () => {
     expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
 
     const rodape = fixture.nativeElement.querySelector('.mapa__rodape') as HTMLElement;
-    expect(rodape.querySelector('.amostra--fixa')?.parentElement?.textContent?.trim()).toBe('Fixa');
-    expect(rodape.querySelector('.amostra--ocupada')?.parentElement?.textContent?.trim()).toBe('Diária');
-    expect(rodape.textContent).not.toContain('Reservada');
+    expect(rodape.querySelector('.amostra--fixa')?.parentElement?.textContent?.trim()).toBe('Fixa / Reservada');
+    expect(rodape.querySelector('.amostra--sua-reserva')?.parentElement?.textContent?.trim()).toBe('Sua reserva');
+    // A legenda não contém mais "Reservada" separadamente
     const mesaFixa = mesas[0];
     (fixture.nativeElement.querySelector(
       '.legenda__visibilidade .botao-icone',
