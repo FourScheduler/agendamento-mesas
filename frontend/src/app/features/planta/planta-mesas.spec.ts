@@ -6,6 +6,7 @@ import {
 } from "@angular/common/http/testing";
 import { PlantaMesas } from "./planta-mesas";
 import { Mesa } from "../mesas/mesa";
+import { AuthService } from "../../core/auth/auth.service";
 import { agruparFileiras, TAMANHO_MESA, PLANTA_TAMBORE_EXIBICAO } from "./planta-layout";
 
 describe("PlantaMesas", () => {
@@ -610,7 +611,20 @@ describe("PlantaMesas", () => {
     const mesas = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
     expect(mesas[0].querySelector('.mesa__estado')).toBeNull();
     expect(mesas[1].querySelector('.mesa__estado')?.textContent).toBe('Livre');
-    expect(mesas[2].querySelector('.mesa__estado')).toBeNull();
+    expect(mesas[2].querySelector('.mesa__estado')?.textContent).toBe('Diária');
+    expect(getComputedStyle(mesas[2].querySelector('.mesa__estado')!).fontSize)
+      .toBe(getComputedStyle(mesas[1].querySelector('.mesa__estado')!).fontSize);
+    expect(mesas[0].querySelector('.mesa__diaria')).toBeNull();
+    expect(mesas[1].querySelector('.mesa__diaria')).toBeNull();
+    expect(mesas[2].classList.contains('ocupada')).toBe(true);
+    expect(mesas[2].querySelector('.mesa__diaria')?.textContent).toBe('Diária');
+    TestBed.inject(AuthService).sessao.set({
+      token: 'teste', tipo: 'Bearer',
+      usuario: { id: 8, nome: 'Pessoa Reservada', email: 'reservada@example.com', perfil: 'USUARIO' },
+    });
+    fixture.detectChanges();
+    expect(mesas[2].querySelector('.mesa__diaria')?.textContent).toBe('Sua reserva');
+    expect(mesas[2].getAttribute('aria-label')).toContain('Sua reserva');
 
     expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Exemplo');
     expect(mesas[1].querySelector('.mesa-tooltip')).toBeNull();
@@ -634,10 +648,11 @@ describe("PlantaMesas", () => {
     mesas[2].dispatchEvent(new MouseEvent('mouseenter'));
     expect(tooltip.getAttribute('popover')).toBe('manual');
     expect(tooltip.showPopover).toHaveBeenCalledOnce();
-    expect(tooltip.style.left).toBe('340px');
+    expect(tooltip.style.left).toBe('380px');
     expect(tooltip.style.top).toBe('315px');
     expect(tooltip.style.zoom).toBe(String(1 / fixture.componentInstance.escala()));
     expect(tooltip.style.width).toBe('140px');
+    expect(tooltip.style.maxHeight).toBe('120px');
     expect(mesas[2].classList.contains('mesa--tooltip')).toBe(true);
     expect(codigo.textContent).toBe('67');
     mesas[2].dispatchEvent(new Event('pointerleave'));
@@ -653,6 +668,10 @@ describe("PlantaMesas", () => {
     }
     expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
 
+    const rodape = fixture.nativeElement.querySelector('.mapa__rodape') as HTMLElement;
+    expect(rodape.querySelector('.amostra--fixa')?.parentElement?.textContent?.trim()).toBe('Fixa');
+    expect(rodape.querySelector('.amostra--ocupada')?.parentElement?.textContent?.trim()).toBe('Diária');
+    expect(rodape.textContent).not.toContain('Reservada');
     const mesaFixa = mesas[0];
     (fixture.nativeElement.querySelector(
       '.legenda__visibilidade .botao-icone',

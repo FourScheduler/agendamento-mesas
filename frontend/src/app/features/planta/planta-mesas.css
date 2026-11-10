@@ -238,8 +238,7 @@
   background: #b7f1dc;
   border: 2px solid #00ad7c;
 }
-.amostra--fixa,
-.amostra--ocupada {
+.amostra--fixa {
   background: #fff0f0;
   border: 2px solid #ed9292;
 }

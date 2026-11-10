@@ -16,6 +16,7 @@ import {
 import { HttpErrorResponse } from "@angular/common/http";
 import { DOCUMENT, NgTemplateOutlet } from "@angular/common";
 import { Mesa } from "../mesas/mesa";
+import { AuthService } from "../../core/auth/auth.service";
 import { MesaService } from "../mesas/mesa.service";
 import { forkJoin, of } from 'rxjs';
 import {
@@ -34,6 +35,7 @@ import {
   styleUrl: "./planta-mesas.css",
 })
 export class PlantaMesas {
+  private readonly auth = inject(AuthService);
   readonly data = input('');
   readonly atualizacao = input(0);
   readonly mesaInicialId = input<number | null>(null);
@@ -366,26 +368,25 @@ export class PlantaMesas {
     return mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || mesa.ocupante || null;
   }
 
+  suaReserva(mesa: Mesa): boolean {
+    return this.estaOcupada(mesa) && mesa.ocupanteNaData != null
+      && mesa.ocupanteNaData.id === this.auth.usuario()?.id;
+  }
+
   abrirTooltip(event: Event) {
     const mesa = event.currentTarget as HTMLButtonElement;
     const tooltip = mesa.querySelector<HTMLElement>('.mesa-tooltip');
     if (!tooltip || mesa.disabled) return;
     this.ocultarTooltip();
-    const codigo = mesa.querySelector<HTMLElement>('.mesa__codigo')!;
-    const rect = codigo.getBoundingClientRect();
+    const rect = mesa.getBoundingClientRect();
     tooltip.style.zoom = String(1 / this.escala());
-    tooltip.style.width = `${mesa.getBoundingClientRect().width}px`;
+    tooltip.style.width = `${rect.width}px`;
+    tooltip.style.maxHeight = `${rect.height}px`;
     tooltip.showPopover();
     mesa.classList.add('mesa--tooltip');
     this.mesaComTooltip = mesa;
-    tooltip.style.left = `${Math.max(8, Math.min(
-      rect.left + (rect.width - tooltip.offsetWidth) / 2,
-      window.innerWidth - tooltip.offsetWidth - 8,
-    ))}px`;
-    tooltip.style.top = `${Math.max(8, Math.min(
-      rect.top + (rect.height - tooltip.offsetHeight) / 2,
-      window.innerHeight - tooltip.offsetHeight - 8,
-    ))}px`;
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.top + (rect.height - tooltip.offsetHeight) / 2}px`;
   }
 
   abrirTooltipNoTeclado(event: Event) {
