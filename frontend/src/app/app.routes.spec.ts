@@ -45,7 +45,7 @@ describe('Entrada e navegação entre mapa e lista de mesas', () => {
     http.expectOne(r => r.url === '/api/mesas/disponiveis' && r.params.get('data') === data).flush([]);
   }
 
-  function botaoListar(harness: RouterTestingHarness): HTMLButtonElement {
+  function botaoListar(harness: RouterTestingHarness, rotulo = 'Listar mesas'): HTMLButtonElement {
     const botoes = Array.from(harness.routeNativeElement!.querySelectorAll('button'));
     const nomeAcessivel = (item: HTMLButtonElement) => {
       if (item.hasAttribute('aria-label')) return item.getAttribute('aria-label');
@@ -53,9 +53,9 @@ describe('Entrada e navegação entre mapa e lista de mesas', () => {
       copia.querySelectorAll('[aria-hidden="true"]').forEach(icone => icone.remove());
       return copia.textContent?.trim();
     };
-    const botao = botoes.find(item => nomeAcessivel(item) === 'Listar mesas');
+    const botao = botoes.find(item => nomeAcessivel(item) === rotulo);
     expect(botao).toBeDefined();
-    expect(botao!.textContent).toContain('Listar mesas');
+    expect(botao!.textContent).toContain(rotulo);
     return botao!;
   }
 
@@ -128,7 +128,7 @@ describe('Entrada e navegação entre mapa e lista de mesas', () => {
     expect(TestBed.inject(Router).url).toBe('/agendamento?data=2026-10-29');
   });
 
-  it.each(['USUARIO', 'ADMIN'])('Listar mesas em Minhas reservas abre a lista como %s', async perfil => {
+  it.each(['USUARIO', 'ADMIN'])('Ver Mapa em Minhas reservas abre o mapa como %s', async perfil => {
     autenticar(perfil);
     const harness = await RouterTestingHarness.create('/minhas-reservas');
     const endpoint = perfil === 'ADMIN' ? '/api/admin/reservas/pagina' : '/api/reservas/minhas/pagina';
@@ -137,10 +137,11 @@ describe('Entrada e navegação entre mapa e lista de mesas', () => {
     });
     http.expectOne('/api/mesas').flush([]);
     const navegando = proximaNavegacao();
-    botaoListar(harness).click();
+    botaoListar(harness, 'Ver Mapa').click();
     await navegando;
-    carregarLista(harness);
-    expect(TestBed.inject(Router).url).toBe('/agendamento');
+    harness.detectChanges();
+    carregarMapa();
+    expect(TestBed.inject(Router).url).toBe('/mapa');
   });
 
   it('Listar mesas na administração abre a lista', async () => {

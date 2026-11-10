@@ -11,8 +11,9 @@ Para datas e fuso horário no frontend, consulte o [roteiro de validação da is
 `app.routes.spec.ts` cobre raiz autenticada e acesso ao login para ADMIN e
 USUARIO, entrada anônima, inicialização por link direto com token persistido,
 rejeição de token expirado e preservação dos parâmetros de data/mesa.
-Os botões Listar mesas são acionados nas três telas (mapa, administração e
-Minhas reservas), verificando texto acessível e destino `/agendamento`.
+Os botões Listar mesas do mapa e da administração são acionados, verificando
+texto acessível e destino `/agendamento`. Em Minhas reservas, o teste aciona
+Ver Mapa e verifica o destino `/mapa` para ADMIN e USUARIO.
 `login-page.spec.ts` cobre o destino `/mapa` após autenticação dos dois perfis;
 `reserva-diaria.spec.ts` verifica o clique em Listar mesas levando data e mesa.
 

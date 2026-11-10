@@ -24,9 +24,10 @@ O frontend usa bootstrap standalone, HttpClient e tokens visuais. O componente r
 - Um retorno explícito para `/agendamento` continua sendo respeitado pelo login.
   A administração `/admin/mesas` permanece exclusiva de ADMIN; isso não altera
   o destino inicial comum aos dois perfis.
-- Os botões **Listar mesas** do mapa, de Minhas reservas e da administração levam
+- Os botões **Listar mesas** do mapa e da administração levam
   a `/agendamento`. No mapa, o retorno leva a data e a mesa selecionada, quando
-  houver. Minhas reservas e administração abrem a lista sem seleção explícita.
+  houver. A administração abre a lista sem seleção explícita. Em Minhas reservas,
+  o botão **Ver Mapa** leva a `/mapa`, sem data ou mesa explícitas.
 - Voltar/avançar usa o histórico do Router e restaura a URL, inclusive a data.
   Não há um novo dashboard nem mudança de regras ou contratos de reserva.
 
