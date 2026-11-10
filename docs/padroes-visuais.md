@@ -34,6 +34,11 @@ sem alteração das regras de cancelamento.
 Ao mudar período ou status, a consulta anterior é cancelada; somente a consulta
 mais recente pode atualizar a lista, o carregamento e o erro. Um período inválido
 também cancela a consulta pendente e limpa os resultados anteriores.
+A listagem usa os endpoints paginados próprios de usuário e administrador.
+Na aba Ativas, o limite inicial da consulta nunca precede hoje em São Paulo,
+para que a filtragem aconteça antes da paginação e a contagem permaneça coerente.
+Trocar aba, período, status ou tamanho reinicia a página; a consulta anterior
+também é cancelada ao navegar entre páginas.
 Nos cards de reservas, o status fica no canto superior direito, separado da
 identificação da mesa. As ações ficam abaixo, sem sobrepor o status ou nomes longos.
 A data fica logo abaixo do beneficiário, no mesmo bloco de identificação,

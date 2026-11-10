@@ -2,7 +2,6 @@ import { DestroyRef, Component, OnInit, computed, inject, signal } from '@angula
 import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Reserva } from '../agendamento/reserva';
 import { Carregando } from '../../shared/estados/carregando';
@@ -64,6 +63,9 @@ export class MinhasReservasPage implements OnInit {
   readonly carregando = signal(false);
   readonly erroApi = signal<string | null>(null);
   readonly filtro = signal<Filtro>('ativas');
+  readonly pagina = signal(0);
+  readonly tamanhoPagina = signal(10);
+  readonly totalRegistros = signal(0);
 
   readonly statusFiltro = signal<StatusReserva | null>(null);
   readonly periodoFiltro = signal<PeriodoPersonalizado>({ inicio: null, fim: null });
@@ -90,7 +92,7 @@ export class MinhasReservasPage implements OnInit {
     );
 
     const porMomento = (a: Reserva, b: Reserva) =>
-      this.momento(a).localeCompare(this.momento(b));
+      a.data.localeCompare(b.data);
 
     const ascendente = this.filtro() === 'ativas';
 
@@ -153,9 +155,9 @@ export class MinhasReservasPage implements OnInit {
   buscar(): void {
     this.consultaReservas?.unsubscribe();
     this.calendario.atualizar();
-    this.consulta?.unsubscribe();
     if (this.periodoInvalido()) {
       this.reservas.set([]);
+      this.totalRegistros.set(0);
       this.erroApi.set(null);
       this.carregando.set(false);
       return;
@@ -164,7 +166,17 @@ export class MinhasReservasPage implements OnInit {
     const { inicio, fim } = this.periodoFiltro();
 
     const params: { status?: string; dataInicio?: string; dataFim?: string } = {};
-    if (inicio) params.dataInicio = inicio;
+    const inicioEfetivo = this.filtro() === 'ativas'
+      ? (inicio && inicio > this.calendario.hoje() ? inicio : this.calendario.hoje())
+      : inicio;
+    if (inicioEfetivo && fim && fim < inicioEfetivo) {
+      this.reservas.set([]);
+      this.totalRegistros.set(0);
+      this.erroApi.set(null);
+      this.carregando.set(false);
+      return;
+    }
+    if (inicioEfetivo) params.dataInicio = inicioEfetivo;
     if (fim) params.dataFim = fim;
     if (this.statusFiltro()) {
       params.status = this.statusFiltro()!;
@@ -173,9 +185,12 @@ export class MinhasReservasPage implements OnInit {
     this.erroApi.set(null);
     this.carregando.set(true);
 
-    const consulta = this.ehAdmin()
-      ? this.reservasService.listarTodas(params)
-      : this.reservasService.listarMinhas(params);
+    const consulta = this.reservasService.listarPagina(this.ehAdmin(), {
+      ...params,
+      canceladas: this.filtro() === 'canceladas',
+      pagina: this.pagina(),
+      tamanho: this.tamanhoPagina(),
+    });
     this.consultaReservas = consulta
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
