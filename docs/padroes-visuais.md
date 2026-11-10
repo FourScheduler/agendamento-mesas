@@ -8,6 +8,11 @@ com iniciais, nome, e-mail e ação Trocar, seguindo o resumo da reserva.
 As sugestões ficam no fluxo do modal, sem sobrepor o rodapé, em uma lista
 com altura máxima de 192px (cerca de três usuários) e rolagem própria.
 Os filtros de gestão se combinam com a busca por número e atualizam a tabela
+e a contagem. A busca também aceita localização, nome e e-mail do responsável
+fixo, ignorando acentos e diferenças entre maiúsculas e minúsculas.
+O catálogo completo da data é filtrado localmente após 250ms sem digitação,
+sem recriar o campo, perder foco ou consultar a API a cada letra.
+Os filtros rápidos atualizam a tabela
 e a contagem. Fixas considera o tipo da mesa; Inativas considera a ativação.
 Livres e Reservadas consideram apenas mesas ativas não fixas, sem ou com
 reserva no dia consultado, respectivamente. Clicar novamente limpa o filtro.
