@@ -32,6 +32,10 @@ Os tokens básicos já estão em `frontend/src/styles.css`. Ao implementar as te
 
 ## Aplicação no catálogo de mesas
 
+A tela de login usa fundo cinza em gradiente, apresentação à esquerda e
+formulário branco à direita. O cartão tem raio de 24px; campos e botão, 12px.
+Em telas pequenas, os blocos ficam empilhados. A ação principal permanece laranja.
+
 A referência local é `agendamento-salas/frontend`, especialmente `shared/topbar`,
 `styles.css` e `features/agendamento`. O catálogo de mesas reutiliza a identidade
 visual e a marca, com componentes próprios para seus contratos de API.
