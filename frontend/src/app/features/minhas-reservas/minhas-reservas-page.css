@@ -115,7 +115,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1.25rem;
 }
 
 .minhas-reservas__cartao:hover {
@@ -163,6 +163,30 @@
   min-width: 0;
   display: grid;
   gap: 0.125rem;
+}
+
+.minhas-reservas__linha--reserva {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.minhas-reservas__linha--reserva .minhas-reservas__status {
+  justify-self: end;
+}
+
+.minhas-reservas__linha--reserva .minhas-reservas__identificacao {
+  grid-row: 1 / 3;
+}
+
+.minhas-reservas__linha--reserva .minhas-reservas__acoes {
+  grid-column: 2;
+  justify-content: flex-end;
+}
+
+.minhas-reservas__linha--reserva .minhas-reservas__mesa,
+.minhas-reservas__linha--reserva .minhas-reservas__detalhes {
+  overflow-wrap: anywhere;
 }
 
 .minhas-reservas__nomeLinha {
@@ -271,6 +295,14 @@
 }
 
 @media (max-width: 640px) {
+  .minhas-reservas__linha--reserva .minhas-reservas__identificacao {
+    grid-row: auto;
+  }
+
+  .minhas-reservas__linha--reserva .minhas-reservas__acoes {
+    grid-column: 1 / -1;
+  }
+
   .minhas-reservas__cabecalho,
   .minhas-reservas__barraFiltros {
     flex-direction: column;
@@ -286,6 +318,6 @@
 
   .minhas-reservas__cartao {
     align-items: flex-start;
-    padding: 1rem;
+    padding: 0.75rem;
   }
 }

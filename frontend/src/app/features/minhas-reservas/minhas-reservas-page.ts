@@ -1,6 +1,7 @@
 import { DestroyRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ReservaService } from '../agendamento/reserva.service';
 import { Reserva } from '../agendamento/reserva';
 import { Carregando } from '../../shared/estados/carregando';
@@ -13,7 +14,7 @@ import { MesaService } from '../mesas/mesa.service';
 import { CalendarioReserva } from '../reservas/calendario-reserva';
 import { CalendarioSaoPaulo } from '../reservas/calendario-sao-paulo';
 
-type Filtro = 'futuras' | 'passadas';
+type Filtro = 'ativas' | 'canceladas';
 
 type StatusReserva = 'CONFIRMADA' | 'CANCELADA' | 'PENDENTE';
 
@@ -51,6 +52,7 @@ export class MinhasReservasPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly mesasService = inject(MesaService);
   private readonly calendario = inject(CalendarioSaoPaulo);
+  private consultaReservas: Subscription | undefined;
 
   readonly reservas = signal<Reserva[]>([]);
   readonly ehAdmin = computed(() => this.auth.usuario()?.perfil === 'ADMIN');
@@ -59,7 +61,7 @@ export class MinhasReservasPage implements OnInit {
   readonly erroMesaAtribuida = signal<string | null>(null);
   readonly carregando = signal(false);
   readonly erroApi = signal<string | null>(null);
-  readonly filtro = signal<Filtro>('futuras');
+  readonly filtro = signal<Filtro>('ativas');
 
   readonly statusFiltro = signal<StatusReserva | null>(null);
   readonly periodoFiltro = signal<PeriodoPersonalizado>({ inicio: null, fim: null });
@@ -79,22 +81,22 @@ export class MinhasReservasPage implements OnInit {
   readonly cancelamentoEmAndamento = signal<string | null>(null);
 
   readonly visiveis = computed(() => {
-    const lista = this.periodoPersonalizado()
-      ? [...this.reservas()]
-      : this.reservas().filter((reserva) =>
-          this.filtro() === 'futuras' ? this.ehFutura(reserva) : !this.ehFutura(reserva),
-        );
+    const lista = this.reservas().filter((reserva) =>
+      this.filtro() === 'ativas'
+        ? !this.ehCancelada(reserva.status) && this.ehFutura(reserva)
+        : this.ehCancelada(reserva.status),
+    );
 
     const porMomento = (a: Reserva, b: Reserva) =>
       this.momento(a).localeCompare(this.momento(b));
 
-    const ascendente = this.periodoPersonalizado() || this.filtro() === 'futuras';
+    const ascendente = this.filtro() === 'ativas';
 
     return ascendente ? lista.sort(porMomento) : lista.sort((a, b) => porMomento(b, a));
   });
 
   readonly cartoes = computed<CartaoReserva[]>(() => {
-    const numera = !this.periodoPersonalizado() && this.filtro() === 'futuras';
+    const numera = !this.periodoPersonalizado() && this.filtro() === 'ativas';
 
     return this.visiveis().map((reserva, indice) => ({
       chave: this.chave(reserva),
@@ -146,8 +148,12 @@ export class MinhasReservasPage implements OnInit {
   }
 
   buscar(): void {
+    this.consultaReservas?.unsubscribe();
     this.calendario.atualizar();
     if (this.periodoInvalido()) {
+      this.reservas.set([]);
+      this.erroApi.set(null);
+      this.carregando.set(false);
       return;
     }
 
@@ -166,7 +172,7 @@ export class MinhasReservasPage implements OnInit {
     const consulta = this.ehAdmin()
       ? this.reservasService.listarTodas(params)
       : this.reservasService.listarMinhas(params);
-    consulta
+    this.consultaReservas = consulta
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (reservas) => {

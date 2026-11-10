@@ -52,7 +52,76 @@ describe('MinhasReservasPage', () => {
     }
   });
 
-  it('mantém hoje nas futuras após 21h e reclassifica na virada sem recarregar nem perder filtros', () => {
+  it.each(['USUARIO', 'ADMIN'])('cancela consultas anteriores ao trocar filtros como %s', perfil => {
+    TestBed.inject(AuthService).sessao.update(sessao => sessao && ({
+      ...sessao, usuario: { ...sessao.usuario, perfil },
+    }));
+    const endpoint = perfil === 'ADMIN' ? '/api/admin/reservas' : '/api/reservas/minhas';
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush([]);
+    const inicial = http.expectOne(endpoint);
+    const pagina = fixture.componentInstance;
+
+    pagina.trocarData('inicio', '2026-11-10');
+    expect(inicial.cancelled).toBe(true);
+    const porData = http.expectOne(`${endpoint}?dataInicio=2026-11-10`);
+    const select = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    select.value = 'CANCELADA';
+    select.dispatchEvent(new Event('change'));
+    expect(porData.cancelled).toBe(true);
+    const porStatus = http.expectOne(
+      `${endpoint}?status=CANCELADA&dataInicio=2026-11-10`,
+    );
+    pagina.limparFiltros();
+    expect(porStatus.cancelled).toBe(true);
+    const atual = http.expectOne(endpoint);
+    expect(pagina.carregando()).toBe(true);
+    expect(pagina.erroApi()).toBeNull();
+    expect(() => inicial.flush([])).toThrow();
+    expect(pagina.carregando()).toBe(true);
+    atual.flush([]);
+    expect(pagina.carregando()).toBe(false);
+    expect(pagina.reservas()).toEqual([]);
+    expect(pagina.erroApi()).toBeNull();
+
+    pagina.buscar();
+    http.expectOne(endpoint).flush({}, { status: 500, statusText: 'Erro' });
+    expect(pagina.erroApi()).not.toBeNull();
+    pagina.buscar();
+    http.expectOne(endpoint).flush([]);
+    expect(pagina.erroApi()).toBeNull();
+    expect(pagina.carregando()).toBe(false);
+  });
+
+  it('cancela a consulta pendente ao informar período inválido e permite corrigir', () => {
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    http.expectOne('/api/mesas').flush([]);
+    const inicial = http.expectOne('/api/reservas/minhas');
+    const pagina = fixture.componentInstance;
+    pagina.trocarData('inicio', '2026-11-10');
+    expect(inicial.cancelled).toBe(true);
+    const pendente = http.expectOne('/api/reservas/minhas?dataInicio=2026-11-10');
+    pagina.trocarData('fim', '2026-11-09');
+    expect(pendente.cancelled).toBe(true);
+    expect(pagina.periodoInvalido()).toBe(true);
+    expect(pagina.carregando()).toBe(false);
+    expect(pagina.reservas()).toEqual([]);
+    http.expectNone(request => request.url === '/api/reservas/minhas');
+    pagina.trocarData('fim', '2026-11-11');
+    http.expectOne('/api/reservas/minhas?dataInicio=2026-11-10&dataFim=2026-11-11').flush([]);
+    expect(pagina.periodoInvalido()).toBe(false);
+    expect(pagina.carregando()).toBe(false);
+    pagina.buscar();
+    const aoDestruir = http.expectOne(
+      '/api/reservas/minhas?dataInicio=2026-11-10&dataFim=2026-11-11',
+    );
+    fixture.destroy();
+    expect(aoDestruir.cancelled).toBe(true);
+  });
+
+  it('mantém hoje nas ativas após 21h e remove na virada sem recarregar nem perder filtros', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-07T01:30:00Z'));
     const fixture = TestBed.createComponent(MinhasReservasPage);
@@ -77,10 +146,10 @@ describe('MinhasReservasPage', () => {
     fixture.detectChanges();
     expect(pagina.visiveis().map(r => r.data)).toEqual(['2026-11-09']);
     expect(pagina.statusFiltro()).toBe('CONFIRMADA');
-    expect(pagina.filtro()).toBe('futuras');
+    expect(pagina.filtro()).toBe('ativas');
     expect(pagina.podeCancelar(cartaoHoje)).toBe(false);
-    pagina.trocarFiltro('passadas');
-    expect(pagina.visiveis().map(r => r.data)).toEqual(['2026-11-06', '2026-11-05']);
+    pagina.trocarFiltro('canceladas');
+    expect(pagina.visiveis()).toEqual([]);
     http.expectNone('/api/reservas/minhas');
   });
 
@@ -106,7 +175,59 @@ describe('MinhasReservasPage', () => {
     expect(pagina.podeCancelar(cartao)).toBe(false);
     http.expectNone('/api/reservas/31/cancelamento');
     expect(pagina.periodoFiltro()).toEqual({ inicio: '2026-11-01', fim: '2026-11-09' });
-    expect(pagina.visiveis()).toHaveLength(1);
+    expect(pagina.visiveis()).toHaveLength(0);
+  });
+
+  it('separa ativas de canceladas e mantém as abas combinadas com o período', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-10T15:00:00Z'));
+    const fixture = TestBed.createComponent(MinhasReservasPage);
+    fixture.detectChanges();
+    const base = {
+      usuarioId: 7, criadaEm: '2026-11-01T12:00:00',
+      mesa: { id: 44, codigo: '044', regiao: 'TAMBORÉ' },
+    };
+    const reservas = [
+      { ...base, id: 1, data: '2026-11-09', status: 'CONFIRMADA' },
+      { ...base, id: 2, data: '2026-11-10', status: 'CONFIRMADA' },
+      { ...base, id: 3, data: '2026-11-12', status: 'CONFIRMADA' },
+      { ...base, id: 4, data: '2026-11-08', status: 'CANCELADA' },
+      { ...base, id: 5, data: '2026-11-13', status: 'CANCELADA' },
+    ];
+    http.expectOne('/api/reservas/minhas').flush(reservas);
+    http.expectOne('/api/mesas').flush([]);
+    fixture.detectChanges();
+    const pagina = fixture.componentInstance;
+    const abas = fixture.nativeElement.querySelectorAll('.minhas-reservas__filtro') as NodeListOf<HTMLButtonElement>;
+    expect(abas[0].textContent?.trim()).toBe('Ativas');
+    expect(abas[1].textContent?.trim()).toBe('Canceladas');
+    expect(pagina.visiveis().map(r => r.id)).toEqual([2, 3]);
+    const statusConfirmada = fixture.nativeElement.querySelector(
+      '.minhas-reservas__linha--reserva > .minhas-reservas__status--confirmada',
+    ) as HTMLElement;
+    expect(statusConfirmada.textContent?.trim()).toBe('Confirmada');
+    expect(statusConfirmada.closest('.minhas-reservas__identificacao')).toBeNull();
+    abas[1].click();
+    fixture.detectChanges();
+    expect(abas[1].getAttribute('aria-pressed')).toBe('true');
+    expect(pagina.visiveis().map(r => r.id)).toEqual([5, 4]);
+    expect(fixture.nativeElement.querySelector(
+      '.minhas-reservas__linha--reserva > .minhas-reservas__status--cancelada',
+    )?.textContent.trim()).toBe('Cancelada');
+    pagina.trocarData('inicio', '2026-11-10');
+    http.expectOne('/api/reservas/minhas?dataInicio=2026-11-10')
+      .flush(reservas.filter(r => r.data >= '2026-11-10'));
+    fixture.detectChanges();
+    expect(pagina.visiveis().map(r => r.id)).toEqual([5]);
+    expect(abas[0].disabled).toBe(false);
+    abas[0].click();
+    fixture.detectChanges();
+    expect(pagina.visiveis().map(r => r.id)).toEqual([2, 3]);
+    pagina.limparFiltros();
+    http.expectOne('/api/reservas/minhas').flush(reservas);
+    fixture.detectChanges();
+    expect(pagina.filtro()).toBe('ativas');
+    expect(pagina.visiveis().map(r => r.id)).toEqual([2, 3]);
   });
 
   it('exibe a mesa fixa do usuário sem oferecer cancelamento', () => {
@@ -230,6 +351,9 @@ describe('MinhasReservasPage', () => {
     expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();
     expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa')?.textContent).toContain('Mesa 001');
     expect(fixture.nativeElement.querySelector('.minhas-reservas__cartao--fixa button')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Reserva realizada pelo administrador.');
+    fixture.componentInstance.trocarFiltro('canceladas');
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Reserva realizada pelo administrador.');
     http.expectNone(request => request.url.startsWith('/api/admin/mesas'));
   });
@@ -247,10 +371,18 @@ describe('MinhasReservasPage', () => {
       mesa: { id: 9, codigo: '009', regiao: 'TAMBORÉ' },
     }]);
     http.expectOne('/api/mesas').flush([]);
-    if (caso.data === '2000-01-01') fixture.componentInstance.trocarFiltro('passadas');
+    if (caso.status === 'CANCELADA') fixture.componentInstance.trocarFiltro('canceladas');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();
-    fixture.componentInstance.cancelarReserva(fixture.componentInstance.cartoes()[0]);
+    fixture.componentInstance.cancelarReserva({
+      chave: 'reserva-teste', posicao: null,
+      reserva: {
+        id: 21, usuarioId: caso.usuarioId, data: caso.data,
+        status: caso.status as 'CONFIRMADA' | 'CANCELADA',
+        criadaEm: '1999-12-20T12:00:00',
+        mesa: { id: 9, codigo: '009', regiao: 'TAMBORÉ' },
+      },
+    });
     http.expectNone('/api/reservas/21/cancelamento');
   });
 
@@ -283,6 +415,10 @@ describe('MinhasReservasPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Gerenciar reservas');
     expect(fixture.nativeElement.textContent).toContain('Para João');
+    const beneficiario = fixture.nativeElement.querySelector(
+      '.minhas-reservas__linha--reserva .minhas-reservas__detalhes',
+    ) as HTMLElement;
+    expect(beneficiario.nextElementSibling?.classList.contains('minhas-reservas__meta')).toBe(true);
     expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Esta mesa é gerenciada pelo administrador.');
   });

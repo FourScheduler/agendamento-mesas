@@ -24,6 +24,24 @@ Todos os campos de data da lista, do mapa e de Minhas reservas reutilizam
 agendamento bloqueiam fins de semana e respeitam a janela da reserva, enquanto
 os filtros de histórico permitem datas passadas e fins de semana.
 
+Em Minhas reservas, a aba Ativas mostra reservas não canceladas de hoje em
+diante, em ordem crescente de data, considerando America/Sao_Paulo.
+A aba Canceladas mostra somente reservas canceladas, independentemente da
+data, em ordem decrescente. As abas permanecem disponíveis com um período
+personalizado e combinam-se com os filtros de data e status. Limpar filtros
+preserva a aba selecionada. Mesas atribuídas continuam em uma seção separada,
+sem alteração das regras de cancelamento.
+Ao mudar período ou status, a consulta anterior é cancelada; somente a consulta
+mais recente pode atualizar a lista, o carregamento e o erro. Um período inválido
+também cancela a consulta pendente e limpa os resultados anteriores.
+Nos cards de reservas, o status fica no canto superior direito, separado da
+identificação da mesa. As ações ficam abaixo, sem sobrepor o status ou nomes longos.
+A data fica logo abaixo do beneficiário, no mesmo bloco de identificação,
+sem espaçamento adicional causado pelas ações de cancelamento.
+Os cards usam espaçamento vertical compacto; no desktop, as ações ficam abaixo
+do status na coluna direita, ao lado da identificação. Em telas pequenas,
+as ações passam para uma linha própria para preservar a leitura.
+
 | Uso | Valor |
 | --- | --- |
 | Barra superior e títulos | `#222239` |

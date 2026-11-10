@@ -18,26 +18,24 @@
   </header>
 
   <div class="minhas-reservas__barraFiltros">
-    <div class="minhas-reservas__filtros" role="group" aria-label="Filtrar reservas por período">
+    <div class="minhas-reservas__filtros" role="group" aria-label="Filtrar reservas ativas ou canceladas">
       <button
         class="minhas-reservas__filtro"
         type="button"
-        [class.minhas-reservas__filtro--ativo]="filtro() === 'futuras'"
-        [attr.aria-pressed]="filtro() === 'futuras'"
-        [disabled]="periodoPersonalizado()"
-        (click)="trocarFiltro('futuras')"
+        [class.minhas-reservas__filtro--ativo]="filtro() === 'ativas'"
+        [attr.aria-pressed]="filtro() === 'ativas'"
+        (click)="trocarFiltro('ativas')"
       >
-        Futuras
+        Ativas
       </button>
       <button
         class="minhas-reservas__filtro"
         type="button"
-        [class.minhas-reservas__filtro--ativo]="filtro() === 'passadas'"
-        [attr.aria-pressed]="filtro() === 'passadas'"
-        [disabled]="periodoPersonalizado()"
-        (click)="trocarFiltro('passadas')"
+        [class.minhas-reservas__filtro--ativo]="filtro() === 'canceladas'"
+        [attr.aria-pressed]="filtro() === 'canceladas'"
+        (click)="trocarFiltro('canceladas')"
       >
-        Passadas
+        Canceladas
       </button>
     </div>
 
@@ -162,24 +160,31 @@
           }
 
           <div class="minhas-reservas__conteudo">
-            <div class="minhas-reservas__linha">
+            <div class="minhas-reservas__linha minhas-reservas__linha--reserva">
               <div class="minhas-reservas__identificacao">
                 <div class="minhas-reservas__nomeLinha">
                   <p class="minhas-reservas__mesa">Mesa {{ cartao.reserva.mesa.codigo }} - {{ cartao.reserva.mesa.regiao }}</p>
-                  <span
-                    class="minhas-reservas__status"
-                    [class.minhas-reservas__status--confirmada]="cartao.reserva.status === 'CONFIRMADA'"
-                    [class.minhas-reservas__status--cancelada]="ehCancelada(cartao.reserva.status)"
-                  >
-                    {{ rotuloStatus(cartao.reserva.status) }}
-                  </span>
                 </div>
                 @if (ehAdmin()) {
                   <span class="minhas-reservas__detalhes">
                     Para {{ cartao.reserva.solicitante?.nome ?? 'usuário não identificado' }}
                   </span>
                 }
+                <p class="minhas-reservas__meta">
+                  <span class="minhas-reservas__quando">
+                    {{ formatarData(cartao.reserva.data) }}
+                  </span>
+                  <span class="minhas-reservas__separador" aria-hidden="true">·</span>
+                </p>
               </div>
+
+              <span
+                class="minhas-reservas__status"
+                [class.minhas-reservas__status--confirmada]="cartao.reserva.status === 'CONFIRMADA'"
+                [class.minhas-reservas__status--cancelada]="ehCancelada(cartao.reserva.status)"
+              >
+                {{ rotuloStatus(cartao.reserva.status) }}
+              </span>
 
               <div class="minhas-reservas__acoes">
                 @if (podeCancelar(cartao)) {
@@ -216,12 +221,6 @@
               </div>
             </div>
 
-            <p class="minhas-reservas__meta">
-              <span class="minhas-reservas__quando">
-                {{ formatarData(cartao.reserva.data) }}
-              </span>
-              <span class="minhas-reservas__separador" aria-hidden="true">·</span>
-            </p>
             @if (!ehAdmin() && reservaCriadaPorAdmin(cartao)) {
               <p class="minhas-reservas__aviso-admin">
                 Reserva realizada pelo administrador.
