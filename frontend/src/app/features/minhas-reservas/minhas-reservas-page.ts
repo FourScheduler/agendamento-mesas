@@ -85,12 +85,12 @@ export class MinhasReservasPage implements OnInit {
           this.filtro() === 'futuras' ? this.ehFutura(reserva) : !this.ehFutura(reserva),
         );
 
-    const porData = (a: Reserva, b: Reserva) =>
-      a.data.localeCompare(b.data);
+    const porMomento = (a: Reserva, b: Reserva) =>
+      this.momento(a).localeCompare(this.momento(b));
 
     const ascendente = this.periodoPersonalizado() || this.filtro() === 'futuras';
 
-    return ascendente ? lista.sort(porData) : lista.sort((a, b) => porData(b, a));
+    return ascendente ? lista.sort(porMomento) : lista.sort((a, b) => porMomento(b, a));
   });
 
   readonly cartoes = computed<CartaoReserva[]>(() => {
@@ -308,6 +308,10 @@ export class MinhasReservasPage implements OnInit {
 
   private ehFutura(reserva: Reserva): boolean {
     return reserva.data >= this.calendario.hoje();
+  }
+
+  private momento(reserva: Reserva): string {
+    return `${reserva.data}T23:59:59`;
   }
 
   private mensagemDeErro(erro: unknown): string {

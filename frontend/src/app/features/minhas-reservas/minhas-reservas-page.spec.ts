@@ -84,9 +84,10 @@ describe('MinhasReservasPage', () => {
     http.expectNone('/api/reservas/minhas');
   });
 
-  it('preserva período personalizado e revalida a data antes de confirmar cancelamento em aba suspensa', () => {
+  it.each(['2026-11-07T02:59:59Z', '2026-11-07T02:59:59.999Z'])(
+    'preserva período personalizado e revalida cancelamento em aba suspensa a partir de %s', (instante) => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-07T02:59:59Z'));
+    vi.setSystemTime(new Date(instante));
     const fixture = TestBed.createComponent(MinhasReservasPage);
     fixture.detectChanges();
     http.expectOne('/api/reservas/minhas').flush([{
@@ -97,10 +98,12 @@ describe('MinhasReservasPage', () => {
     fixture.detectChanges();
     const pagina = fixture.componentInstance;
     const cartao = pagina.cartoes()[0];
+    expect(pagina.podeCancelar(cartao)).toBe(true);
     pagina.periodoFiltro.set({ inicio: '2026-11-01', fim: '2026-11-09' });
     pagina.solicitarCancelamento(cartao);
     vi.setSystemTime(new Date('2026-11-07T03:00:01Z'));
     pagina.cancelarReserva(cartao);
+    expect(pagina.podeCancelar(cartao)).toBe(false);
     http.expectNone('/api/reservas/31/cancelamento');
     expect(pagina.periodoFiltro()).toEqual({ inicio: '2026-11-01', fim: '2026-11-09' });
     expect(pagina.visiveis()).toHaveLength(1);
