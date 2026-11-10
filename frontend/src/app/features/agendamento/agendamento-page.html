@@ -75,11 +75,11 @@
 
 <div class="agendamento__grid" [class.agendamento__grid--com-selecao]="temMesaSelecionada()">
   <!-- Lado esquerdo: cards de mesas livres -->
-  <section class="mesas-livres cartao" aria-labelledby="mesas-livres-titulo">
     <h2 id="mesas-livres-titulo" class="mesas-livres__titulo">
       Mesas livres
       <span class="mesas-livres__contagem">({{ mesasLivres().length }})</span>
     </h2>
+  <section class="mesas-livres cartao" aria-labelledby="mesas-livres-titulo">
 
     @if (reserva.erroData()) {
       <p class="mesas-livres__vazio" role="status">Escolha uma data válida para consultar as mesas.</p>
@@ -153,6 +153,7 @@
 
   <!-- Lado direito: resumo da reserva (aparece apenas quando há mesa selecionada) -->
   @if (temMesaSelecionada()) {
+  <div class="resumo-limite">
   <aside class="resumo-reserva cartao" aria-labelledby="resumo-titulo">
     <div class="resumo__conteudo">
       <header class="resumo__cabecalho">
@@ -329,6 +330,7 @@
 
     </div>
   </aside>
+  </div>
   }
 </div>
 
