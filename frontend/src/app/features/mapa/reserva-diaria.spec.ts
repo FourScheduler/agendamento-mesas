@@ -354,7 +354,11 @@ describe('Reserva diária pela planta', () => {
 
   it('leva a data escolhida ao voltar para a lista de agendamento', () => {
     const fixture = abrir();
-    fixture.componentInstance.voltarParaAgendamento();
+    const botao = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(item => item.textContent?.trim() === 'Listar mesas');
+    expect(botao).toBeDefined();
+    expect(botao!.getAttribute('aria-label') ?? botao!.textContent?.trim()).toBe('Listar mesas');
+    botao!.click();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], { queryParams: { data: '2026-10-28', mesaId: 44 } });
   });
 
