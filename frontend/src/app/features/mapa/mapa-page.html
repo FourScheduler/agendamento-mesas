@@ -121,24 +121,15 @@
               <span>{{ formatarData(reserva.data()) }}</span>
             }
           </dd>
-          @if (mesa.ocupante && !mesaReservada(mesa)) {
-            <dt>Ocupante</dt><dd>{{ mesa.ocupante }}</dd>
-          }
-
-          @if (mesa.tipo === 'FIXA' && mesa.responsavel) {
-            <dt>Responsável</dt>
-            <dd>{{ mesa.responsavel.nome }}</dd>
-          }
-
-          @if (mesa.ocupanteNaData) {
+          @if (mesa.ocupanteNaData?.nome || mesa.responsavel?.nome || (!mesaReservada(mesa) ? mesa.ocupante : null); as ocupante) {
             <dt>
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 21a8 8 0 0 1 16 0" />
               </svg>
-              <span>Reservada para</span>
+              <span>Ocupante</span>
             </dt>
-            <dd>{{ mesa.ocupanteNaData.nome }}</dd>
+            <dd>{{ ocupante }}</dd>
           }
           @if (podeReservar(mesa)) {
             @if (isAdmin()) {

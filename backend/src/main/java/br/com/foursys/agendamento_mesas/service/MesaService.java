@@ -124,7 +124,7 @@ public class MesaService {
             throw conflito("Mesa " + mesa.getCodigo() + " já está fixa.");
         }
 
-        validarResponsavelUnico(usuarioId, id);
+        validarResponsavelUnico(responsavel, id);
         validarMesaSemReservas(mesa);
         validarUsuarioSemReservas(usuarioId);
         mesa.setTipo(TipoMesa.FIXA);
@@ -157,7 +157,7 @@ public class MesaService {
             throw conflito("Somente mesas fixas podem ter responsável.");
         }
 
-        validarResponsavelUnico(usuarioId, id);
+        validarResponsavelUnico(responsavel, id);
         if (Objects.equals(idResponsavel(mesa), usuarioId)) {
             return MesaResponse.de(mesa);
         }
@@ -253,10 +253,13 @@ public class MesaService {
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Mesa " + id + " não encontrada."));
     }
 
-    private void validarResponsavelUnico(Long usuarioId, Long mesaId) {
-        if (mesaRepositoryPort.existeOutraMesaPorResponsavelId(usuarioId, mesaId)) {
-            throw conflito("O usuário já possui uma mesa fixa vinculada. Desfixe a mesa atual antes de atribuir outra.");
-        }
+    private void validarResponsavelUnico(Usuario usuario, Long mesaId) {
+        mesaRepositoryPort.buscarPorResponsavelId(usuario.getId())
+            .filter(vinculada -> !Objects.equals(vinculada.getId(), mesaId))
+            .ifPresent(vinculada -> {
+                throw conflito(usuario.getNome() + " já possui a mesa " + vinculada.getCodigo()
+                    + " vinculada ao seu nome. Remova o vínculo atual antes de atribuir outra mesa.");
+            });
     }
 
     private void validarMesaAtivaParaFixacao(Mesa mesa) {

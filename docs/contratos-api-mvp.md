@@ -324,6 +324,11 @@ Sem código de mesa válido, preservam o `detail`, sem usar a mesa da tentativa.
 Outros conflitos continuam exibindo seu motivo específico, mesmo que incluam
 um campo `mesa`; o status `409` isoladamente não indica duplicidade.
 
+ADMIN autenticado reservando para si (solicitante omitido ou seu próprio ID)
+pode criar múltiplas reservas na mesma data, mesmo tendo mesa fixa. Essa exceção
+não vale ao reservar para terceiros, inclusive outro ADMIN. Permanecem as
+validações de data, mesa ativa/livre, ocupação, autorização e idempotência.
+
 O bloqueio por mesa fixa consulta o vínculo `responsavel_id` do solicitante efetivo,
 sem inferir identidade pelo nome em `ocupante`. Após a desfixação, novas reservas
 podem ser criadas se atenderem às demais regras. O bloqueio não cancela reservas
@@ -573,7 +578,9 @@ ativação, a fixação pode ser solicitada novamente.
 `200`: retorna `MesaResponse` com `tipo: "FIXA"` e o objeto `responsavel` (`id`, `nome`, `email`).
 
 Se o usuário já estiver vinculado a outra mesa, retorna `409` com `detail`:
-`O usuário já possui uma mesa fixa vinculada. Desfixe a mesa atual antes de atribuir outra.`
+`{nome} já possui a mesa {codigo} vinculada ao seu nome. Remova o vínculo atual antes de atribuir outra mesa.`
+O nome vem do cadastro do usuário selecionado por ID e o código da mesa já
+vinculada. O status continua `409`, sem transferência automática de vínculo.
 A mesa atual do usuário não é desfixada automaticamente e a mesa de destino permanece
 inalterada. Mesas inativas vinculadas também impedem uma nova atribuição.
 

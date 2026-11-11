@@ -340,6 +340,7 @@ describe("Barra de reserva do mapa", () => {
       id: 45,
       codigo: "045",
       tipo: "FIXA",
+      ocupante: "Texto legado",
       responsavel: { id: 8, nome: "Pessoa Responsável", email: "responsavel@example.com" },
     };
     const fixture = TestBed.createComponent(MapaPage);
@@ -367,7 +368,10 @@ describe("Barra de reserva do mapa", () => {
     const detalhes = fixture.nativeElement.querySelector(".detalhes") as HTMLElement;
     expect(detalhes.textContent).toContain("Localização");
     expect(detalhes.textContent).toContain("Data selecionada");
-    expect(detalhes.textContent).toContain("Responsável");
+    const rotulos = Array.from(detalhes.querySelectorAll('dt')).map(rotulo => rotulo.textContent?.trim());
+    expect(rotulos.filter(rotulo => rotulo === 'Ocupante')).toHaveLength(1);
+    expect(rotulos).not.toContain('Responsável');
+    expect(detalhes.textContent).not.toContain('Texto legado');
     expect(detalhes.textContent).toContain("Pessoa Responsável");
     expect(detalhes.querySelector(".detalhes__status--reservada")).not.toBeNull();
     expect(detalhes.querySelector('[role="switch"]')).toBeNull();

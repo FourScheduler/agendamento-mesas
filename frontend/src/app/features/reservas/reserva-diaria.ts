@@ -147,9 +147,14 @@ export class ReservaDiaria {
                 : detalhe || 'O solicitante já possui uma reserva nessa data.');
             } else if (erro.error?.code === 'USUARIO_COM_MESA_FIXA') {
               const codigo = erro.error?.mesa?.codigo;
-              this.toast.erro('Reserva não permitida', typeof codigo === 'string' && codigo.trim()
-                ? `Você já possui a mesa ${codigo.trim()} vinculada ao seu nome. Entre em contato com o administrador`
-                : detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.');
+              const reservaPropria = solicitanteId === null || solicitanteId === sessao.usuario.id;
+              let mensagem = detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.';
+              if (typeof codigo === 'string' && codigo.trim()) {
+                mensagem = reservaPropria
+                  ? `Você já possui a mesa ${codigo.trim()} vinculada ao seu nome. Entre em contato com o administrador`
+                  : detalhe || `O solicitante já possui a mesa ${codigo.trim()} vinculada ao seu nome. Remova o vínculo atual antes de realizar uma reserva para essa pessoa.`;
+              }
+              this.toast.erro('Reserva não permitida', mensagem);
             } else {
               this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
             }
