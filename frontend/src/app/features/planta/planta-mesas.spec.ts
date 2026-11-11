@@ -12,6 +12,49 @@ import { agruparFileiras, TAMANHO_MESA, PLANTA_TAMBORE_EXIBICAO } from "./planta
 describe("PlantaMesas", () => {
   let http: HttpTestingController;
 
+  it.each(['LIVRE', 'FIXA'] as const)('sobrepõe a borda da reserva %s própria às vizinhas sem pulsar reservas de terceiros', tipo => {
+    const auth = TestBed.inject(AuthService);
+    const usuario = { id: 7, nome: 'Maria', email: 'maria@example.com', perfil: 'USUARIO' };
+    auth.sessao.set({ token: 'teste', tipo: 'Bearer', usuario });
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput('data', '2026-11-11');
+    fixture.detectChanges();
+    const base = {
+      regiao: 'DEMO', tipo, ativa: true, ocupada: tipo === 'LIVRE',
+      referenciaVisual: { planta: 'DEMO', x: 200, y: 80 },
+    };
+    const pessoa = { id: 7, nome: 'Maria', email: 'maria@example.com' };
+    const outro = { ...pessoa, id: 8, nome: 'João' };
+    http.expectOne('/api/mesas/com-ocupacao?data=2026-11-11').flush([
+      { ...base, id: 1, codigo: '001',
+        responsavel: tipo === 'FIXA' ? pessoa : null,
+        ocupanteNaData: tipo === 'LIVRE' ? pessoa : null },
+      { ...base, id: 2, codigo: '002',
+        responsavel: tipo === 'FIXA' ? outro : null,
+        ocupanteNaData: tipo === 'LIVRE' ? outro : null },
+      { ...base, id: 3, codigo: '003', tipo: 'LIVRE' },
+      { ...base, id: 4, codigo: '004', ativa: false, responsavel: pessoa, ocupanteNaData: pessoa },
+    ]);
+    http.expectOne('/api/mesas/disponiveis?data=2026-11-11').flush([{ id: 3 }]);
+    fixture.detectChanges();
+    const mesas = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
+    mesas[2].click();
+    fixture.detectChanges();
+    expect(mesas[2].classList.contains('selecionada')).toBe(true);
+    expect(Array.from(mesas).filter(mesa => mesa.classList.contains('sua-reserva'))).toEqual([mesas[0]]);
+    expect(getComputedStyle(mesas[0]).animation).toContain('mesa-pulsar');
+    expect(Number(getComputedStyle(mesas[0]).zIndex)).toBeGreaterThan(
+      Number(getComputedStyle(mesas[2]).zIndex),
+    );
+    expect(getComputedStyle(mesas[1]).animation).not.toContain('mesa-pulsar');
+    auth.sessao.set({ token: 'teste', tipo: 'Bearer', usuario: { ...usuario, id: 8 } });
+    fixture.detectChanges();
+    expect(Array.from(mesas).filter(mesa => mesa.classList.contains('sua-reserva'))).toEqual([mesas[1]]);
+    auth.sessao.set(null);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mesa.sua-reserva')).toBeNull();
+  });
+
   it.each(['LIVRE', 'FIXA'] as const)('centraliza a mesa %s do usuário na primeira consulta sem selecionar', (tipo) => {
     TestBed.inject(AuthService).sessao.set({
       token: 'teste', tipo: 'Bearer',

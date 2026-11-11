@@ -65,6 +65,10 @@ Mesas com reserva diária na data consultada usam fundo `#EAF3FF`, borda
 “Diária” para reservas de terceiros e “Sua reserva” quando o ocupante na data
 corresponde ao usuário autenticado. Mesas fixas mantêm suas cores e também
 mostram “Sua reserva” para o responsável autenticado.
+A pulsação é exclusiva da reserva diária ou mesa fixa ativa do usuário
+autenticado. Essa mesa fica acima das mesas vizinhas, inclusive selecionadas,
+para que a borda pulsante não seja encoberta. Com movimento reduzido, o
+destaque permanece estático e mantém a mesma sobreposição.
 Na primeira consulta do mapa, sem uma mesa indicada na navegação, a planta
 centraliza a reserva diária ou mesa fixa do usuário, sem abrir os detalhes.
 

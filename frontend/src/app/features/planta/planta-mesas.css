@@ -452,6 +452,7 @@
 
 /* Sua reserva - destaque especial com pulsação suave */
 .mesa.sua-reserva {
+  z-index: 3;
   border-color: #f1b5b5;
   background: linear-gradient(
       145deg,
