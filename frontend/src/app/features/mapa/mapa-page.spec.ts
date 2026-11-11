@@ -482,7 +482,7 @@ describe("Barra de reserva do mapa", () => {
   });
 
   it.each(["CONFIRMADA", "PENDENTE"])("permite ao beneficiário cancelar diária %s criada pelo administrador", status => {
-    const sucesso = vi.spyOn(TestBed.inject(ToastService), "sucesso");
+    const cancelamento = vi.spyOn(TestBed.inject(ToastService), "cancelamento");
     const mesaReservada: Mesa = {
       ...mesa,
       ocupada: true,
@@ -514,13 +514,13 @@ describe("Barra de reserva do mapa", () => {
     cancelar.click();
     const request = http.expectOne("/api/reservas/92/cancelamento");
     expect(request.request.method).toBe("PATCH");
-    expect(sucesso).not.toHaveBeenCalled();
+    expect(cancelamento).not.toHaveBeenCalled();
     request.flush(null);
     fixture.detectChanges();
     http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
-    expect(sucesso).toHaveBeenCalledExactlyOnceWith("Reserva cancelada");
+    expect(cancelamento).toHaveBeenCalledExactlyOnceWith("Reserva cancelada");
     expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
     expect(fixture.nativeElement.querySelector("button.mesa.livre")).not.toBeNull();
     http.expectNone(request => request.url.startsWith("/api/admin/mesas"));

@@ -1,13 +1,12 @@
 import { Injectable, signal, computed } from '@angular/core';
 
-export type ToastTipo = 'sucesso' | 'erro' | 'info' | 'aviso';
+export type ToastTipo = 'sucesso' | 'cancelamento' | 'erro' | 'info' | 'aviso';
 
 export interface Toast {
   id: number;
   tipo: ToastTipo;
   titulo: string;
   mensagem?: string;
-  duracao?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -22,26 +21,27 @@ export class ToastService {
     const novo: Toast = { id, ...toast };
     this._toasts.update((lista) => [...lista, novo]);
 
-    const ms = toast.duracao ?? 4000;
-    setTimeout(() => this.remover(id), ms);
-
     return id;
   }
 
-  sucesso(titulo: string, mensagem?: string, duracao?: number): number {
-    return this.mostrar({ tipo: 'sucesso', titulo, mensagem, duracao });
+  sucesso(titulo: string, mensagem?: string): number {
+    return this.mostrar({ tipo: 'sucesso', titulo, mensagem });
   }
 
-  erro(titulo: string, mensagem?: string, duracao?: number): number {
-    return this.mostrar({ tipo: 'erro', titulo, mensagem, duracao });
+  erro(titulo: string, mensagem?: string): number {
+    return this.mostrar({ tipo: 'erro', titulo, mensagem });
   }
 
-  info(titulo: string, mensagem?: string, duracao?: number): number {
-    return this.mostrar({ tipo: 'info', titulo, mensagem, duracao });
+  cancelamento(titulo: string, mensagem?: string): number {
+    return this.mostrar({ tipo: 'cancelamento', titulo, mensagem });
   }
 
-  aviso(titulo: string, mensagem?: string, duracao?: number): number {
-    return this.mostrar({ tipo: 'aviso', titulo, mensagem, duracao });
+  info(titulo: string, mensagem?: string): number {
+    return this.mostrar({ tipo: 'info', titulo, mensagem });
+  }
+
+  aviso(titulo: string, mensagem?: string): number {
+    return this.mostrar({ tipo: 'aviso', titulo, mensagem });
   }
 
   remover(id: number): void {

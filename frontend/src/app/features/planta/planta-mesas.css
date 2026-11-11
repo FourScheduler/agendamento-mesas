@@ -242,6 +242,11 @@
   background: #fff0f0;
   border: 2px solid #ed9292;
 }
+.amostra--sua-reserva {
+  background: #fff0f0;
+  border: 2px solid #f1b5b5;
+  animation: mesa-pulsar 1.5s ease-in-out infinite;
+}
 .amostra--inativa {
   border: 1px dashed #64748b;
   background: #e5e7eb;
@@ -488,7 +493,7 @@
 
 /* Respeitar prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  .mesa.sua-reserva {
+  .mesa.sua-reserva, .amostra--sua-reserva {
     animation: none;
   }
 }

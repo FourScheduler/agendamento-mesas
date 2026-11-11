@@ -17,6 +17,7 @@ const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUAR
 const mockToastService = {
   mostrar: vi.fn(),
   sucesso: vi.fn(),
+  cancelamento: vi.fn(),
   erro: vi.fn(),
   info: vi.fn(),
   aviso: vi.fn(),
@@ -260,8 +261,8 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.componentInstance.reserva.erro()).not.toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.toast--sucesso')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.toast--erro[role=alert]')).not.toBeNull();
     });
 
   it('trata erro 409 sem sucesso e atualiza a disponibilidade', () => {
@@ -295,8 +296,8 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.componentInstance.reserva.erro()).not.toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.toast--sucesso')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.toast--erro[role=alert]')).not.toBeNull();
     });
 
   it('trata erro 0 sem sucesso e atualiza a disponibilidade', () => {
@@ -311,8 +312,8 @@ describe('Reserva diária pela planta', () => {
       expect(fixture.componentInstance.reserva.erro()).not.toBe('');
       expect(fixture.componentInstance.reserva.confirmando()).toBe(false);
       expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--sucesso')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.toast--sucesso')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.toast--erro[role=alert]')).not.toBeNull();
     });
 
   it('limpa a seleção ao mudar de dia e consulta a nova data', () => {

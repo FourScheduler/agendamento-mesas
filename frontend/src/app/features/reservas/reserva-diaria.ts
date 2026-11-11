@@ -172,7 +172,7 @@ export class ReservaDiaria {
           this.cancelando.set(false);
           this.reservaParaCancelar.set(null);
           aposCancelar?.();
-          this.toast.sucesso('Reserva cancelada');
+          this.toast.cancelamento('Reserva cancelada');
           this.atualizarDisponibilidade();
         },
         error: (erro: HttpErrorResponse) => {

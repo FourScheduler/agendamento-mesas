@@ -340,7 +340,7 @@ export class MinhasReservasPage implements OnInit {
         next: () => {
           this.cancelamentoEmAndamento.set(null);
           this.cancelamentoSolicitado.set(null);
-          this.toast.sucesso('Reserva cancelada', `${rotulo} foi liberada.`);
+          this.toast.cancelamento('Reserva cancelada', `${rotulo} foi liberada.`);
           this.buscar();
         },
         error: (erro: unknown) => {

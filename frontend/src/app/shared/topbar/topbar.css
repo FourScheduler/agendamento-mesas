@@ -65,10 +65,10 @@
   white-space: nowrap;
 }
 .topbar__reservas:hover {
-  color: var(--orange-400);
+  color: #ffffff;
 }
 .topbar__reservas--ativo {
-  color: var(--orange);
+  color: #ffffff;
 }
 .topbar__menuIcone {
   flex: none;
