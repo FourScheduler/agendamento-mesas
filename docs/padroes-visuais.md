@@ -206,6 +206,9 @@ visual e a marca, com componentes próprios para seus contratos de API.
   altera somente a rolagem interna, preservando a visibilidade dos controles.
   administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
   e resultados acessíveis (`role=status`/`role=alert`).
+- No mapa, a busca de solicitante mantém o campo e o foco durante a digitação.
+  O cartão do solicitante selecionado oferece um X no canto superior direito,
+  com nome acessível, para limpar a seleção e retornar à busca.
 - Toasts usam o componente compartilhado `ToastItem` (`app-toast`), no canto superior
   direito abaixo da navegação. O padrão segue cartão claro, borda suave, cantos de
   12px, ícone circular de 28px à esquerda, título e descrição alinhados à esquerda
@@ -228,7 +231,7 @@ visual e a marca, com componentes próprios para seus contratos de API.
   Ao concluir navegação para outra página, os toasts globais são removidos.
   Alterações de data ou filtros na mesma rota e navegações canceladas os preservam.
   Sair do layout também limpa as notificações. O link Minhas reservas permanece
-  branco ao passar o mouse e quando ativo.
+  branco quando ativo e usa laranja ao passar o mouse, inclusive na página atual.
 
   Para novas notificações, injetar `ToastService` e chamar, por exemplo,
   `toast.sucesso('Reserva confirmada!', 'Sua mesa foi reservada com sucesso.')`.

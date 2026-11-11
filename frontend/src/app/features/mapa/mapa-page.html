@@ -31,7 +31,13 @@
     <ng-container [ngTemplateOutlet]="calendarioReserva"
       [ngTemplateOutletContext]="{ identificador: 'data-reserva' }" />
     <button class="botao" type="button" (click)="voltarParaAgendamento()" [disabled]="reserva.confirmando() || reserva.cancelando()">
-    Listar mesas
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect width="7" height="7" x="3" y="3" rx="1" />
+        <rect width="7" height="7" x="14" y="3" rx="1" />
+        <rect width="7" height="7" x="14" y="14" rx="1" />
+        <rect width="7" height="7" x="3" y="14" rx="1" />
+      </svg>
+      Listar mesas
   </button>
     <button id="atualizar-disponibilidade" type="button" class="botao" aria-label="Atualizar disponibilidade" (click)="reserva.atualizarDisponibilidade()"
       [disabled]="reserva.confirmando() || reserva.cancelando() || !reserva.data()">
@@ -144,8 +150,7 @@
                 <span>{{ fixacaoPretendida() === true ? 'Fixar para' : 'Solicitante' }}</span>
               </dt>
               <dd class="detalhes__solicitante">
-                @if (solicitanteSelecionado(); as solicitante) {
-                  @if (!editandoSolicitante()) {
+                @if (!editandoSolicitante() && solicitanteSelecionado(); as solicitante) {
                     <div class="solicitante-selecionado" role="status">
                       <span class="solicitante-selecionado__iniciais" aria-hidden="true">{{ iniciaisSolicitante(solicitante.nome) }}</span>
                       <span class="solicitante-selecionado__dados">
@@ -156,13 +161,15 @@
                       <button
                         type="button"
                         class="solicitante-selecionado__trocar"
+                        aria-label="Cancelar solicitante selecionado"
                         (click)="trocarSolicitante()"
                         [disabled]="reserva.confirmando() || enviandoFixacao()"
-                      >Trocar</button>
+                      >
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                          <path d="m6 6 12 12M6 18 18 6" />
+                        </svg>
+                      </button>
                     </div>
-                  } @else {
-                    <ng-container *ngTemplateOutlet="buscaSolicitanteTemplate"></ng-container>
-                  }
                 } @else {
                   <ng-container *ngTemplateOutlet="buscaSolicitanteTemplate"></ng-container>
                 }

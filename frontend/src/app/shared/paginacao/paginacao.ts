@@ -22,6 +22,14 @@ import { Component, computed, input, output } from '@angular/core';
       gap: 1rem 1.5rem; padding: 1rem 0; color: var(--muted); font-size: .8125rem; }
     button, select { min-height: 44px; padding: .5rem .75rem; font: inherit; border: 1px solid var(--border);
       border-radius: var(--radius); background: var(--card-bg); color: var(--navy); }
+    select {
+      appearance: none;
+      padding-inline: .625rem 1.75rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23222239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .625rem center;
+      background-size: 14px;
+    }
     button { cursor: pointer; } button:disabled { opacity: .5; cursor: not-allowed; }
     @media (max-width: 520px) {
       nav { justify-content: center; gap: .75rem 1rem; }

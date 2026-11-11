@@ -340,6 +340,7 @@ svg:not(:focus-visible) { outline: 0; }
   min-width: 0;
   box-sizing: border-box;
   min-height: 40px;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -412,25 +413,29 @@ input::placeholder {
   text-align: center;
 }
 .solicitante-selecionado {
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.625rem;
   margin-top: 0.625rem;
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem 3rem 0.625rem 0.75rem;
   border: 1px solid #f3d7c9;
   border-radius: 10px;
   background: #fff9f5;
 }
 .solicitante-selecionado__trocar {
-  grid-column: 2;
-  justify-self: start;
-  min-height: 40px;
-  flex: 0 0 auto;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--orange);
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
   border-radius: var(--radius);
-  background: #fff;
+  background: transparent;
   color: var(--orange-dark);
   font: inherit;
   font-size: 0.8125rem;
