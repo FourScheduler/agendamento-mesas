@@ -417,6 +417,9 @@ describe('MinhasReservasPage', () => {
     const cancelamento = http.expectOne('/api/reservas/21/cancelamento');
     expect(cancelamento.request.method).toBe('PATCH');
     cancelamento.flush(null);
+    expect(TestBed.inject(ToastService).toasts()).toEqual([
+      expect.objectContaining({ tipo: 'cancelamento', titulo: 'Reserva cancelada' }),
+    ]);
     esperarReservas(http, []);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.minhas-reservas__acao--cancelar')).toBeNull();

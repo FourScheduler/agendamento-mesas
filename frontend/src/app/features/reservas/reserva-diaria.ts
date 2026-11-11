@@ -146,7 +146,10 @@ export class ReservaDiaria {
                 ? `Você já tem uma reserva para a mesa ${codigo.trim()}.`
                 : detalhe || 'O solicitante já possui uma reserva nessa data.');
             } else if (erro.error?.code === 'USUARIO_COM_MESA_FIXA') {
-              this.toast.erro('Reserva não permitida', detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.');
+              const codigo = erro.error?.mesa?.codigo;
+              this.toast.erro('Reserva não permitida', typeof codigo === 'string' && codigo.trim()
+                ? `Você já possui a mesa ${codigo.trim()} vinculada ao seu nome. Entre em contato com o administrador`
+                : detalhe || 'Existe uma mesa fixa vinculada ao beneficiário.');
             } else {
               this.toast.erro(detalhe || 'Não foi possível reservar esta mesa.');
             }
@@ -172,7 +175,7 @@ export class ReservaDiaria {
           this.cancelando.set(false);
           this.reservaParaCancelar.set(null);
           aposCancelar?.();
-          this.toast.sucesso('Reserva cancelada');
+          this.toast.cancelamento('Reserva cancelada');
           this.atualizarDisponibilidade();
         },
         error: (erro: HttpErrorResponse) => {

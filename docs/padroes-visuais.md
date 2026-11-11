@@ -63,8 +63,9 @@ Os tokens básicos já estão em `frontend/src/styles.css`. Ao implementar as te
 Mesas com reserva diária na data consultada usam fundo `#EAF3FF`, borda
 `#83B4ED` e número `#326CA8`. A identificação usa somente texto `#326CA8`, sem caixa:
 “Diária” para reservas de terceiros e “Sua reserva” quando o ocupante na data
-corresponde ao usuário autenticado. Mesas fixas mantêm suas cores e também
-mostram “Sua reserva” para o responsável autenticado.
+corresponde ao usuário autenticado. No mapa, o texto “Sua reserva” não aparece
+sobre a mesa diária ou fixa: a identificação permanece na legenda, na borda
+pulsante e no nome acessível da mesa. A opção de mostrar nomes é preservada.
 A pulsação é exclusiva da reserva diária ou mesa fixa ativa do usuário
 autenticado. Essa mesa fica acima das mesas vizinhas, inclusive selecionadas,
 para que a borda pulsante não seja encoberta. Com movimento reduzido, o
@@ -182,7 +183,9 @@ visual e a marca, com componentes próprios para seus contratos de API.
   sobre fundo vermelho suave e inativa tracejada.
   Mesas disponíveis na data usam verde e mostram o rótulo "Livre"; reservadas usam
   o mesmo vermelho suave das mesas fixas, somente na data reservada, sem descrição sobre a mesa.
-  A legenda exibe Livre, Reservada e Inativa, mantendo o botão de olho.
+  A legenda exibe Livre, Reservada, Sua reserva e Inativa, mantendo o botão de olho.
+  A amostra de Sua reserva usa a mesma pulsação de 1,5 segundo da mesa própria,
+  desativada quando há preferência por movimento reduzido.
   A ocupação vem da consulta diária da API.
 - O formulário escolhe a data inteira, informa a janela de 15 dias e permite atualizar
   a disponibilidade. O calendário do agendamento e do mapa desabilita sábados, domingos
@@ -203,16 +206,40 @@ visual e a marca, com componentes próprios para seus contratos de API.
   altera somente a rolagem interna, preservando a visibilidade dos controles.
   administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
   e resultados acessíveis (`role=status`/`role=alert`).
-- Confirmações e críticas de reserva aparecem em uma notificação no canto superior
-  direito, abaixo da barra de navegação, com texto branco: verde para sucesso e
-  vermelho para erro. Ambas fecham após dez segundos, com somente uma barra de
+- No mapa, a busca de solicitante mantém o campo e o foco durante a digitação.
+  O cartão do solicitante selecionado oferece um X no canto superior direito,
+  com nome acessível, para limpar a seleção e retornar à busca.
+- Toasts usam o componente compartilhado `ToastItem` (`app-toast`), no canto superior
+  direito abaixo da navegação. O padrão segue cartão claro, borda suave, cantos de
+  12px, ícone circular de 28px à esquerda, título e descrição alinhados à esquerda
+  e botão de fechar à direita. Sucesso usa fundo `#ecfdf5`, texto `#166534`,
+  borda `#a7f3d0` e ícone `#16a34a`. Erro, aviso e informação usam variações
+  vermelha, amarela e azul, sempre com ícones e texto, sem depender somente da cor.
+  Confirmações usam verde; cancelamentos usam a variante vermelha `cancelamento`,
+  sem serem anunciados como erro. Avisos usam fundo `#fefce8` e borda `#fde047`.
+  Todos os toasts fecham após seis segundos, com somente uma barra de
   tempo visível, sem contador numérico. Passar o mouse ou focar o botão pausa a contagem; ao sair,
   ela retoma o tempo restante. Há botão para fechar imediatamente. O mesmo
-  componente é usado na lista e no mapa, sem repetir a mensagem no formulário.
-  Os cartões de sucesso e erro usam largura de 320px e altura mínima de 87px, padding
-  de 8px e cantos de 4px, adaptando-se a janelas menores. O fundo de sucesso é
-  `#07bc0c`; o texto é centralizado e a altura cresce conforme a mensagem. A rolagem
+  componente visual é usado pelo `ToastContainer` global e pelo adaptador
+  `Notificacao` da lista e do mapa, sem duplicar estilos ou temporizadores.
+  Os cartões usam largura máxima de 320px, limitada à janela, padding de 6px por 10px
+  e altura adaptável. A rolagem
   interna só aparece se o texto ultrapassar a altura disponível na janela.
+  Cada toast pausa independentemente com mouse ou foco; remover, limpar ou
+  destruir o componente cancela sua contagem. A duração é fixa em 6000ms,
+  sem personalização por chamada. Erros usam `role=alert`; demais variantes usam `role=status`.
+  Ao concluir navegação para outra página, os toasts globais são removidos.
+  Alterações de data ou filtros na mesma rota e navegações canceladas os preservam.
+  Sair do layout também limpa as notificações. O link Minhas reservas permanece
+  branco quando ativo e usa laranja ao passar o mouse, inclusive na página atual.
+
+  Para novas notificações, injetar `ToastService` e chamar, por exemplo,
+  `toast.sucesso('Reserva confirmada!', 'Sua mesa foi reservada com sucesso.')`.
+  Para cancelamentos, usar `toast.cancelamento('Reserva cancelada')`.
+  Também estão disponíveis `erro`, `aviso`, `info` e `mostrar`.
+  O container já está instalado uma única vez no `Layout`;
+  não adicionar um container por tela. O item controla a duração enquanto
+  renderizado, sem um segundo temporizador no serviço.
 - No mapa, a seleção aparece em uma barra abaixo do desenho com código, data,
   ícone de cadeira e botão Confirmar reserva. Localização e solicitante ficam
   em Detalhes da reserva, expansível por teclado. Limpar seleção continua disponível.

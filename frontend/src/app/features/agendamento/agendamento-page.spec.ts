@@ -15,6 +15,7 @@ const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'USUAR
 const mockToastService = {
   mostrar: vi.fn(),
   sucesso: vi.fn(),
+  cancelamento: vi.fn(),
   erro: vi.fn(),
   info: vi.fn(),
   aviso: vi.fn(),
@@ -119,7 +120,7 @@ describe('Agendamento integrado à reserva diária', () => {
     expect(fixture.componentInstance.reserva.sucesso()).toBe('');
     expect(fixture.componentInstance.mesaSelecionada()).toBeNull();
     // 400 ainda usa notificação local
-    expect(fixture.nativeElement.querySelector('.notificacao--erro[role=alert]').textContent).toContain('Reserva recusada');
+    expect(fixture.nativeElement.querySelector('.toast--erro[role=alert]').textContent).toContain('Reserva recusada');
     expect(fixture.nativeElement.querySelectorAll('[role=alert]').length).toBe(1);
   });
 

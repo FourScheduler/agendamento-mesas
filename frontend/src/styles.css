@@ -229,10 +229,15 @@ input {
   color: var(--orange-dark);
 }
 .mapa__data-modal:not(.mapa__data-modal--sobreposto) .campo__entrada {
-  width: 160px;
+  width: 136px;
+  box-sizing: border-box;
   padding: 0.5rem 0.625rem;
   color: var(--navy);
   font-weight: 700;
+  text-align: center;
+}
+.mapa__data-modal:not(.mapa__data-modal--sobreposto) .campo__entrada::-webkit-datetime-edit {
+  text-align: center;
 }
 .campo__erro {
   color: var(--error);

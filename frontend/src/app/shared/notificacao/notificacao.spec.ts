@@ -12,33 +12,33 @@ describe('Notificação de reserva', () => {
     const fechar = vi.fn();
     fixture.componentInstance.fechar.subscribe(fechar);
     fixture.detectChanges();
-    return { fixture, fechar, painel: fixture.nativeElement.querySelector('.notificacao') as HTMLElement };
+    return { fixture, fechar, painel: fixture.nativeElement.querySelector('.toast') as HTMLElement };
   }
 
   for (const tipo of ['sucesso', 'erro'] as const) {
-    it(`fecha a notificação de ${tipo} após dez segundos`, () => {
+    it(`fecha a notificação de ${tipo} após seis segundos`, () => {
       const { fixture, fechar } = abrir(tipo, 'Mensagem da reserva.');
-      expect(fixture.nativeElement.querySelector('.notificacao__progresso').style.width).toBe('100%');
+      expect(fixture.nativeElement.querySelector('.toast__progresso').style.width).toBe('100%');
       expect(fixture.nativeElement.querySelector('.notificacao__tempo')).toBeNull();
-      vi.advanceTimersByTime(9999);
+      vi.advanceTimersByTime(5999);
       expect(fechar).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1);
       expect(fechar).toHaveBeenCalledOnce();
     });
   }
 
-  it('pausa com o mouse e retoma somente o tempo que faltava, sem reiniciar dez segundos', () => {
+  it('pausa com o mouse e retoma somente o tempo que faltava, sem reiniciar seis segundos', () => {
     const { fixture, fechar, painel } = abrir('erro', 'Você já possui uma reserva.');
-    vi.advanceTimersByTime(3750);
+    vi.advanceTimersByTime(2250);
     painel.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.notificacao__progresso').style.width).toBe('62.5%');
+    expect(fixture.nativeElement.querySelector('.toast__progresso').style.width).toBe('62.5%');
     vi.advanceTimersByTime(20000);
     fixture.detectChanges();
     expect(fechar).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('.notificacao__progresso').style.width).toBe('62.5%');
+    expect(fixture.nativeElement.querySelector('.toast__progresso').style.width).toBe('62.5%');
     painel.dispatchEvent(new MouseEvent('mouseleave'));
-    vi.advanceTimersByTime(6249);
+    vi.advanceTimersByTime(3749);
     expect(fechar).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(fechar).toHaveBeenCalledOnce();
@@ -55,22 +55,22 @@ describe('Notificação de reserva', () => {
     expect(fechar).not.toHaveBeenCalled();
     botao.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
     fixture.detectChanges();
-    vi.advanceTimersByTime(7999);
+    vi.advanceTimersByTime(3999);
     expect(fechar).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(fechar).toHaveBeenCalledOnce();
   });
 
-  it('inicia dez segundos para a nova mensagem e cancela o temporizador anterior', () => {
+  it('inicia seis segundos para a nova mensagem e cancela o temporizador anterior', () => {
     const { fixture, fechar } = abrir('sucesso', 'Reserva confirmada.');
     vi.advanceTimersByTime(3000);
     fixture.componentRef.setInput('tipo', 'erro');
     fixture.componentRef.setInput('mensagem', 'Você já possui uma reserva.');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('Você já possui uma reserva');
-    vi.advanceTimersByTime(7000);
+    vi.advanceTimersByTime(5999);
     expect(fechar).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(3000);
+    vi.advanceTimersByTime(1);
     expect(fechar).toHaveBeenCalledOnce();
   });
 

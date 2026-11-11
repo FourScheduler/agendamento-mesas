@@ -75,7 +75,7 @@ describe("PlantaMesas", () => {
     http.expectOne('/api/mesas/disponiveis?data=2026-11-10').flush([]);
     fixture.detectChanges();
     expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' }));
-    expect(fixture.nativeElement.querySelector('.mesa__estado--sua-reserva').textContent).toBe('Sua reserva');
+    expect(fixture.nativeElement.querySelector('.mesa__estado--sua-reserva')).toBeNull();
     expect(fixture.componentInstance.selecionada()).toBeNull();
   });
 
@@ -693,7 +693,7 @@ describe("PlantaMesas", () => {
       usuario: { id: 8, nome: 'Pessoa Reservada', email: 'reservada@example.com', perfil: 'USUARIO' },
     });
     fixture.detectChanges();
-    expect(mesas[2].querySelector('.mesa__estado--sua-reserva')?.textContent).toBe('Sua reserva');
+    expect(mesas[2].querySelector('.mesa__estado--sua-reserva')).toBeNull();
     expect(mesas[2].getAttribute('aria-label')).toContain('Sua reserva');
 
     expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Exemplo');
@@ -739,9 +739,10 @@ describe("PlantaMesas", () => {
     expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
 
     const rodape = fixture.nativeElement.querySelector('.mapa__rodape') as HTMLElement;
-    expect(rodape.querySelector('.amostra--fixa')?.parentElement?.textContent?.trim()).toBe('Fixa / Reservada');
+    expect(rodape.querySelector('.amostra--fixa')?.parentElement?.textContent?.trim()).toBe('Reservada');
     expect(rodape.querySelector('.amostra--sua-reserva')?.parentElement?.textContent?.trim()).toBe('Sua reserva');
-    // A legenda não contém mais "Reservada" separadamente
+    const suaReserva = rodape.querySelector('.amostra--sua-reserva') as HTMLElement;
+    expect(getComputedStyle(suaReserva).animation).toContain('mesa-pulsar 1.5s ease-in-out infinite');
     const mesaFixa = mesas[0];
     (fixture.nativeElement.querySelector(
       '.legenda__visibilidade .botao-icone',

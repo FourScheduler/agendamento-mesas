@@ -269,7 +269,10 @@ describe("Barra de reserva do mapa", () => {
     expect(atualizar.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".mapa__rodape .legenda__itens")).not.toBeNull();
     const itensLegenda = fixture.nativeElement.querySelectorAll(".legenda__itens li:not(.legenda__visibilidade)") as NodeListOf<HTMLElement>;
-    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Fixa / Reservada", "Sua reserva", "Inativa"]);
+    expect([...itensLegenda].map(item => item.textContent?.trim())).toEqual(["Livre", "Reservada", "Sua reserva", "Inativa"]);
+    const listarMesas = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(botao => botao.textContent?.trim() === 'Listar mesas');
+    expect(listarMesas?.querySelectorAll('svg[aria-hidden="true"] rect')).toHaveLength(4);
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--fixa")).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--sua-reserva")).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".legenda__itens .amostra--inativa")).not.toBeNull();
@@ -482,7 +485,7 @@ describe("Barra de reserva do mapa", () => {
   });
 
   it.each(["CONFIRMADA", "PENDENTE"])("permite ao beneficiário cancelar diária %s criada pelo administrador", status => {
-    const sucesso = vi.spyOn(TestBed.inject(ToastService), "sucesso");
+    const cancelamento = vi.spyOn(TestBed.inject(ToastService), "cancelamento");
     const mesaReservada: Mesa = {
       ...mesa,
       ocupada: true,
@@ -514,13 +517,13 @@ describe("Barra de reserva do mapa", () => {
     cancelar.click();
     const request = http.expectOne("/api/reservas/92/cancelamento");
     expect(request.request.method).toBe("PATCH");
-    expect(sucesso).not.toHaveBeenCalled();
+    expect(cancelamento).not.toHaveBeenCalled();
     request.flush(null);
     fixture.detectChanges();
     http.expectOne(request => request.url === "/api/mesas/com-ocupacao").flush([mesa]);
     http.expectOne(request => request.url === "/api/mesas/disponiveis").flush([mesa]);
     fixture.detectChanges();
-    expect(sucesso).toHaveBeenCalledExactlyOnceWith("Reserva cancelada");
+    expect(cancelamento).toHaveBeenCalledExactlyOnceWith("Reserva cancelada");
     expect(fixture.nativeElement.querySelector(".detalhes")).toBeNull();
     expect(fixture.nativeElement.querySelector("button.mesa.livre")).not.toBeNull();
     http.expectNone(request => request.url.startsWith("/api/admin/mesas"));
@@ -634,6 +637,14 @@ describe("Barra de reserva do mapa", () => {
     });
     const fixture = abrir();
     const busca = fixture.nativeElement.querySelector("#solicitante-busca") as HTMLInputElement;
+    busca.focus();
+    busca.value = "o";
+    busca.dispatchEvent(new Event("input", { bubbles: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector("#solicitante-busca")).toBe(busca);
+    expect(document.activeElement).toBe(busca);
+    expect(fixture.componentInstance.solicitanteSelecionado()).toBeNull();
+    http.expectNone(request => request.url === "/api/mesas/com-ocupacao" || request.url === "/api/mesas/disponiveis");
     busca.value = "outra";
     busca.dispatchEvent(new Event("input", { bubbles: true }));
     fixture.detectChanges();
@@ -657,10 +668,15 @@ describe("Barra de reserva do mapa", () => {
       .toContain("Pessoa Solicitante");
     expect(fixture.nativeElement.querySelector("#solicitante-busca")).toBeNull();
 
-    (fixture.nativeElement.querySelector(".solicitante-selecionado__trocar") as HTMLButtonElement).click();
+    const removerSolicitante = fixture.nativeElement.querySelector(".solicitante-selecionado__trocar") as HTMLButtonElement;
+    expect(removerSolicitante.getAttribute('aria-label')).toBe('Cancelar solicitante selecionado');
+    expect(removerSolicitante.querySelector('svg')).not.toBeNull();
+    expect(removerSolicitante.textContent?.trim()).toBe('');
+    removerSolicitante.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector("#solicitante-busca")).not.toBeNull();
     expect(fixture.nativeElement.querySelector(".solicitante-selecionado")).toBeNull();
+    expect(fixture.componentInstance.solicitanteSelecionado()).toBeNull();
 
     const buscaAtualizada = fixture.nativeElement.querySelector("#solicitante-busca") as HTMLInputElement;
     buscaAtualizada.value = "outra pessoa";

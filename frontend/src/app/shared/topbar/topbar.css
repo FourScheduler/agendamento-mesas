@@ -67,8 +67,8 @@
 .topbar__reservas:hover {
   color: var(--orange-400);
 }
-.topbar__reservas--ativo {
-  color: var(--orange);
+.topbar__reservas--ativo:not(:hover) {
+  color: #ffffff;
 }
 .topbar__menuIcone {
   flex: none;

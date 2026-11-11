@@ -594,7 +594,9 @@
 .solicitante-busca .campo {
     display: block;
     width: 100%;
+    box-sizing: border-box;
     min-height: 40px;
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--border);
     border-radius: var(--radius)
 }
