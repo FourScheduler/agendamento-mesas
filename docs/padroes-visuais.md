@@ -1,5 +1,9 @@
 # Padrões visuais
 
+Na lista e no mapa, recusas por mesa fixa em reservas para terceiros preservam
+o detalhe da API com o nome do beneficiário e o código da mesa vinculada.
+“Você já possui…” é usado somente quando o beneficiário é o próprio usuário.
+
 Na administração de mesas, o lápis permanece visível após Ativar/Inativar,
 desabilitado até a mesa estar fixa e com responsável. Nome e e-mail do
 responsável ficam centralizados na coluna Responsável Fixo.
@@ -207,6 +211,9 @@ visual e a marca, com componentes próprios para seus contratos de API.
   administradores podem buscar outro solicitante ativo. A confirmação tem estado de envio
   e resultados acessíveis (`role=status`/`role=alert`).
 - No mapa, a busca de solicitante mantém o campo e o foco durante a digitação.
+  Os detalhes mostram uma única identificação de Ocupante, priorizando a
+  ocupação da data, depois o cadastro do responsável e, sem reserva na data,
+  o texto cadastral legado. Não há campo separado de Responsável.
   O cartão do solicitante selecionado oferece um X no canto superior direito,
   com nome acessível, para limpar a seleção e retornar à busca.
 - Toasts usam o componente compartilhado `ToastItem` (`app-toast`), no canto superior

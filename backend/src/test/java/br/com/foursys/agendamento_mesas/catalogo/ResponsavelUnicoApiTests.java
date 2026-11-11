@@ -37,9 +37,6 @@ import org.springframework.test.web.servlet.ResultActions;
 @SpringBootTest
 @AutoConfigureMockMvc
 public class ResponsavelUnicoApiTests {
-    private static final String CONFLITO =
-        "O usuário já possui uma mesa fixa vinculada. Desfixe a mesa atual antes de atribuir outra.";
-
     @Autowired MockMvc mvc;
     @Autowired MesaRepositoryPort mesas;
     @Autowired ReservaRepositoryPort reservas;
@@ -76,7 +73,7 @@ public class ResponsavelUnicoApiTests {
         atribuir(primeira, "fixar", maria).andExpect(status().isOk());
         atribuir(segunda, "fixar", maria)
             .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.detail").value(CONFLITO));
+            .andExpect(jsonPath("$.detail").value(mensagemConflito(maria, primeira)));
 
         assertThat(responsavel(primeira)).isEqualTo(maria.getId());
         assertThat(responsavel(segunda)).isNull();
@@ -189,7 +186,7 @@ public class ResponsavelUnicoApiTests {
 
         atribuir(segunda, "responsavel", maria)
             .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.detail").value(CONFLITO));
+            .andExpect(jsonPath("$.detail").value(mensagemConflito(maria, primeira)));
 
         assertThat(responsavel(primeira)).isEqualTo(maria.getId());
         assertThat(responsavel(segunda)).isEqualTo(joao.getId());
@@ -340,7 +337,7 @@ public class ResponsavelUnicoApiTests {
 
         atribuir(segunda, "fixar", maria)
             .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.detail").value(CONFLITO));
+            .andExpect(jsonPath("$.detail").value(mensagemConflito(maria, primeira)));
         assertThat(responsavel(primeira)).isEqualTo(maria.getId());
         assertThat(responsavel(segunda)).isNull();
     }
@@ -355,6 +352,30 @@ public class ResponsavelUnicoApiTests {
         atribuir(segunda, "fixar", maria).andExpect(status().isOk());
         assertThat(responsavel(primeira)).isNull();
         assertThat(responsavel(segunda)).isEqualTo(maria.getId());
+    }
+
+    @Test
+    void conflitoIdentificaCadastroSelecionadoEMesaComCodigoDinamico() throws Exception {
+        var homonima = usuarios.salvar(new Usuario(maria.getNome(), "homonima@teste.com",
+            "hash", PerfilUsuario.USUARIO, true));
+        var vinculada = mesas.salvar(new Mesa(null, "927", "DEMO", TipoMesa.LIVRE,
+            true, "DEMO", 400, 0, null));
+        atribuir(vinculada, "fixar", homonima).andExpect(status().isOk());
+        atribuir(segunda, "fixar", joao).andExpect(status().isOk());
+        atribuir(primeira, "fixar", maria).andExpect(status().isOk());
+
+        atribuir(segunda, "responsavel", homonima)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value(mensagemConflito(homonima, vinculada)));
+
+        assertThat(responsavel(vinculada)).isEqualTo(homonima.getId());
+        assertThat(responsavel(primeira)).isEqualTo(maria.getId());
+        assertThat(responsavel(segunda)).isEqualTo(joao.getId());
+    }
+
+    private String mensagemConflito(Usuario usuario, Mesa mesa) {
+        return usuario.getNome() + " já possui a mesa " + mesa.getCodigo()
+            + " vinculada ao seu nome. Remova o vínculo atual antes de atribuir outra mesa.";
     }
 
     @Test

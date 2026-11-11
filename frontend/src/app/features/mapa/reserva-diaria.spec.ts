@@ -436,7 +436,7 @@ describe('Reserva diária pela planta', () => {
     carregar();
     fixture.detectChanges();
     expect(mockToastService.erro).toHaveBeenCalledWith('Reserva não permitida',
-      'Você já possui a mesa 067 vinculada ao seu nome. Entre em contato com o administrador');
+      perfil === 'ADMIN' ? detalhe : 'Você já possui a mesa 067 vinculada ao seu nome. Entre em contato com o administrador');
     expect(mockToastService.erro).toHaveBeenCalledTimes(1);
     expect(mockToastService.sucesso).not.toHaveBeenCalled();
   });

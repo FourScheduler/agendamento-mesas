@@ -113,15 +113,19 @@ public class ReservaService {
         datas.validar(request.data());
         // O lock do beneficiário coordena este vínculo com atribuição e desfixação.
         // Mesmo um vínculo legado em mesa LIVRE bloqueia até ser removido.
-        mesaRepositoryPort.buscarPorResponsavelId(usuario.getId()).ifPresent(vinculada -> {
-            boolean reservaPropria = usuario.getId().equals(autenticado.id());
-            String mensagem = reservaPropria
-                ? "Você já possui a mesa fixa " + vinculada.getCodigo()
-                    + " vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo."
-                : usuario.getNome() + " já possui a mesa fixa " + vinculada.getCodigo()
-                    + " vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.";
-            throw new UsuarioComMesaFixaException(vinculada.getId(), vinculada.getCodigo(), mensagem);
-        });
+        boolean administradorReservandoParaSi = autenticado.perfil() == PerfilUsuario.ADMIN
+            && usuario.getId().equals(autenticado.id());
+        if (!administradorReservandoParaSi) {
+            mesaRepositoryPort.buscarPorResponsavelId(usuario.getId()).ifPresent(vinculada -> {
+                boolean reservaPropria = usuario.getId().equals(autenticado.id());
+                String mensagem = reservaPropria
+                    ? "Você já possui a mesa fixa " + vinculada.getCodigo()
+                        + " vinculada ao seu nome. Para reservar outra mesa, solicite à administração a remoção desse vínculo."
+                    : usuario.getNome() + " já possui a mesa fixa " + vinculada.getCodigo()
+                        + " vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.";
+                throw new UsuarioComMesaFixaException(vinculada.getId(), vinculada.getCodigo(), mensagem);
+            });
+        }
 
         if (!mesa.isAtiva()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " está inativa.");
@@ -131,11 +135,13 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mesa " + mesa.getCodigo() + " é fixa e não pode ser reservada.");
         }
 
-        reservaRepositoryPort.buscarReservaDoUsuarioNaData(usuario.getId(), request.data(),
-            ReservaRepositoryPort.BLOQUEIA_MESA).ifPresent(existente -> {
+        if (!administradorReservandoParaSi) {
+            reservaRepositoryPort.buscarReservaDoUsuarioNaData(usuario.getId(), request.data(),
+                ReservaRepositoryPort.BLOQUEIA_MESA).ifPresent(existente -> {
                 Mesa mesaExistente = existente.getMesa();
                 throw new UsuarioComReservaNaDataException(mesaExistente.getId(), mesaExistente.getCodigo());
             });
+        }
 
         if (reservaRepositoryPort.mesaOcupadaNaData(mesa.getId(), request.data(), ReservaRepositoryPort.BLOQUEIA_MESA)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

@@ -165,11 +165,15 @@ describe('Agendamento integrado à reserva diária', () => {
     const request = http.expectOne('/api/reservas');
     expect(request.request.body).toEqual({ mesaId: mesa.id, data: '2026-10-28' });
     request.flush(
-      { detail: 'O solicitante possui uma mesa fixa e não pode realizar reservas.' },
+      { code: 'USUARIO_COM_MESA_FIXA', mesa: { id: mesaFixa.id, codigo: mesaFixa.codigo },
+        detail: 'Você já possui uma mesa fixa vinculada.' },
       { status: 409, statusText: 'Conflict' },
     );
     fixture.detectChanges();
     consulta().flush([mesa]);
+    expect(mockToastService.erro).toHaveBeenCalledWith('Reserva não permitida',
+      'Você já possui a mesa 045 vinculada ao seu nome. Entre em contato com o administrador');
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
   });
 
   it('envia a tentativa administrativa ao backend quando o solicitante possui mesa fixa', () => {
@@ -202,12 +206,15 @@ describe('Agendamento integrado à reserva diária', () => {
       data: '2026-10-28',
       solicitanteId: responsavel.id,
     });
+    const detalhe = `${responsavel.nome} já possui a mesa fixa ${mesaFixa.codigo} vinculada. Remova o vínculo antes de realizar uma reserva para essa pessoa.`;
     request.flush(
-      { detail: 'O solicitante possui uma mesa fixa e não pode realizar reservas.' },
+      { code: 'USUARIO_COM_MESA_FIXA', detail: detalhe, mesa: { id: mesaFixa.id, codigo: mesaFixa.codigo } },
       { status: 409, statusText: 'Conflict' },
     );
     fixture.detectChanges();
     consulta().flush([mesa]);
+    expect(mockToastService.erro).toHaveBeenCalledWith('Reserva não permitida', detalhe);
+    expect(mockToastService.sucesso).not.toHaveBeenCalled();
   });
 
   it('encerra a sessão e retorna ao login quando a confirmação recebe 401', () => {

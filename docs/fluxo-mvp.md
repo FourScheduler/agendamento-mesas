@@ -59,6 +59,11 @@ existentes não são alteradas por esse bloqueio. O backend retorna `409` com
 `code: USUARIO_COM_MESA_FIXA`, `mesa: { id, codigo }` e `detail` específico para
 o próprio usuário ou o administrador que reserva para terceiro. Lista e mapa
 apresentam o detalhe sem convertê-lo em conflito de reserva diária duplicada.
+Exceção às regras 6 e 14: ADMIN autenticado reservando para si pode manter
+várias reservas na mesma data, inclusive tendo mesa fixa. Vale com solicitante
+omitido ou com seu próprio ID explícito. Para terceiros, inclusive outro ADMIN,
+as duas restrições permanecem. Mesa ocupada, fixa ou inativa continua impedida;
+data, autorização e idempotência não mudam.
 Minhas reservas identifica atribuições exclusivamente pelo ID do responsável,
 inclusive vínculos legados inconsistentes que precisam de revisão administrativa.
 Nome em `ocupante` não estabelece vínculo. A regularização exige conferência

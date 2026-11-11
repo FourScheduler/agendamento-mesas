@@ -376,16 +376,54 @@ public class ReservaApiTests {
         outraMesa.setResponsavel(admin);
         mesas.salvarESincronizar(outraMesa);
 
-        criar(admin, mesa, HOJE).andExpect(status().isConflict());
+        criar(admin, mesa, HOJE).andExpect(status().isCreated());
 
         mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(admin))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"" + HOJE
+                .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"" + HOJE.plusDays(1)
                     + "\",\"solicitanteId\":" + joao.getId() + "}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.solicitante.id").value(joao.getId()));
 
-        assertThat(reservas.contar()).isEqualTo(1);
+        assertThat(reservas.contar()).isEqualTo(2);
+    }
+
+    @Test
+    void administradorReservaVariasMesasParaSiMesmoComVinculoFixo() throws Exception {
+        var fixa = mesas.salvar(new Mesa(null, "927", "DEMO", TipoMesa.FIXA,
+            true, "DEMO", 400, 0, null));
+        fixa.setResponsavel(admin);
+        mesas.salvarESincronizar(fixa);
+
+        criar(admin, mesa, HOJE).andExpect(status().isCreated());
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(admin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"mesaId\":" + outraMesa.getId() + ",\"data\":\"" + HOJE
+                    + "\",\"solicitanteId\":" + admin.getId() + "}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.solicitante.id").value(admin.getId()));
+
+        criar(admin, mesa, HOJE).andExpect(status().isConflict());
+        criar(admin, fixa, HOJE).andExpect(status().isConflict());
+        assertThat(reservas.contar()).isEqualTo(2);
+        assertThat(mesas.buscarPorId(fixa.getId()).orElseThrow().getResponsavel().getId())
+            .isEqualTo(admin.getId());
+    }
+
+    @Test
+    void excecaoAdministrativaNaoSeAplicaAoReservarParaOutroAdministrador() throws Exception {
+        var outroAdmin = usuarios.salvar(new Usuario("Outro Admin", "outro.admin@teste.com",
+            "hash", PerfilUsuario.ADMIN, true));
+        outraMesa.setResponsavel(outroAdmin);
+        outraMesa.setTipo(TipoMesa.FIXA);
+        mesas.salvarESincronizar(outraMesa);
+        mvc.perform(post("/api/reservas").header("Authorization", "Bearer " + jwt.gerarToken(admin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"mesaId\":" + mesa.getId() + ",\"data\":\"" + HOJE
+                    + "\",\"solicitanteId\":" + outroAdmin.getId() + "}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USUARIO_COM_MESA_FIXA"));
+        assertThat(reservas.contar()).isZero();
     }
 
     @Test
