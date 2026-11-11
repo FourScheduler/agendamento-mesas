@@ -452,9 +452,12 @@
 
 /* Sua reserva - destaque especial com pulsação suave */
 .mesa.sua-reserva {
-  border-color: var(--muted);
-  background: var(--muted);
-  color: var(--muted);
+  border-color: #f1b5b5;
+  background: linear-gradient(
+      145deg,
+      #fffafa,
+      #fff0f0);
+  color:  #a83d3d;
   box-shadow:
     0 0 0 2px #ffd49b,
     0 4px 12px rgb(217 119 50 / 20%),
