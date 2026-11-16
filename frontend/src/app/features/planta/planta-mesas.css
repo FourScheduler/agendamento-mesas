@@ -243,7 +243,6 @@
   border: 2px solid #ed9292;
 }
 .amostra--sua-reserva {
-  background: #fff0f0;
   border: 2px solid #f1b5b5;
   animation: mesa-pulsar 1.5s ease-in-out infinite;
 }
@@ -456,13 +455,18 @@
 }
 
 /* Sua reserva - destaque especial com pulsação suave */
+.amostra--sua-reserva,
+.mesa.sua-reserva {
+  background: repeating-linear-gradient(
+    135deg,
+    #fffafa 0,
+    #fffafa 8px,
+    #f6d4c3 8px,
+    #f6d4c3 16px);
+}
 .mesa.sua-reserva {
   z-index: 3;
   border-color: #f1b5b5;
-  background: linear-gradient(
-      145deg,
-      #fffafa,
-      #fff0f0);
   color:  #a83d3d;
   box-shadow:
     0 0 0 2px #ffd49b,
@@ -474,6 +478,18 @@
 .mesa.sua-reserva .mesa__codigo {
   background: #fff;
   box-shadow: 0 2px 8px rgb(217 119 50 / 25%);
+}
+.mesa__estado--sua-reserva {
+  position: relative;
+  z-index: 1;
+  width: auto;
+  max-width: 100%;
+  padding: 2px 4px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background: #fffafa;
+  color: #a83d3d;
+  font-weight: 700;
 }
 
 @keyframes mesa-pulsar {
@@ -508,9 +524,14 @@
   outline: 3px solid #ff9418;
   outline-offset: 2px;
   border-color: #ff9418;
-  background: #fff0d9;
   color: #83501f;
   box-shadow: 0 0 0 6px rgb(217 119 50 / 12%);
+}
+.mesa.selecionada:not(.sua-reserva) {
+  background: #fff0d9;
+}
+.mesa.sua-reserva.selecionada {
+  z-index: 3;
 }
 .mesa:hover:not(:disabled) {
   filter: brightness(1.03);
