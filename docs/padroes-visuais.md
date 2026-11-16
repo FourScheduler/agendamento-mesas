@@ -67,9 +67,15 @@ Os tokens básicos já estão em `frontend/src/styles.css`. Ao implementar as te
 Mesas com reserva diária na data consultada usam fundo `#EAF3FF`, borda
 `#83B4ED` e número `#326CA8`. A identificação usa somente texto `#326CA8`, sem caixa:
 “Diária” para reservas de terceiros e “Sua reserva” quando o ocupante na data
-corresponde ao usuário autenticado. No mapa, o texto “Sua reserva” não aparece
-sobre a mesa diária ou fixa: a identificação permanece na legenda, na borda
-pulsante e no nome acessível da mesa. A opção de mostrar nomes é preservada.
+corresponde ao usuário autenticado. No mapa, a mesa diária ou fixa ativa do
+usuário mostra “Sua Reserva” e fundo zebrado diagonal, além da borda pulsante
+e do nome acessível. O destaque não se aplica a terceiros ou mesas inativas.
+A opção de mostrar nomes é preservada.
+A amostra “Sua reserva” na legenda usa o mesmo zebrado e a mesma pulsação das mesas.
+O zebrado permanece ao selecionar a mesa, inclusive quando o administrador
+possui várias reservas na mesma data.
+Os estilos globais de mesas ocupadas não devem sobrescrever o destaque das
+reservas próprias, inclusive quando selecionadas.
 A pulsação é exclusiva da reserva diária ou mesa fixa ativa do usuário
 autenticado. Essa mesa fica acima das mesas vizinhas, inclusive selecionadas,
 para que a borda pulsante não seja encoberta. Com movimento reduzido, o

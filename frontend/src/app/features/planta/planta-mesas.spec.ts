@@ -43,16 +43,60 @@ describe("PlantaMesas", () => {
     expect(mesas[2].classList.contains('selecionada')).toBe(true);
     expect(Array.from(mesas).filter(mesa => mesa.classList.contains('sua-reserva'))).toEqual([mesas[0]]);
     expect(getComputedStyle(mesas[0]).animation).toContain('mesa-pulsar');
+    expect(getComputedStyle(mesas[0]).backgroundImage).toContain('repeating-linear-gradient');
+    const amostra = fixture.nativeElement.querySelector('.amostra--sua-reserva') as HTMLElement;
+    expect(getComputedStyle(amostra).backgroundImage).toBe(getComputedStyle(mesas[0]).backgroundImage);
+    expect(getComputedStyle(amostra).animation).toContain('mesa-pulsar');
+    expect(mesas[0].querySelector('.mesa__estado--sua-reserva')?.textContent).toBe('Sua Reserva');
+    expect(mesas[1].querySelector('.mesa__estado--sua-reserva')).toBeNull();
+    expect(getComputedStyle(mesas[1]).backgroundImage).not.toContain('repeating-linear-gradient');
     expect(Number(getComputedStyle(mesas[0]).zIndex)).toBeGreaterThan(
       Number(getComputedStyle(mesas[2]).zIndex),
     );
     expect(getComputedStyle(mesas[1]).animation).not.toContain('mesa-pulsar');
+    mesas[0].click();
+    fixture.detectChanges();
+    expect(mesas[0].classList.contains('selecionada')).toBe(true);
+    expect(getComputedStyle(mesas[0]).backgroundImage).toContain('repeating-linear-gradient');
+    expect(getComputedStyle(mesas[0]).zIndex).toBe('3');
     auth.sessao.set({ token: 'teste', tipo: 'Bearer', usuario: { ...usuario, id: 8 } });
     fixture.detectChanges();
     expect(Array.from(mesas).filter(mesa => mesa.classList.contains('sua-reserva'))).toEqual([mesas[1]]);
     auth.sessao.set(null);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa.sua-reserva')).toBeNull();
+  });
+
+  it.each(['USUARIO', 'ADMIN'])('mantém zebrado e borda pulsante nas reservas diárias e fixa próprias de %s ao alternar a seleção', perfil => {
+    const pessoa = { id: 7, nome: 'Admin', email: 'admin@example.com' };
+    TestBed.inject(AuthService).sessao.set({
+      token: 'teste', tipo: 'Bearer', usuario: { ...pessoa, perfil },
+    });
+    const fixture = TestBed.createComponent(PlantaMesas);
+    fixture.componentRef.setInput('data', '2026-11-11');
+    fixture.detectChanges();
+    http.expectOne('/api/mesas/com-ocupacao?data=2026-11-11').flush(
+      [37, 105, 106].map(id => ({
+        id, codigo: String(id), tipo: id === 106 ? 'FIXA' : 'LIVRE', ativa: true, ocupada: id !== 106,
+        regiao: 'DEMO', ocupanteNaData: id === 106 ? null : pessoa,
+        responsavel: id === 106 ? pessoa : null,
+        referenciaVisual: { planta: 'DEMO', x: id * 20, y: 80 },
+      })),
+    );
+    http.expectOne('/api/mesas/disponiveis?data=2026-11-11').flush([]);
+    fixture.detectChanges();
+    const mesas = fixture.nativeElement.querySelectorAll('button.mesa') as NodeListOf<HTMLButtonElement>;
+    expect(mesas).toHaveLength(3);
+    for (const selecionada of mesas) {
+      selecionada.click();
+      fixture.detectChanges();
+      for (const mesa of mesas) {
+        expect(mesa.querySelector('.mesa__estado--sua-reserva')?.textContent).toBe('Sua Reserva');
+        expect(getComputedStyle(mesa).backgroundImage).toContain('repeating-linear-gradient');
+        expect(getComputedStyle(mesa).animation).toContain('mesa-pulsar 1.5s ease-in-out infinite');
+        expect(getComputedStyle(mesa).zIndex).toBe('3');
+      }
+    }
   });
 
   it.each(['LIVRE', 'FIXA'] as const)('centraliza a mesa %s do usuário na primeira consulta sem selecionar', (tipo) => {
@@ -75,7 +119,7 @@ describe("PlantaMesas", () => {
     http.expectOne('/api/mesas/disponiveis?data=2026-11-10').flush([]);
     fixture.detectChanges();
     expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'instant' }));
-    expect(fixture.nativeElement.querySelector('.mesa__estado--sua-reserva')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.mesa__estado--sua-reserva')?.textContent).toBe('Sua Reserva');
     expect(fixture.componentInstance.selecionada()).toBeNull();
   });
 
@@ -693,7 +737,7 @@ describe("PlantaMesas", () => {
       usuario: { id: 8, nome: 'Pessoa Reservada', email: 'reservada@example.com', perfil: 'USUARIO' },
     });
     fixture.detectChanges();
-    expect(mesas[2].querySelector('.mesa__estado--sua-reserva')).toBeNull();
+    expect(mesas[2].querySelector('.mesa__estado--sua-reserva')?.textContent).toBe('Sua Reserva');
     expect(mesas[2].getAttribute('aria-label')).toContain('Sua reserva');
 
     expect(mesas[0].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Exemplo');
