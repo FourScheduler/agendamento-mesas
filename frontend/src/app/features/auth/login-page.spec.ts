@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, provideRouter, Router } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoginPage } from './login-page';
 import { authInterceptor } from '../../core/auth/auth.interceptor';
@@ -10,11 +10,12 @@ describe('Login separado do mapa', () => {
   let http: HttpTestingController;
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   });
-  afterEach(() => { localStorage.clear(); http.verify(); });
+  afterEach(() => { localStorage.clear(); sessionStorage.clear(); http.verify(); });
 
   it.each(['USUARIO', 'ADMIN'])('autentica como %s e abre o mapa com a identidade e o token preservados', async perfil => {
     const fixture = TestBed.createComponent(LoginPage);
@@ -60,5 +61,47 @@ describe('Login separado do mapa', () => {
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], {
       queryParams: { data: '2026-10-29', mesaId: '44' },
     });
+  });
+
+  it('inicia o login pela API própria e recupera data e mesa após o retorno da Microsoft', async () => {
+    const route = TestBed.inject(ActivatedRoute);
+    vi.spyOn(route.snapshot, 'queryParamMap', 'get').mockImplementation(() => convertToParamMap(route.snapshot.queryParams));
+    route.snapshot.queryParams = { retorno: 'agendamento', data: '2026-10-29', mesaId: '44' };
+    const inicio = TestBed.createComponent(LoginPage);
+    inicio.detectChanges();
+    const link = inicio.nativeElement.querySelector('.entrar-microsoft') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/api/auth/sso/autorizar/microsoft');
+    link.addEventListener('click', evento => evento.preventDefault(), { once: true });
+    link.click();
+    inicio.destroy();
+
+    route.snapshot.queryParams = { microsoft: 'sucesso' };
+    const retorno = TestBed.createComponent(LoginPage);
+    retorno.detectChanges();
+    expect(retorno.nativeElement.querySelector('[role=status]').textContent).toContain('Conectando');
+
+    const troca = http.expectOne({ url: '/api/auth/sso/sessao', method: 'POST' });
+    expect(troca.request.headers.has('Authorization')).toBe(false);
+    const usuario = { id: 7, nome: 'Maria', email: 'maria@teste.com', perfil: 'ADMIN' };
+    troca.flush({ token: 'token-microsoft', tipo: 'Bearer', usuario });
+    await retorno.whenStable();
+
+    expect(TestBed.inject(AuthService).usuario()).toEqual(usuario);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/agendamento'], {
+      queryParams: { data: '2026-10-29', mesaId: '44' }, replaceUrl: true,
+    });
+  });
+
+  it('explica a falta de vínculo e permite tentar de novo', async () => {
+    TestBed.inject(ActivatedRoute).snapshot.queryParams = { microsoft: 'sucesso' };
+    const fixture = TestBed.createComponent(LoginPage);
+    fixture.detectChanges();
+    http.expectOne('/api/auth/sso/sessao').flush(null, { status: 403, statusText: 'Forbidden' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('cadastro ativo');
+    expect(fixture.nativeElement.querySelector('.entrar-microsoft').hasAttribute('aria-disabled')).toBe(false);
+    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
   });
 });

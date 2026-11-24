@@ -34,11 +34,13 @@ export class AuthService {
 
   login(email: string, senha: string) {
     return this.http.post<Sessao>(`${environment.apiUrl}/auth/login`, { email: email.trim(), senha }).pipe(
-      tap(sessao => {
-        localStorage.setItem(TOKEN_KEY, sessao.token);
-        this.tokenArmazenado.set(sessao.token);
-        this.sessao.set(sessao);
-      }),
+      tap(sessao => this.salvarSessao(sessao)),
+    );
+  }
+
+  concluirLoginMicrosoft() {
+    return this.http.post<Sessao>(`${environment.apiUrl}/auth/sso/sessao`, {}).pipe(
+      tap(sessao => this.salvarSessao(sessao)),
     );
   }
 
@@ -73,6 +75,12 @@ export class AuthService {
       return false;
     }).finally(() => { this.restauracao = null; });
     return this.restauracao;
+  }
+
+  private salvarSessao(sessao: Sessao) {
+    localStorage.setItem(TOKEN_KEY, sessao.token);
+    this.tokenArmazenado.set(sessao.token);
+    this.sessao.set(sessao);
   }
 
   private limparSessao() {

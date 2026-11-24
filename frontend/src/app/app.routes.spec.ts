@@ -169,7 +169,7 @@ describe('Entrada e navegação entre mapa e lista de mesas', () => {
   it('abre o login ao acessar a rota inicial sem autenticação', async () => {
     const harness = await RouterTestingHarness.create('/');
     expect(TestBed.inject(Router).url).toBe('/login?retorno=mapa');
-    expect(harness.routeNativeElement?.textContent).toContain('Entre para acessar');
+    expect(harness.routeNativeElement?.textContent).toContain('Entrar com a Microsoft');
   });
 
   it('mantém a página de minhas reservas e a navegação para agendamento', async () => {

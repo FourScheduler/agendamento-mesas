@@ -9,6 +9,7 @@ import br.com.foursys.agendamento_mesas.model.Usuario;
 import br.com.foursys.agendamento_mesas.port.out.UsuarioRepositoryPort;
 import br.com.foursys.agendamento_mesas.security.JwtService;
 import br.com.foursys.agendamento_mesas.web.DadosInvalidosException;
+import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,8 +42,18 @@ public class AuthService {
             throw new UsuarioInativoException();
         }
 
-        String token = jwtService.gerarToken(usuario);
-        return LoginResponse.comToken(token, resumo(usuario));
+        return criarSessao(usuario);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<LoginResponse> loginMicrosoft(String tenantId, String objectId) {
+        return usuarioRepositoryPort.buscarPorIdentidadeMicrosoft(tenantId, objectId)
+            .filter(Usuario::isAtivo)
+            .map(this::criarSessao);
+    }
+
+    private LoginResponse criarSessao(Usuario usuario) {
+        return LoginResponse.comToken(jwtService.gerarToken(usuario), resumo(usuario));
     }
 
     private void validarEntrada(LoginRequest request) {

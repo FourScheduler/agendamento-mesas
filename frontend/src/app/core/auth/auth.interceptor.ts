@@ -7,7 +7,7 @@ import { AuthService } from './auth.service';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const isApiRequest = request.url.startsWith(environment.apiUrl);
-  const isLogin = request.url.endsWith('/auth/login');
+  const isLogin = request.url.endsWith('/auth/login') || request.url.endsWith('/auth/sso/sessao');
   const isProfile = request.url.endsWith('/auth/perfil');
   const token = auth.token();
   const authenticatedRequest = isApiRequest && token && !isLogin
@@ -15,7 +15,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     : request;
 
   return next(authenticatedRequest).pipe(catchError(error => {
-    // Login 401s are credential errors. Profile 401s are handled by session restoration
+    // Login and SSO exchange failures are handled by the login page. Profile 401s are handled by session restoration
     // and its route guards, avoiding duplicate navigation.
     if (isApiRequest && !isLogin && !isProfile && error instanceof HttpErrorResponse && error.status === 401) {
       auth.logout(true);

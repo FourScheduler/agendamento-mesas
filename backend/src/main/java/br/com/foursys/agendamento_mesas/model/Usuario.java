@@ -38,6 +38,12 @@ public class Usuario {
     @Column(name = "senha_hash", nullable = false, length = 100)
     private String senhaHash;
 
+    @Column(name = "microsoft_tenant_id", length = 36)
+    private String microsoftTenantId;
+
+    @Column(name = "microsoft_object_id", length = 36)
+    private String microsoftObjectId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "perfil", nullable = false, length = 20)
     private PerfilUsuario papel;

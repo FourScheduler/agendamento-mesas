@@ -12,50 +12,62 @@
   <section class="login cartao" aria-labelledby="titulo-login">
     <div class="cartao__cabecalho">
       <h2 id="titulo-login">Boas-vindas</h2>
-      <p>Entre para acessar o Agendamento de Mesas.</p>
+      <p>Use sua conta corporativa para acessar o Agendamento de Mesas.</p>
     </div>
-    <form #form="ngForm" (ngSubmit)="entrar()">
-      <div class="campo">
-        <label class="campo__rotulo" for="email">E-mail</label>
-        <input
-          class="campo__entrada"
-          id="email"
-          name="email"
-          type="email"
-          placeholder="Digite seu e-mail"
-          [(ngModel)]="email"
-          required
-          email
-          autocomplete="username"
-          [disabled]="entrando()"
-          autofocus
-        />
-      </div>
-      <div class="campo">
-        <label class="campo__rotulo" for="senha">Senha</label>
-        <input
-          class="campo__entrada"
-          id="senha"
-          name="senha"
-          type="password"
-          placeholder="Digite sua senha"
-          [(ngModel)]="senha"
-          required
-          autocomplete="current-password"
-          [disabled]="entrando()"
-        />
-      </div>
-      @if (erro()) {
-      <p role="alert" class="campo__erro">{{ erro() }}</p>
+    <div class="login__acoes">
+      <a class="botao entrar entrar-microsoft" [href]="urlMicrosoft"
+        [attr.aria-disabled]="entrando() || conectandoMicrosoft() ? 'true' : null"
+        (click)="prepararMicrosoft($event)">
+        <span class="microsoft-simbolo" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+        Entrar com a Microsoft
+      </a>
+      @if (conectandoMicrosoft()) {
+        <p class="login__status" role="status">Conectando com a Microsoft…</p>
       }
-      <button
-        class="botao entrar"
-        type="submit"
-        [disabled]="form.invalid || entrando()"
-      >
-        {{ entrando() ? 'Entrando…' : 'Entrar' }}
-      </button>
-      <p class="aviso">Use sua conta cadastrada. Nunca compartilhe sua senha.</p>
-    </form>
+      @if (erro()) {
+        <p role="alert" class="campo__erro">{{ erro() }}</p>
+      }
+      <details class="login-local">
+        <summary>Entrar com e-mail e senha</summary>
+        <form #form="ngForm" (ngSubmit)="entrar()">
+          <div class="campo">
+            <label class="campo__rotulo" for="email">E-mail</label>
+            <input
+              class="campo__entrada"
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Digite seu e-mail"
+              [(ngModel)]="email"
+              required
+              email
+              autocomplete="username"
+              [disabled]="entrando() || conectandoMicrosoft()"
+            />
+          </div>
+          <div class="campo">
+            <label class="campo__rotulo" for="senha">Senha</label>
+            <input
+              class="campo__entrada"
+              id="senha"
+              name="senha"
+              type="password"
+              placeholder="Digite sua senha"
+              [(ngModel)]="senha"
+              required
+              autocomplete="current-password"
+              [disabled]="entrando() || conectandoMicrosoft()"
+            />
+          </div>
+          <button
+            class="botao entrar"
+            type="submit"
+            [disabled]="form.invalid || entrando() || conectandoMicrosoft()"
+          >
+            {{ entrando() ? 'Entrando…' : 'Entrar' }}
+          </button>
+        </form>
+      </details>
+    </div>
   </section>
 </main>

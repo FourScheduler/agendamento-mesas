@@ -52,6 +52,16 @@
 }
 .login h2 {
   margin: 0 0 0.5rem;
+  color: var(--navy);
+}
+.login .cartao__cabecalho p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.login__acoes {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem 2rem 2rem;
 }
 .login .campo__entrada,
 .entrar {
@@ -59,19 +69,54 @@
 }
 form {
   display: grid;
-  gap: 1.25rem;
-  padding: 2rem;
+  gap: 1rem;
+  padding-top: 1rem;
 }
 .entrar {
   width: 100%;
   justify-content: center;
 }
-.aviso {
-  margin: 0;
-  color: var(--muted);
+.entrar-microsoft {
+  min-height: 48px;
+  border-color: var(--border);
+  background: var(--card-bg);
+  color: var(--navy);
+  font-weight: 800;
   text-align: center;
-  font-size: 0.75rem;
-  line-height: 1.5;
+}
+.entrar-microsoft:hover:not([aria-disabled='true']) {
+  border-color: var(--gray-500);
+  background: var(--page-bg);
+}
+.entrar-microsoft[aria-disabled='true'] {
+  background: var(--card-bg);
+  opacity: 0.6;
+  cursor: default;
+}
+.microsoft-simbolo {
+  display: grid;
+  grid-template-columns: repeat(2, 8px);
+  grid-auto-rows: 8px;
+  gap: 2px;
+}
+.microsoft-simbolo span:nth-child(1) { background: #f25022; }
+.microsoft-simbolo span:nth-child(2) { background: #7fba00; }
+.microsoft-simbolo span:nth-child(3) { background: #00a4ef; }
+.microsoft-simbolo span:nth-child(4) { background: #ffb900; }
+.login__status {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.login-local {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-soft);
+}
+.login-local summary {
+  width: fit-content;
+  color: var(--navy);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 @media (max-width: 760px) {
   .login-page {
@@ -80,4 +125,11 @@ form {
   }
   .apresentacao { text-align: center; }
   .ilustracao { display: none; }
+}
+
+@media (max-width: 400px) {
+  .login .cartao__cabecalho,
+  .login__acoes {
+    padding-inline: 1.25rem;
+  }
 }

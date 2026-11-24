@@ -1,4 +1,8 @@
 server:
+  servlet:
+    session:
+      cookie:
+        secure: true
   error:
     include-message: never
     include-stacktrace: never

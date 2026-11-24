@@ -39,6 +39,11 @@ public class UsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     }
 
     @Override
+    public Optional<Usuario> buscarPorIdentidadeMicrosoft(String tenantId, String objectId) {
+        return usuarioJpaRepository.findByMicrosoftTenantIdAndMicrosoftObjectId(tenantId, objectId);
+    }
+
+    @Override
     public void deletarTodos() {
         usuarioJpaRepository.deleteAll();
     }
