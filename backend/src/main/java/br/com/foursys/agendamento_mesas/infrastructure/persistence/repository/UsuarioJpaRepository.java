@@ -20,6 +20,8 @@ public interface UsuarioJpaRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmail(String email);
 
+    Optional<Usuario> findByMicrosoftTenantIdAndMicrosoftObjectId(String tenantId, String objectId);
+
     boolean existsByEmail(String email);
 
     @Query("select u from Usuario u where u.ativo = true order by u.nome")

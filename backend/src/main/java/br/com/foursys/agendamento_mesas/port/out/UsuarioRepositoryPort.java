@@ -18,6 +18,8 @@ public interface UsuarioRepositoryPort {
 
     Optional<Usuario> buscarPorEmail(String email);
 
+    Optional<Usuario> buscarPorIdentidadeMicrosoft(String tenantId, String objectId);
+
     void deletarTodos();
 
     boolean existePorEmail(String email);

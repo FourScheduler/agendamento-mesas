@@ -1,5 +1,6 @@
 package br.com.foursys.agendamento_mesas.config;
 
+import br.com.foursys.agendamento_mesas.controller.MicrosoftSsoController;
 import br.com.foursys.agendamento_mesas.security.AcessoNegadoTratador;
 import br.com.foursys.agendamento_mesas.security.EntradaNaoAutenticado;
 import br.com.foursys.agendamento_mesas.security.JwtAuthenticationFilter;
@@ -38,6 +39,8 @@ public class SecurityConfig {
             .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(requisicoes -> requisicoes
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET, MicrosoftSsoController.INICIO, MicrosoftSsoController.RETORNO).permitAll()
+                .requestMatchers(HttpMethod.POST, MicrosoftSsoController.SESSAO).permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
