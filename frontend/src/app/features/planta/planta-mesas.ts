@@ -32,7 +32,7 @@ import {
   standalone: true,
   imports: [NgTemplateOutlet],
   templateUrl: "./planta-mesas.html",
-  styleUrl: "./planta-mesas.css",
+  styleUrls: ["./planta-mesas.css", "./planta-mesas-legado.css"],
 })
 export class PlantaMesas {
   private readonly auth = inject(AuthService);

@@ -788,16 +788,25 @@ describe("PlantaMesas", () => {
     const suaReserva = rodape.querySelector('.amostra--sua-reserva') as HTMLElement;
     expect(getComputedStyle(suaReserva).animation).toContain('mesa-pulsar 1.5s ease-in-out infinite');
     const mesaFixa = mesas[0];
-    (fixture.nativeElement.querySelector(
-      '.legenda__visibilidade .botao-icone',
-    ) as HTMLButtonElement).click();
+    const olho = rodape.querySelector<HTMLButtonElement>('.legenda__visibilidade button')!;
+    expect(olho.querySelector('path[d="m3 3 18 18"]')).toBeTruthy();
+    olho.click();
     fixture.detectChanges();
 
     expect(mesaFixa.querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Exemplo');
+    expect(olho.querySelector('path[d="m3 3 18 18"]')).toBeNull();
     expect(mesas[2].querySelector('.mesa__ocupante')?.textContent).toContain('Pessoa Reservada');
     expect(getComputedStyle(mesaFixa.querySelector('.mesa__ocupante') as HTMLElement).fontSize).toBe('15px');
     expect(mesaFixa.querySelector('.mesa__estado')).toBeNull();
     expect(mesas[2].getAttribute('aria-label')).toContain('Pessoa Reservada');
+    expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Reservada');
+    olho.click();
+    fixture.detectChanges();
+    expect(olho.getAttribute('aria-pressed')).toBe('false');
+    expect(olho.querySelector('path[d="m3 3 18 18"]')).toBeTruthy();
+    expect(mesas[2].querySelector('.mesa__ocupante')).toBeNull();
+    expect(mesas[2].querySelector('.mesa__codigo')?.textContent).toBe('67');
+    expect(mesas[2].querySelector('.mesa__estado')?.textContent).toBe('Sua Reserva');
     expect(mesas[2].querySelector('.mesa-tooltip')?.textContent).toBe('Pessoa Reservada');
   });
 

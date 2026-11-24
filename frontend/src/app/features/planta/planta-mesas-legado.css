@@ -1,0 +1,44 @@
+.planta--legado .mesa {
+  padding: 4px;
+  gap: 1px;
+}
+.planta--legado .mesa__codigo {
+  font-size: 13px;
+  padding: 1px 3px;
+}
+.planta--legado .mesa__ocupante,
+.planta--legado .mesa__estado {
+  font-size: 11px;
+}
+.planta--legado .mesa__estado {
+  font-size: 13px;
+}
+.planta--legado .sua-reserva:has(.mesa__ocupante) {
+  gap: 0;
+  padding: 0;
+}
+.planta--legado .sua-reserva:has(.mesa__ocupante) .mesa__codigo,
+.planta--legado .sua-reserva:has(.mesa__ocupante) .mesa__estado {
+  padding-block: 0;
+}
+.planta--legado .sua-reserva:has(.mesa__ocupante) .mesa__estado {
+  padding-inline: 0;
+  font-size: 11px;
+}
+.planta--legado .mesa__cadeira {
+  width: 16px;
+  height: 4px;
+}
+.planta--legado .mesa__cadeira::after,
+.planta--legado .mesa__cadeira--superior {
+  top: -6px;
+}
+.planta--legado .mesa__cadeira--inferior {
+  bottom: -6px;
+}
+.planta--legado .mesa__marcador {
+  width: 6px;
+  height: 6px;
+  right: 4px;
+  top: 4px;
+}

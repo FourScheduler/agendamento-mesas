@@ -479,6 +479,13 @@
   background: #fff;
   box-shadow: 0 2px 8px rgb(217 119 50 / 25%);
 }
+.sua-reserva:has(.mesa__ocupante) {
+  gap: 2px;
+  padding-block: 4px;
+}
+.sua-reserva:has(.mesa__ocupante) .mesa__codigo {
+  padding-block: 2px;
+}
 .mesa__estado--sua-reserva {
   position: relative;
   z-index: 1;
@@ -680,38 +687,6 @@
     repeating-linear-gradient(0deg, transparent 0 196px, #334651 196px 200px),
     linear-gradient(90deg, #93b4c9, #e6f3f9, #9fbccc);
   box-shadow: 8px 4px 12px rgb(66 82 92 / 20%);
-}
-.planta--legado .mesa {
-  padding: 4px;
-  gap: 1px;
-}
-.planta--legado .mesa__codigo {
-  font-size: 13px;
-  padding: 1px 3px;
-}
-.planta--legado .mesa__ocupante,
-.planta--legado .mesa__estado {
-  font-size: 11px;
-}
-.planta--legado .mesa__estado {
-  font-size: 13px;
-}
-.planta--legado .mesa__cadeira {
-  width: 16px;
-  height: 4px;
-}
-.planta--legado .mesa__cadeira::after,
-.planta--legado .mesa__cadeira--superior {
-  top: -6px;
-}
-.planta--legado .mesa__cadeira--inferior {
-  bottom: -6px;
-}
-.planta--legado .mesa__marcador {
-  width: 6px;
-  height: 6px;
-  right: 4px;
-  top: 4px;
 }
 @media (max-width: 700px) {
   .mapa__ferramentas-modal {
